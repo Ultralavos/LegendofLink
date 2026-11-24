@@ -10,7 +10,7 @@ slot holds (WIX for the wares; owned ones are listed in order), and lol_pictures
 Codes $31-$3E are free for new items.
 
 Conditions: a list of rules, all of which must hold for the upgrade to be offered: ("ge", address, n) the byte is
-n or more; ("lt", address, n) below n; ("ge_or_swordless", address, n) n or more, or swordless mode (lol_modes); ("notowned", name) Link doesn't own that upgrade; ("rank0",) only in the
+n or more; ("lt", address, n) below n; ("ge_or_swordless", address, n) n or more, or swordless mode (lol_modes); ("notowned", name) Link doesn't own that upgrade; ("rank1",) only in the second upgrade cave Link enters; ("rank0",) only in the
 first upgrade cave Link enters; ("anynz", a, b) either byte is nonzero. (Addresses: page $06, the inventory.)"""
 import os
 
@@ -31,6 +31,7 @@ MAX_BOMBS, HEARTS = 0x067C, 0x066F
 HAS_POTION = [("ge", POTION, 1)]
 HAS_BOW = [("ge", BOW, 1)]
 HAS_SWORD = [("ge", 0x0657, 1)]             # (lol_modes: sword-only upgrades need a sword)
+NO_SNUB = [("notowned", "heart snubber")]   # (sword upgrades leave the pool with the heart snubber)
 BOMB_UPGRADE = [("ge", MAX_BOMBS, 12)]  # at least one bomb upgrade (8 -> 12)
 WAND = 0x065F
 FOOD = 0x065D                           # the bait
@@ -38,11 +39,11 @@ RARE = 3                                # relative weights: 13 a normal upgrade,
 # name, (address, bit), price, tier, relative weight, conditions (all must hold), picture, fixed halves {x: tile},
 # palette (the item drawn as: $1A red, $00 blue, $12 the blue ring's)
 ROWS = [
-    ("beams",           (UPGRADES, 0x01),  50, 0, 13, HAS_SWORD, "_beam_sword", {}, 0x00),
+    ("beams",           (UPGRADES, 0x01),  50, 0, 13, HAS_SWORD + NO_SNUB, "_beam_sword", {}, 0x00),
     ("boomstick",       (UPGRADES, 0x02), 100, 1, 13, [("ge", WAND, 1)], "_boomstick", {0: 0x4A}, 0x00),
     ("regen",           (UPGRADES, 0x04), 200, 2, 13, [], "_regen", {}, 0x1A),
     ("skull ring",      (UPGRADES, 0x10),  50, 0, 13, [], "_skull_ring", {}, 0x12),
-    ("sword mastery",   (UPGRADES, 0x08), 100, 1, 13, HAS_SWORD, "_sword_plus", {0: 0x20}, 0x00),
+    ("sword mastery",   (UPGRADES, 0x08), 100, 1, 13, HAS_SWORD + NO_SNUB, "_sword_plus", {0: 0x20}, 0x00),
     ("fairy bottle",    (UPGRADES, 0x40), 150, 2, 13, [], "_fairy_bottle", {0: 0x40, 8: 0x50}, 0x00),   # (owned: the
                         # bottle, $40; the fairy in it is $20, set too when bought: lol_upgrades' utbits)
     ("blue like likes", (UPGRADES, 0x80),  50, 0, 13, [], "_likelike_bomb", {}, 0x1A if LL_VARIANT == "a" else 0x00),
@@ -74,6 +75,11 @@ ROWS = [
     # v2.02 web: needs the bait; it turns blue, lures gibdos too, drains moblins / goriyas / octoroks touching it
     # and heals gibdos (lol_newups). (Its bit, UP5's $80, is read with BIT: bit 7.)
     ("poison bait",     (UP5, 0x80),       50, 0, 13, [("ge", FOOD, 1)], "_poison_bait", {}, 0x00),
+    # owner 2026-11-24 (was "attack over heart"): only in the second upgrade cave Link finds, at 3 containers or fewer
+    # (lol_snubber: 3 hearts for good, the level counted on in the containers' nibble, the wood sword's attack half
+    # the level, swords out of every pool). Its bit: UP3's $40.
+    ("heart snubber",   (UP3, 0x40),      200, 2, 13, HAS_SWORD + [("lt", HEARTS, 0x30), ("rank1",)],
+     "_heart_snubber", {}, 0x1A),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

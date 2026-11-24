@@ -297,6 +297,8 @@ def main():
     lol_modes.apply_ground(rom, notes)
     lol_modes.apply_continue(rom, notes)
     lol_modes.apply_hud(rom, notes)
+    import lol_snubber
+    lol_snubber.apply(rom, notes)
     import lol_stats
     lol_stats.apply(rom, notes)                   # (the end screen: before the fixed bank's copy)
     if lol_entrances.GEN:

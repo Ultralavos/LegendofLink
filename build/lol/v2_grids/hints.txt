@@ -58,3 +58,6 @@ Blue pols voice (v2.02 web): blue once enemies see 10 containers (hard mode 7); 
 Poison bait (v2.02 web):
 44. Have you ever tried to poison that meat you have?   [only with the bait]
 45. Gibdos love the poison meat, it heals them!   [only with the upgrade poison bait]
+
+Heart snubber (2026-11-24):
+46. Heart Snubber: 3 hearts, but your sword grows with you   [only with the upgrade heart snubber]

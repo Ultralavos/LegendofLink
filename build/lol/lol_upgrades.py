@@ -117,9 +117,15 @@ def apply(rom: bytearray, notes: list) -> None:
         # every monster's invincibility timer cleared, so the blast (4) lands right after the shot's hit (2)
         a.label("bm_out").b(0xA9, 0x00, 0xA0, 0x0B).label("bv").abs(0x99, 0x04F0).b(0x88).br(0xD0, "bv")
         return a.b(0x60)
-    def b_sword(org):                                  # sword +1, then the books' bonus
+    SNUB = T.bit("heart snubber")
+    def b_sword(org):                                  # the heart snubber's level, sword +1, then the books' bonus
         a = Asm(org)
-        a.label("sword").b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go").abs(0xAD, UPGRADES).b(0x29, SWORD_UP).br(0xF0, "sw_go")
+        a.label("sword").b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")
+        # heart snubber: the attack is at least half the level (the containers' nibble + 1) from level 4: 2 .. 8
+        a.abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "sw_m")
+        a.abs(0xAD, 0x066F).b(0x4A, 0x4A, 0x4A, 0x4A, 0x18, 0x69, 0x01, 0x4A, 0xC9, 0x02).br(0x90, "sw_m")
+        a.b(0x0A, 0x0A, 0x0A, 0x0A, 0xC5, 0x07).br(0x90, "sw_m").b(0x85, 0x07)
+        a.label("sw_m").abs(0xAD, UPGRADES).b(0x29, SWORD_UP).br(0xF0, "sw_go")
         a.b(0xA5, 0xAC + 0x0D, 0xC9, 0x30).br(0xB0, "sw_go")
         a.b(0xA5, 0x07, 0x18, 0x69, 0x10).br(0x90, "sw_st").b(0xA9, 0xFF)
         a.label("sw_st").b(0x85, 0x07)
@@ -144,15 +150,27 @@ def apply(rom: bytearray, notes: list) -> None:
         return a.label("r").b(0x60)
     B0 = {n: V.put0(rom, f).labels[n] for n, f in (("regen", b_regen), ("boom", b_boom), ("sword", b_sword),
                                                     ("died", b_died), ("refill", b_refill))}
-    def b_frame(org):                                  # every frame of play: regen, the refilling bag
+    def b_snub(org):                                   # the heart snubber: at most 3 hearts (its cap: the
+        a = Asm(org)                                   # containers, 3 at most); full: ForceSwordShot (the beams)
+        a.label("snub").abs(0xAD, 0x066F).b(0x4A, 0x4A, 0x4A, 0x4A, 0xC9, 0x02).br(0x90, "s_c").b(0xA9, 0x02)
+        a.label("s_c").b(0x85, 0x00)
+        a.abs(0xAD, 0x066F).b(0x29, 0x0F, 0xC5, 0x00).br(0x90, "s_lo").br(0xF0, "s_eq")
+        a.abs(0xAD, 0x066F).b(0x29, 0xF0, 0x05, 0x00).abs(0x8D, 0x066F).b(0xA9, 0xFF).abs(0x8D, 0x0670)
+        a.label("s_eq").abs(0xAD, 0x0670).b(0xC9, 0x80).br(0x90, "s_lo").b(0xA9, 0x01).abs(0x8D, 0x0529).b(0x60)
+        a.label("s_lo").b(0xA9, 0x00).abs(0x8D, 0x0529).b(0x60)
+        return a
+    B0["snub"] = V.put0(rom, b_snub).labels["snub"]
+    def b_frame(org):                                  # every frame of play: regen, the refilling bag, the snubber
         a = Asm(org)
         a.label("frame").abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xF0, "f1").abs(0x20, B0["regen"])
         a.label("f1").abs(0xAD, RF[0]).b(0x29, RF[1]).br(0xF0, "f2").abs(0x20, B0["refill"])
-        return a.label("f2").b(0x60)
+        a.label("f2").abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "f3").abs(0x20, B0["snub"])
+        return a.label("f3").b(0x60)
     B0["frame"] = V.put0(rom, b_frame).labels["frame"]
     # --- bank 7 stubs ---
     s_regen = V.put7(rom, lambda o: Asm(o).abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xD0, "go").abs(0xAD, RF[0])
-                     .b(0x29, RF[1]).br(0xF0, "o").label("go").b(*V.far(0, B0["frame"]))
+                     .b(0x29, RF[1]).br(0xD0, "go").abs(0xAD, SNUB[0]).b(0x29, SNUB[1])
+                     .br(0xF0, "o").label("go").b(*V.far(0, B0["frame"]))
                      .label("o").abs(0xAD, 0x066C).b(0x60)).cpu                     # (then the replaced LDA InvClock)
     s_boom = V.put7(rom, lambda o: Asm(o).abs(0xAD, UPGRADES).b(0x29, 0x02).br(0xF0, "d").b(*V.far(0, B0["boom"]))
                     .label("d").abs(0x4C, DEACT_LINK_SHOT)).cpu                      # (the shot ends)
@@ -481,7 +499,7 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     assert BAT_I == POUCH_I + 1
     from lol_af import AF_MAP
     weights = [w for tier in T.TIERS for w in T.weights256(tier)]
-    KINDS = {"ge": 0, "lt": 1, "notowned": 2, "rank0": 3, "anynz": 4, "ge_or_swordless": 5}
+    KINDS = {"ge": 0, "lt": 1, "notowned": 2, "rank0": 3, "anynz": 4, "ge_or_swordless": 5, "rank1": 6}
     clauses, cptr = [], []
     for k in range(N_UP):
         cptr.append(len(clauses))
@@ -493,6 +511,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
                 clauses += [2, 0, T.index(c[1])]
             elif c[0] == "rank0":
                 clauses += [3, 0, 0]
+            elif c[0] == "rank1":
+                clauses += [6, 0, 0]
             else:
                 assert c[1] >> 8 == 0x06 and c[2] >> 8 == 0x06
                 clauses += [4, c[1] & 0xFF, c[2] & 0xFF]
@@ -557,14 +577,15 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("e_lp").abs(0xBD, "cl").b(0xC9, 0xFF).br(0xF0, "e_ok")
         b.abs(0x8D, EK).abs(0xBC, "cl1").abs(0xBD, "cl2").abs(0x8D, EB)
         b.abs(0xAD, EK).br(0xF0, "k_ge").b(0xC9, 0x01).br(0xF0, "k_lt").b(0xC9, 0x02).br(0xF0, "k_no")
-        b.b(0xC9, 0x03).br(0xF0, "k_r0").b(0xC9, 0x05).br(0xF0, "k_gs")
+        b.b(0xC9, 0x03).br(0xF0, "k_r0").b(0xC9, 0x05).br(0xF0, "k_gs").b(0xC9, 0x06).br(0xF0, "k_r1")
         b.abs(0xB9, 0x0600).abs(0xAC, EB).abs(0x19, 0x0600).br(0xF0, "e_no").br(0xD0, "e_nx")   # anynz
         b.label("k_gs").abs(0xAD, 0x7FF7).br(0xD0, "e_nx")                         # (lol_modes' swordless)
         b.label("k_ge").abs(0xB9, 0x0600).abs(0xCD, EB).br(0x90, "e_no").br(0xB0, "e_nx")
         b.label("k_lt").abs(0xB9, 0x0600).abs(0xCD, EB).br(0xB0, "e_no").br(0x90, "e_nx")
         b.label("k_no").b(0x8A, 0x48).abs(0xAE, EB).abs(0x20, "uget").abs(0x8D, EK).b(0x68, 0xAA)
         b.abs(0xAD, EK).br(0xD0, "e_no").br(0xF0, "e_nx")
-        b.label("k_r0").abs(0xAD, RANK).br(0xD0, "e_no")
+        b.label("k_r0").abs(0xAD, RANK).br(0xD0, "e_no").br(0xF0, "e_nx")
+        b.label("k_r1").abs(0xAD, RANK).b(0xC9, 0x01).br(0xD0, "e_no")            # (the second cave Link found)
         b.label("e_nx").b(0xE8, 0xE8, 0xE8).abs(0x4C, "e_lp")
         b.label("e_ok").abs(0xAE, ESX).b(0x18, 0x60)
         b.label("e_no").abs(0xAE, ESX).b(0x38, 0x60)
@@ -648,7 +669,9 @@ def apply_caves(rom: bytearray, notes: list) -> None:
       w.b(0xC9, 0x6C).br(0xF0, "ws").abs(0x4C, fill)
       w.label("ws").b(0xA2, 0x00)
       w.label("ws_lp").abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
-      w.abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b").abs(0xAD, 0x7FF7).br(0xF0, "ws_put")   # swordless:
+      w.abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
+      w.abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, "ws_nx")   # (snubber: none)
+      w.abs(0xAD, 0x7FF7).br(0xF0, "ws_put")                                   # swordless:
       w.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, "ws_nx").b(0xA9, 0x24).br(0xD0, "ws_st")            # a bomb upgrade
       w.label("ws_b").b(0xC9, 0x1D).br(0xD0, "ws_put").abs(0xAC, 0x0675).br(0xF0, "ws_put")   # no boomerang of any kind
       w.label("ws_nx").b(0xE8, 0xE8, 0xE8, 0xE0, 3 * len(WS_LIST)).br(0xD0, "ws_lp")

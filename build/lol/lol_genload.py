@@ -1091,6 +1091,8 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
            (0x0664, [0x0B])]
     for i, (addr, nxt) in enumerate(ups):
         if addr == 0x0657:              # lol_modes' swordless: the sword is a bomb upgrade (below 32 bombs)
+            import lol_uptable as UT    # (the heart snubber: no sword at all)
+            a.abs(0xAD, UT.bit("heart snubber")[0]).b(0x29, UT.bit("heart snubber")[1]).br(0xD0, f"up{i}")
             a.abs(0xAD, 0x7FF7).br(0xF0, f"upn{i}").abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, f"up{i}")
             a.b(0xA9, 0x24).br(0xD0, f"ups{i}")
             a.label(f"upn{i}")

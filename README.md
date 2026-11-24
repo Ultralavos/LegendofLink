@@ -22,6 +22,12 @@ tier's upgrades with no conditions), and the old men's quotes to go with them (`
 quotes about upgrades the seed left out are dropped, and fun quotes fill the set up to 40 (at least 3 of them). The
 title's list still shows every upgrade.
 
+**Heart Snubber** (200, tier 3; only in the second upgrade cave Link finds, at 3 heart containers or fewer;
+`build/lol/lol_snubber.py`): Link stays at 3 hearts for good while his level keeps counting (enemies, offers and
+hard mode go by it). From level 4 his sword's attack is half his level (2 at 4, up to 8 at 16); no sword or sword
+upgrade is offered again (a sword's odds go evenly to the rest); the top heart row shows a sword per 2 levels and a
+cross for an odd one.
+
 ## The end screen
 
 After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips them, Select goes on):

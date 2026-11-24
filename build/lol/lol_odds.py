@@ -28,6 +28,7 @@ TRAMP = 0xDFF0                          # bank 7 free (18 bytes)
 LST, CTX, STO, NUM, OUT, RET = 0x0180, 0x0181, 0x0182, 0x0183, 0x0184, 0x0187   # (stack page, unused)
 KEY, ACC, TRY, PK, CUM, RR, CAND, SEED, TT, UU, NOK = (0x0188, 0x0189, 0x018A, 0x018B, 0x018C, 0x018D, 0x018E,
                                                        0x018F, 0x0190, 0x0191, 0x0192)
+EV, EV2 = TT, UU                        # (the heart snubber's even spread: mix's scratch, free outside a mix)
 STORE = 0x606A                          # the third file's item area: 20 bytes per file
 PER_FILE = 20
 SEED_AT = 17
@@ -150,7 +151,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA9, 0xFF).abs(0x8D, OUT).abs(0x8D, OUT + 1).abs(0x8D, OUT + 2)
     a.b(0xA9, 0x00).abs(0x8D, NOK).abs(0x8D, ACC).abs(0x8D, PK)
     # each pick
-    a.label("pk_lp").abs(0xAD, PK).abs(0xCD, NUM).br(0xB0, "done")
+    a.label("pk_lp").abs(0xAD, PK).abs(0xCD, NUM).br(0x90, "pk_go").abs(0x4C, "done")
+    a.label("pk_go")
     a.b(0xA9, TRIES).abs(0x8D, TRY)
     a.label("tr_lp")
     a.abs(0xAD, ACC).b(0x18, 0x69, 37).abs(0x8D, ACC)
@@ -160,7 +162,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("wk_lp").abs(0xAD, CUM).b(0x18, 0x71, 0x0E).abs(0x8D, CUM)
     a.abs(0xAD, RR).abs(0xCD, CUM).br(0x90, "wk_hit")
     a.b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "wk_lp").br(0xB0, "tr_nx")         # past the row: roll again
-    a.label("wk_hit").abs(0x20, "ok").br(0xB0, "pk_take")
+    a.label("wk_hit").abs(0x20, "snsw").br(0x90, "wk_ok").abs(0x4C, "even")              # (a sword: snubber)
+    a.label("wk_ok").abs(0x20, "ok").br(0xB0, "pk_take")
     a.label("tr_nx").abs(0xCE, TRY).br(0xD0, "tr_lp")
     # no luck: the first one he can get with odds above 0
     a.b(0xA0, 0x00)
@@ -169,8 +172,31 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("pk_take").b(0x98).abs(0xAC, PK).abs(0x99, OUT).abs(0xEE, PK).abs(0xEE, NOK)
     a.abs(0x4C, "pk_lp")
     a.label("done").b(0x68, 0x85, 0x0F, 0x68, 0x85, 0x0E, 0x60)
+    # even (lol_uptable's heart snubber took the swords out): a rolled sword's odds are spread evenly over the rest:
+    # one of the entries Link may get (odds above 0, not a sword), each as likely
+    a.label("even").b(0xA9, 0x00).abs(0x8D, EV).b(0xA0, 0x00)
+    a.label("ev_c").b(0xB1, 0x0E).br(0xF0, "ev_n").abs(0x20, "snsw").br(0xB0, "ev_n").abs(0x20, "ok").br(0x90, "ev_n")
+    a.abs(0xEE, EV)
+    a.label("ev_n").b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "ev_c")
+    a.abs(0xAD, EV).br(0xD0, "ev_r").abs(0x4C, "tr_nx")                          # none: roll again
+    a.label("ev_r").abs(0xAD, RR)
+    a.label("ev_m").abs(0xCD, EV).br(0x90, "ev_k").abs(0xED, EV).abs(0x4C, "ev_m")
+    a.label("ev_k").abs(0x8D, EV).b(0xA0, 0x00)
+    a.label("ev_2").b(0xB1, 0x0E).br(0xF0, "ev_2n").abs(0x20, "snsw").br(0xB0, "ev_2n").abs(0x20, "ok").br(0x90, "ev_2n")
+    a.abs(0xAD, EV).br(0xD0, "ev_d").abs(0x4C, "pk_take")
+    a.label("ev_d").abs(0xCE, EV)
+    a.label("ev_2n").b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "ev_2").abs(0x4C, "tr_nx")
+    # snsw: Y = an entry (X the list): carry set if it's a sword and Link has the heart snubber (Y, X kept)
+    import lol_uptable as UT
+    sb = UT.bit("heart snubber")
+    a.label("snsw").abs(0xAD, sb[0]).b(0x29, sb[1]).br(0xF0, "sn_no")
+    a.abs(0x8C, EV2).b(0x98, 0x18).abs(0x7D, "bases").b(0xA8).abs(0xB9, "isword").abs(0xAC, EV2)
+    a.b(0xC9, 0x01).b(0x60)                                                      # (1: carry set)
+    a.label("sn_no").b(0x18, 0x60)
     # ok: Y = entry (of this list): carry set if Link may get it and it isn't picked yet (X = list kept)
     a.label("ok").b(0x98).abs(0x8D, CAND)
+    a.abs(0x20, "snsw").br(0x90, "ok_sn").abs(0x4C, "ok_no")                      # (heart snubber: no swords)
+    a.label("ok_sn")
     for k in range(3):
         a.abs(0xAD, OUT + k).abs(0xCD, CAND).br(0xD0, f"okp{k}").abs(0x4C, "ok_no").label(f"okp{k}")
     a.abs(0xAD, CAND).b(0x18).abs(0x7D, "bases").b(0xA8)                          # Y = the global entry
