@@ -118,7 +118,9 @@ def apply(rom: bytearray, notes: list) -> None:
     for k, t in enumerate((T1, T2, T3)):
         a.abs(0xAD, PAL1 + k).abs(0x8D, t)
     a.abs(0x4C, "i_set")
-    a.label("i_ot")
+    # blue pols voice (lol_newups, 10+ containers): 5 health
+    a.label("i_ot").b(0xC9, 0x16).br(0xD0, "i_back").abs(0xAD, HVE).b(0xC9, 0x90).br(0x90, "i_back")
+    a.b(0xA9, 0x50).abs(0x9D, 0x0485)
     a.label("i_back").b(0x60)
     # Y 6: a dodongo (X), each frame: with piercing arrows, a flying arrow (slot $12) on it stuns it
     a.label("dodo").abs(0xAD, U.PIERCING[0]).b(0x29, U.PIERCING[1]).br(0xF0, "dd_r")

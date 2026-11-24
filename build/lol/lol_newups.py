@@ -15,8 +15,9 @@ lol_icons2, lol_upgrades' engine).
                     a bomb deals its damage, eye open or not
   holy fire         CheckMonsterBombOrFireCollision (bank 1 $B552): fire deals $20 to stalfos, gibdos, ghinis and
                     pols voice; pols voice's mask ($9C31, bank 4) lets fire in
-  blue pols voice   (not an upgrade) once enemies see 10 containers: pols voice's mask ($9C31) lets only bombs in,
-                    its draw ($9C2E) uses palette 1, and the arrow kill (bank 1 $B604) is skipped
+  blue pols voice   (not an upgrade) once enemies see 10 containers: pols voice's mask ($9C31) lets only bombs in
+                    (and fire with holy fire), its draw ($9C2E) uses palette 1, the arrow kill (bank 1 $B604) is
+                    skipped, the recorder's tune stuns it ($9BA6); 5 health (lol_enemies2), 10 XP (lol_build)
   xp boost          the XP helper's value (bank 4 $B4A8, JSR XP_EXT): non-boss values doubled, bosses + 5
   ghost hunter      SetUpDroppedItem's help-drop check (bank 4 $B0C3): a ghini ($21 / $22) drops 5 rupees
   healerang         HandleMonsterDied (bank 1 $B4E6, INC WorldKillCount): a boomerang kill ($0F) heals 1/4 heart
@@ -26,6 +27,7 @@ from lol_af import Asm, BANK, patch, place
 import lol_uptable as T
 BLUE_POLS_AT = 0x90                     # blue pols voice: HVE >= $90 (10 containers; hard mode 7)
 BLUE_POLS = 0x016E                      # RAM: 1 while pols voices are blue (their update sets it)
+REC_LATCH = 0x017D                      # RAM: the frame the recorder's tune ended (blue pols voice's stun)
 PCHK = 0xADFA                           # bank 1 (run from WRAM $758A): 10 free bytes
 WRAM1 = 0x3870                          # bank 1's code runs from WRAM at its address - $3870
 HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
@@ -188,12 +190,23 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("pols").b(0xA9, 0x00).abs(0x8D, BLUE_POLS).abs(0xAD, HVE).b(0xC9, BLUE_POLS_AT).br(0x90, "pv_0")
         a.abs(0xEE, BLUE_POLS)                                                 # (BLUE_POLS: the arrow check's)
         a.abs(0xBD, 0x04BF).b(0x09, 0x08).abs(0x9D, 0x04BF)                    # (its draw takes $04 / $05's palette)
-        a.b(0xA9, 0xF7).br(0xD0, "pv_s")
-        a.label("pv_0").b(0xA9, 0xFE, 0x48)
+        a.b(0xA9, 0xF7).br(0xD0, "pv_h")                                       # (and holy fire, below)
+        a.label("pv_0").b(0xA9, 0xFE)
+        a.label("pv_h").b(0x48)
         gate(a, "holy fire", "pv_n")
         a.b(0x68, 0x29, 0xDF, 0x48)
         a.label("pv_n").b(0x68)
         a.label("pv_s").abs(0x9D, 0x04B2).b(0x60)
+        # blue pols voice and the recorder: the first frame after the tune ($051B set, $3C back to 0; the monsters
+        # are frozen while it plays) stuns it as a boomerang does (ObjStunTimer $3D,X = $10). REC_LATCH holds that
+        # frame's counter, so every pols voice in the room is stunned that frame only; a new tune clears it. The
+        # update's own LDA $066C / ORA $3D,X follow.
+        a.label("prec").abs(0xAD, 0x051B).br(0xF0, "pr_c").b(0xA5, 0x3C).br(0xD0, "pr_c")
+        a.abs(0xAD, REC_LATCH).br(0xF0, "pr_1").b(0xC5, 0x15).br(0xD0, "pr_o").br(0xF0, "pr_s")
+        a.label("pr_1").b(0xA5, 0x15).abs(0x8D, REC_LATCH)
+        a.label("pr_s").abs(0xAD, BLUE_POLS).br(0xF0, "pr_o").b(0xA9, 0x10, 0x95, 0x3D).br(0xD0, "pr_o")
+        a.label("pr_c").b(0xA9, 0x00).abs(0x8D, REC_LATCH)
+        a.label("pr_o").abs(0xAD, 0x066C).b(0x15, 0x3D, 0x60)
         a.label("pdraw").b(0x48).abs(0xAD, HVE).b(0xC9, BLUE_POLS_AT).br(0x90, "pd_n").b(0xA9, 0x01, 0x85, 0x04, 0x85, 0x05)
         a.label("pd_n").b(0x68).abs(0x4C, 0x77DB)
         # xp boost: the value (A, from XP_EXT; bit 7 a boss)
@@ -226,6 +239,7 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 4, 0xA44E, bytes([0xA5, 0x0F, 0xC9, 0x03]), j("geye") + b"\xEA")
     patch(rom, 4, 0x9C31, bytes([0xA9, 0xFE, 0x9D, 0xB2, 0x04]), j("pols") + b"\xEA\xEA")
     patch(rom, 4, 0x9C2E, bytes([0x20, 0xDB, 0x77]), j("pdraw"))          # pols voice's draw: blue at 10
+    patch(rom, 4, 0x9BA6, bytes.fromhex("ad6c06153d"), j("prec") + b"\xEA\xEA")   # pols voice's update: the recorder
 
     # blue pols voice: arrows don't kill it. HandleMonsterArrowCollision's pols check (bank 1 $B604, run from WRAM
     # $7D94: CMP #$16 / BNE normal / LDA #0 / STA ObjHP,X / JMP $7C54) calls PCHK (bank 1's free $ADFA, WRAM $758A):

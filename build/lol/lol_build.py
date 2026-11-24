@@ -47,8 +47,9 @@ XP_VALUES = {
 XP_HARD = {0x2A: 10, 0x28: 11, 0x30: 11}       # stalfos, ropes and (red) gibdos once Link has 8 containers
 HARD_HEARTS = 0x70                             # HeartValues' high nibble = containers - 1: 8 containers
 TABLE_SIZE = 0x4B
-XP_EXT = 0xBB59                                # bank 4 free: the value, with the 9 / 10 container enemies
+XP_EXT = 0xBC10                                # bank 4 free ($BC0D-$BC83): the value, with the 9 / 10 container enemies
 XP_BROWN, XP_BLUE_AQUA = 14, BOSS | 20         # brown darknut (blue's 12 + 2), blue Aquamentus (15 + 5)
+XP_BLUE_POLS = 7 + 3                           # blue pols voice (lol_newups): the pols voice's 7 + 3
 
 HOOK = 0x1FCCD                                 # bank 7 $FCBD: LDA $034F,X / CMP #$11 / BEQ $FCC7 / INC RoomKillCount
 HOOK_BYTES = bytes.fromhex("bd4f03c911f003ee4f03")
@@ -199,11 +200,14 @@ def main():
     rom[HOOK:HOOK + 10] = bytes([0x20, FREE & 0xFF, FREE >> 8]) + b"\xEA" * 7
     x = bytearray()                                      # ext (Y = the type)
     tbl = build_helper.labels["table"]
-    x += bytes([0xAD, 0x6F, 0x06, 0xC0, 0x0B, 0xD0, 0x07, 0xC9, 0x80, 0x90, 0x0E, 0xA9, XP_BROWN, 0x60])
-    x += bytes([0xC0, 0x3D, 0xD0, 0x07, 0xC9, 0x90, 0x90, 0x03, 0xA9, XP_BLUE_AQUA, 0x60])
+    # (HVE: the containers enemies level up by) brown darknut 9+, blue Aquamentus 10+, blue pols voice 10+
+    x += bytes([0xAD, HVE & 0xFF, HVE >> 8, 0xC0, 0x0B, 0xD0, 0x07, 0xC9, 0x80, 0x90, 25, 0xA9, XP_BROWN, 0x60])
+    x += bytes([0xC0, 0x3D, 0xD0, 0x07, 0xC9, 0x90, 0x90, 14, 0xA9, XP_BLUE_AQUA, 0x60])
+    x += bytes([0xC0, 0x16, 0xD0, 0x07, 0xC9, 0x90, 0x90, 3, 0xA9, XP_BLUE_POLS, 0x60])
     x += bytes([0xB9, tbl & 0xFF, tbl >> 8, 0x60])
+    assert len(x) == 40
     xo = BANK4 + XP_EXT - 0x8000
-    assert all(v == 0xFF for v in rom[xo:xo + len(x)]) and XP_EXT + len(x) <= 0xBB7C
+    assert all(v == 0xFF for v in rom[xo:xo + len(x)]) and XP_EXT + len(x) <= 0xBC80
     rom[xo:xo + len(x)] = x
     hard = build_helper.labels["hard"]
     for cpu in HARD_CHECKS:
