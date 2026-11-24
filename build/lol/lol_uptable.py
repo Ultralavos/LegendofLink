@@ -33,6 +33,7 @@ HAS_BOW = [("ge", BOW, 1)]
 HAS_SWORD = [("ge", 0x0657, 1)]             # (lol_modes: sword-only upgrades need a sword)
 BOMB_UPGRADE = [("ge", MAX_BOMBS, 12)]  # at least one bomb upgrade (8 -> 12)
 WAND = 0x065F
+FOOD = 0x065D                           # the bait
 RARE = 3                                # relative weights: 13 a normal upgrade, 3 a super rare one
 # name, (address, bit), price, tier, relative weight, conditions (all must hold), picture, fixed halves {x: tile},
 # palette (the item drawn as: $1A red, $00 blue, $12 the blue ring's)
@@ -70,6 +71,9 @@ ROWS = [
     ("healerang",       (UP5, 0x10),      150, 2, 13, [("anynz", BOOMERANG, MAGIC_BOOMERANG)], "_healerang", {0: 0x36}, 0x1A),
     ("shield breaker",  (UP5, 0x20),      150, 2, 13, [], "_shield_breaker", {}, 0x00),
     ("membership card", (UP5, 0x40),      200, 2, 13, [("rank0",)], "_membership_card", {}, 0x1A),
+    # v2.02 web: needs the bait; it turns blue, lures gibdos too, drains moblins / goriyas / octoroks touching it
+    # and heals gibdos (lol_newups). (Its bit, UP5's $80, is read with BIT: bit 7.)
+    ("poison bait",     (UP5, 0x80),       50, 0, 13, [("ge", FOOD, 1)], "_poison_bait", {}, 0x00),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

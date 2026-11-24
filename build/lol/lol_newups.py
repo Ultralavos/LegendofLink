@@ -15,6 +15,8 @@ lol_icons2, lol_upgrades' engine).
                     a bomb deals its damage, eye open or not
   holy fire         CheckMonsterBombOrFireCollision (bank 1 $B552): fire deals $20 to stalfos, gibdos, ghinis and
                     pols voice; pols voice's mask ($9C31, bank 4) lets fire in
+  poison bait       the bait's update (bank 7 $F4A0, bank 4 in): blue, lures gibdos, drains moblins / goriyas /
+                    octoroks touching it and heals gibdos (lol_build's status-bar code turns its item palette blue)
   blue pols voice   (not an upgrade) once enemies see 10 containers: pols voice's mask ($9C31) lets only bombs in
                     (and fire with holy fire), its draw ($9C2E) uses palette 1, the arrow kill (bank 1 $B604) is
                     skipped, the recorder's tune stuns it ($9BA6); 5 health (lol_enemies2), 10 XP (lol_build)
@@ -27,7 +29,9 @@ from lol_af import Asm, BANK, patch, place
 import lol_uptable as T
 BLUE_POLS_AT = 0x90                     # blue pols voice: HVE >= $90 (10 containers; hard mode 7)
 BLUE_POLS = 0x016E                      # RAM: 1 while pols voices are blue (their update sets it)
-REC_LATCH = 0x017D                      # RAM: the frame the recorder's tune ended (blue pols voice's stun)
+BAIT_T = 0x6090                         # RAM (save RAM spare; the stack reaches $017x): the poison bait's count
+BAIT_EVERY = 8                          # (a drain each 8 frames: $10, a hit point, every ~2 s)
+REC_LATCH = 0x6091                      # RAM (save RAM spare): the frame the recorder's tune ended (blue pols voice's stun)
 PCHK = 0xADFA                           # bank 1 (run from WRAM $758A): 10 free bytes
 WRAM1 = 0x3870                          # bank 1's code runs from WRAM at its address - $3870
 HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
@@ -135,6 +139,43 @@ def apply(rom: bytearray, notes: list) -> None:
         return a.label("f").b(0x68).b(*V.far(0, az)).b(0x60)
     c = V.put7(rom, arrow).cpu
     patch(rom, 1, 0xB5F2, bytes([0xA0, 0x0B, 0x84, 0x0D]), bytes([0x20, c & 0xFF, c >> 8, 0xEA]))
+
+    # --- poison bait. The bait's update (bank 7 $F4A0, run from the object loop with no bank switched) ends with
+    # JSR $FA93 / LDA #$02 / LDY #$06 / JMP $790C ($F4D8); that becomes a far call to bank 4 and the JMP. There,
+    # with the upgrade: a gibdo room's monsters target the bait too (vanilla lures moblin / goriya / octorok / vire
+    # / keese rooms: $035F, the room's type, at $F4B9); the bait is drawn blue; and every 8 frames each moblin,
+    # goriya or octorok ($03-$0A) touching it (12 px) loses 1/16 of a hit point - one point per ~2 s, no knockback
+    # or flash; the last one goes through HandleMonsterWeaponCollision's damage (WRAM $7C54) so it dies as usual -
+    # and each gibdo gains it, up to its spawn health ($70; $90 once enemies see 8 containers, lol_upgrades)
+    PB, PBIT = bit("poison bait")
+    assert PBIT == 0x80                   # (read with BIT: N)
+    def poison(o):
+        a = Asm(o)
+        a.label("pz").abs(0x2C, PB).br(0x30, "pz_o").abs(0x4C, "pz_d")
+        a.label("pz_o").abs(0xAD, 0x035F).b(0xC9, 0x30).br(0xD0, "pz_t").b(0xA5, 0x70 + 0x0F, 0x85, 0x61, 0xA5, 0x84 + 0x0F, 0x85, 0x62)
+        a.label("pz_t").abs(0xCE, BAIT_T).br(0x30, "pz_g").abs(0x4C, "pz_d")   # (its own count: not every frame)
+        a.label("pz_g")
+        a.b(0xA9, BAIT_EVERY - 1).abs(0x8D, BAIT_T).b(0xA2, 0x0B)
+        a.label("lp").abs(0xBD, 0x0405).br(0xD0, "nx")                     # (dying, or not here yet: left alone)
+        a.abs(0xBD, 0x034F).b(0xC9, 0x03).br(0x90, "nx").b(0xC9, 0x0B).br(0x90, "tch")
+        a.b(0xC9, 0x30).br(0xD0, "nx")
+        a.label("tch").b(0xB5, 0x70, 0x38, 0xE5, 0x70 + 0x0F).abs(0x20, 0x701F).b(0xC9, 0x0C).br(0xB0, "nx")
+        a.b(0xB5, 0x84, 0x38, 0xE5, 0x84 + 0x0F).abs(0x20, 0x701F).b(0xC9, 0x0C).br(0xB0, "nx")
+        a.abs(0xBD, 0x034F).b(0xC9, 0x30).br(0xF0, "heal")
+        a.abs(0xBD, 0x0485).b(0xC9, 0x02).br(0x90, "kill").abs(0xDE, 0x0485).abs(0x4C, "nx")
+        a.label("kill").b(0x8A, 0x48, 0xA9, 0x00).abs(0x9D, 0x0485).b(0xA9, 0x01, 0x85, 0x07, 0x85, 0x09)
+        a.abs(0x20, 0x7C54)                                       # (as the arrow's pols voice kill: health 0 first)
+        a.b(0x68, 0xAA).abs(0x4C, "nx")
+        a.label("heal").b(0xA9, 0x70).abs(0xAC, HVE).b(0xC0, 0x70).br(0x90, "hm").b(0xA9, 0x90)
+        a.label("hm").abs(0xDD, 0x0485).br(0x90, "nx").br(0xF0, "nx").abs(0xFE, 0x0485)
+        a.label("nx").b(0xCA).br(0xD0, "lp").b(0xA2, 0x0F)
+        # the vanilla tail: the frame, then palette 2 (1, blue, with the upgrade) and Y 6 for the draw
+        a.label("pz_d").abs(0x20, 0xFA93).b(0xA9, 0x02).abs(0x2C, PB).br(0x10, "pl_s").b(0xA9, 0x01)
+        a.label("pl_s").b(0xA0, 0x06, 0x60)
+        return a
+    pa = put(rom, 4, poison)
+    patch(rom, 7, 0xF4D8, bytes.fromhex("2093faa902a0064c0c79"),
+          V.far(4, pa.labels["pz"]) + bytes([0x4C, 0x0C, 0x79]))
 
     # --- bank 5: the arrow's price ---
     def cost(o):

@@ -163,6 +163,11 @@ def build_hud(cpu: int) -> bytes:
     pre = bytes([0xAD, 0xF8, 0x7F, 0xF0, 0x02, 0xA9, 0x30,                   # LDA HARD / BEQ / LDA #$30
                  0x18, 0x6D, 0x6F, 0x06, 0x90, 0x02, 0xA9, 0xFF,              # CLC / ADC HeartValues / BCC / LDA #$FF
                  0x8D, HVE & 0xFF, HVE >> 8])                                 # STA HVE
+    # the bait's item palette (WRAM $72EC + 6, its row of the item attribute table): blue (1) with the poison bait
+    # upgrade (lol_uptable, UP5 bit 7), else red (2)
+    import lol_uptable as UT
+    pb = UT.bit("poison bait")[0]
+    pre += bytes([0xA9, 0x02, 0x2C, pb & 0xFF, pb >> 8, 0x10, 0x02, 0xA9, 0x01, 0x8D, 0xF2, 0x72])
     cpu += len(pre)
     w = cpu + 10                                         # write: after the RTS
     code = pre + bytes([0xA5, 0x15, 0x4A, 0x90, 0x04,    # LDA FrameCounter / LSR / BCC ret

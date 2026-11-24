@@ -51,3 +51,7 @@ Upgrade quotes (v2.02 test 16, drafted by Claude for the user to edit; only offe
 Blue pols voice (v2.02 web): blue once enemies see 10 containers (hard mode 7); only bombs hurt them
 42. Blue Pols Voice can only be damaged with bombs
 43. The Blue Bunnies actually do hate loud noises   [only with level 10]
+
+Poison bait (v2.02 web):
+44. Have you ever tried to poison that meat you have?   [only with the bait]
+45. Gibdos love the poison meat, it heals them!   [only with the upgrade poison bait]
