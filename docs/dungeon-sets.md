@@ -38,3 +38,6 @@ The page will build that library from the chosen footprints instead of `v2_grids
   - Levels 6-8: 20-45
   - Level 9: 30-60
 - Each grid still needs free squares for its shapes' cellars (item stairs, transports).
+- Every set (quests, LoL, Shapes) keeps LoL's rules, which `lol_gen` already applies by level class
+  (`v2_grids/generator_spec.txt`): levels 1-8 their stairs (item cellars, transports by class) and old men
+  (choice rooms); shrines the prize room behind the boss with shutter doors.
