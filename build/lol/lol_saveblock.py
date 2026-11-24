@@ -18,7 +18,9 @@ Kept at once (written straight to save RAM; cleared for a new file):
   $7FAD  65   lol_genload: the generated levels' records
   VERSION ($7FF6): 1 once this file has stage 4's saved copies. A file from before (no copies yet) takes its
   working memory as saved on its first load.
-Free for later: $607E-$6091 (20), $7FF7-$7FFF (9).
+  $600A  4   lol_stats: the clock (frames, seconds, minutes, hours), in file 2's name (the file is never registered;
+             the menu's checks leave its name alone): zeroed with the saved copies for a new file
+($607E-$6091 and $7FF7-$7FFE, once free, are used: lol_uptable's UP4 / UP5 and RAM, lol_modes, lol_newups.)
 Moved for room: the hint text buffer to $6BFA (the overworld level info's palette cycles; test12 had it at $67F0, which is
 bank 6's data in RAM - the overworld column directory: fixed in test13), the
 potion pictures' code (lol_pictures POT_W / POUCH_W) from WRAM to bank 7."""
@@ -30,6 +32,7 @@ SEGMENTS = [(0x6392, 0x6412, 0x80),          # grid 2
             (0x62E2, 0x6042, 0x28),
             (0x630A, 0x7FEE, 0x08)]
 VERSION, VERSION_VALUE = 0x7FF6, 0x01
+CLOCK = 0x600A                          # lol_stats' clock (4 bytes: file 2's name, which nothing writes)
 HINT_BUF = 0x6BFA                       # (the overworld level info's palette cycles: dark-room fades only, never
                                         #  used on the overworld; a level load rewrites them)
 assert sum(n for _, _, n in SEGMENTS[2:]) == 0x80
@@ -49,6 +52,8 @@ def emit_clear_saved(a: Asm) -> None:
     for w, s, n in SEGMENTS:
         lb = f"cl{len(a.code)}"
         a.b(0xA0, n - 1).label(lb).abs(0x99, s).b(0x88).br(0x10, lb)
+    for k in range(4):                                  # lol_stats' clock
+        a.abs(0x8D, CLOCK + k)
     a.b(0xA9, VERSION_VALUE).abs(0x8D, VERSION)
 
 

@@ -13,7 +13,9 @@ conditions) or already picked this time is rolled again, up to 24 times, then th
   shops     three picks, never saved: they change when the containers or S badges change
 The rolls are a hash of a per-file seed, the place (room / screen) and the level, so a saved offer comes out the same
 each visit. Saved bytes: the unused third file's item area (bank 2 never touches it), 20 per file: 0-10 the old men
-(Levels 1-9, 2Q 4 = E, 2Q 6 = F), 11-16 A-F, 17 the seed; lol_af clears them for a new file.
+(Levels 1-9, 2Q 4 = E, 2Q 6 = F), 11-16 A-F, 17 the seed; lol_af clears them for a new file. Once the old man's
+item or the reward is taken, lol_bombup's rec keeps that item there with bit 7 set (the end screen reads it); the
+engine leaves such a byte alone.
 
 The engine is in bank 3 (ENGINE; bank 4 until v3), reached through a bank-7 trampoline (TRAMP) that returns to the caller's bank."""
 import csv, os
@@ -136,7 +138,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA0, SEED_AT, 0xB1, 0x0E).br(0xD0, "s_ok").b(0xA5, 0x15, 0x45, 0x18, 0x09, 0x01, 0x91, 0x0E)
     a.label("s_ok").abs(0x8D, SEED)
     a.abs(0xAC, STO).b(0xC0, 0xFF).br(0xF0, "w_ptr")
-    a.b(0xB1, 0x0E).br(0xF0, "st_new").b(0xC9, 0x11).br(0xB0, "st_new").abs(0x8D, KEY).br(0x90, "w_ptr")
+    a.b(0xB1, 0x0E).br(0xF0, "st_new").br(0x30, "w_ptr")                        # bit 7: given (lol_bombup rec)
+    a.b(0xC9, 0x11).br(0xB0, "st_new").abs(0x8D, KEY).br(0x90, "w_ptr")
     a.label("st_new").abs(0xAD, KEY).b(0x91, 0x0E)
     # ($0E) = this list's row: weights + (level - 1) * n
     a.label("w_ptr").abs(0xBD, "wlo").b(0x85, 0x0E).abs(0xBD, "whi").b(0x85, 0x0F)

@@ -15,6 +15,15 @@ data is stored in this repository.
   overworld group, `build/lol/lol_mixgroups.py`). Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and
   Keese stay in dungeons; Octoroks, Peahats, Leevers, boulders, Zoras, Ghinis and Armos stay outside.
 
+## The end screen
+
+After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips them, Select goes on):
+
+1. Levels 1-9 and shrines A-D, each with its dungeon's nickname and the item its old man gave (a level) or its
+   reward (a shrine), if Link took one.
+2. The time from the file's start to the finish (H:MM:SS, counted while the game runs, resets included), the
+   badges, the upgrades bought, and the inventory: the items above the box, the sword, and the box.
+
 ## Planned
 
 - Dungeon sets: 1Q, 2Q, 3Q, 4Q, Legend of Link's own maps, random shapes, random (one set) and mixed (per level).

@@ -475,13 +475,31 @@ def apply(rom: bytearray, notes: list) -> None:
     # (JSR $EBA3 / mode $12); $24 raises the bombs; $26-$28 count a badge (up to 3 each); $29 / $2A add XP
     # (the body in bank 0, far-called: lol_v3core)
     import lol_v3core as V
+    from lol_odds import STORE
+    from lol_af import AF_LEVELS
+    REC_T = 0x0173                                      # (scratch: b_hi's too)
     def b_af(org):                                      # A-F's reward: out as the triforce (A = the item, kept)
         t = Asm(org)
-        t.label("af").b(0x48, 0xC5, 0xAB).br(0xD0, "k_n")                       # PHA / the room's item?
+        t.label("af").abs(0x20, "rec").b(0x48, 0xC5, 0xAB).br(0xD0, "k_n")       # PHA / the room's item?
         t.b(0xA5, 0x10).br(0xF0, "k_n").abs(0xAD, INSIDE).br(0xF0, "k_n")        # in A-F
         t.abs(0xAD, REWARD_ROOM).b(0x49, 0x80, 0xC5, 0xEB).br(0xD0, "k_n")       # the reward's room
         t.b(0xA9, 0x00).abs(0x8D, REWARD_ROOM).abs(0x20, 0xEBA3).b(0xA9, 0x12, 0x85, 0x12)
-        return t.label("k_n").b(0x68, 0x60)
+        t.label("k_n").b(0x68, 0x60)
+        # rec (lol_stats' end screen): the item a level's old man gave (the take-any, $6B, in a first-quest level:
+        # the odds' saved byte of that level, 0-8) or a shrine's reward (A-F's room, by its letter: 11-16) is kept
+        # in that saved byte with bit 7 set (lol_odds keeps such a byte: the offer no longer matters). A, Y kept.
+        t.label("rec").abs(0x8D, REC_T).b(0x98, 0x48)
+        t.b(0xA5, 0x10).br(0xF0, "r_out")                                        # a level?
+        t.b(0xA4, 0x16).abs(0xB9, 0x062D).br(0xD0, "r_sh")                       # the second quest: A-F / shrines
+        t.abs(0xAD, 0x0350).b(0xC9, 0x6B).br(0xD0, "r_out")                      # the take-any old man
+        t.b(0xA4, 0x10, 0x88, 0xC0, 0x09).br(0xB0, "r_out").br(0x90, "r_st")
+        t.label("r_sh").abs(0xAD, INSIDE).br(0xF0, "r_out")
+        t.abs(0xAD, REWARD_ROOM).b(0x49, 0x80, 0xC5, 0xEB).br(0xD0, "r_out")     # the reward's room
+        t.abs(0xAD, REC_T).b(0xC5, 0xAB).br(0xD0, "r_out")                       # and its item
+        t.b(0xA4, 0x10, 0xC0, 0x07).br(0xB0, "r_out").abs(0xB9, "r_let").b(0xA8)
+        t.label("r_st").abs(0xAD, REC_T).b(0x09, 0x80).abs(0x99, STORE)
+        t.label("r_out").b(0x68, 0xA8).abs(0xAD, REC_T).b(0x60)
+        return t.label("r_let").b(0, *[11 + AF_LEVELS.index(lv) for lv in range(1, 7)])
     def b_hi(org):                                      # $24+ (TakeItem's own rest is skipped after)
         t = Asm(org)
         t.label("hi").b(0xC9, BOMB_UP).br(0xD0, "new")
