@@ -211,10 +211,20 @@ def _lol_pool():
     return [(nm, cells, f"lol:{gi}", GL.classes_of(nm)) for gi, _, nm, cells, _ in ds]
 
 
-def need(names_classes):
-    """Free squares a grid needs for its designs (see free_needed)."""
-    nine = any(c == "L9" for _, c in names_classes)
-    return 2 * len(names_classes) + 2 + (7 if nine else 3)
+def cellar_need(cls, cells=()):
+    """(item cellars, transport cellars) a design of this level class takes on its grid: LoL's item stairs per class
+    (level 2's is a floor item: its cellar shares another's; shrines none), and its transports: one per extra piece
+    of its footprint plus the class's own (lol_gen.generate)."""
+    import lol_gen as G
+    grp = G.GROUP[cls]
+    items = 0 if cls == "L2" else G.ITEM_STAIRS[grp]
+    pieces = len(set(G.pieces(set(cells)).values())) if cells else 1
+    return items, G.TRANSPORTS.get(grp, 0) + pieces - 1
+
+
+def need(des):
+    """Free squares a grid needs for its designs' cellars: des [(name, class, cells)]."""
+    return sum(sum(cellar_need(c, cs)) for _, c, cs in des) + (1 if des and all(c == "L2" for _, c, _ in des) else 0)
 
 
 def pack(fps, rng, tries=300):
@@ -230,7 +240,7 @@ def pack(fps, rng, tries=300):
             placed = None
             def room(g, cs):              # it fits there, and the grid keeps its cellars' squares
                 return (not (set(cs) & g["occ"].keys())
-                        and ROWS * COLS - len(g["occ"]) - len(cs) >= need(g["des"] + [(f["name"], f["cls"])]))
+                        and ROWS * COLS - len(g["occ"]) - len(cs) >= need(g["des"] + [(f["name"], f["cls"], cs)]))
             for g in grids:
                 if f["block"] in g["blocks"] and room(g, f["cells"]):
                     placed = (g, f["cells"])
@@ -258,7 +268,7 @@ def pack(fps, rng, tries=300):
             g, cs = placed
             for c in cs:
                 g["occ"][c] = f["name"]
-            g["des"].append((f["name"], f["cls"]))
+            g["des"].append((f["name"], f["cls"], cs))
         if ok and all(ROWS * COLS - len(g["occ"]) >= need(g["des"]) for g in grids):
             return grids
     return None
@@ -267,11 +277,11 @@ def pack(fps, rng, tries=300):
 def _grids_out(grids):
     out = {}
     for gi, g in enumerate(grids, 1):
-        letters = {nm: LETTERS[i] for i, (nm, _) in enumerate(g["des"])}
+        letters = {nm: LETTERS[i] for i, (nm, _, _) in enumerate(g["des"])}
         rows = ["".join(letters[g["occ"][r * COLS + c]] if r * COLS + c in g["occ"] else "."
                         for c in range(COLS)) for r in range(ROWS)]
-        out[gi] = {"rows": rows, "names": {letters[nm]: nm for nm, _ in g["des"]},
-                   "classes": {nm: (cls,) for nm, cls in g["des"]}}
+        out[gi] = {"rows": rows, "names": {letters[nm]: nm for nm, _, _ in g["des"]},
+                   "classes": {nm: (cls,) for nm, cls, _ in g["des"]}}
     for gi in range(len(grids) + 1, 5):                     # (unused grids: empty)
         out[gi] = {"rows": ["." * COLS] * ROWS, "names": {}, "classes": {}}
     return out
@@ -286,6 +296,8 @@ def build_set(which, seed):
         return None
     if which == "shapes":
         return shapes_set(seed)
+    if which in ("1q", "2q", "3q", "4q"):
+        return quest_set(which, rng)
     import lol_quests
     lol = _lol_pool()
     for attempt in range(50):
@@ -327,3 +339,78 @@ def build_set(which, seed):
         if grids is not None:
             return _grids_out(grids)
     raise RuntimeError(f"couldn't fit the {which} set's dungeons on four grids")
+
+
+# --- quest sets: the quest's two blocks as they are, and two LoL grids for the shrines (owner, 2026-11-24) ---
+
+EXTRA_NAMES = {5: {"G": "Green 5", "B": "Blue 5", "M": "Magenta 5", "Y": "Yellow 5", "C": "Cyan 5", "R": "Red 5"},
+               6: {"C": "Cyan 6", "B": "Blue 6", "M": "Magenta 6", "G": "Green 6", "R": "Red 6", "Y": "Yellow 6"}}
+
+
+def lol_grids():
+    """LoL's grids 1-6, whole: {grid: {"rows", "des": {name: cells}, "hidden": {name: cells}}}."""
+    import os
+    import lol_genload as GL
+    import lolpaths
+    ds, _ = GL.lol_designs()
+    out = {}
+    for gi, k, nm, cells, hid in ds:
+        g = out.setdefault(gi, {"des": {}, "hidden": {}})
+        g["des"][nm] = cells
+        if hid:
+            g["hidden"][nm] = hid
+    for gi in out:
+        occ = {c: nm for nm, cs in out[gi]["des"].items() for c in cs}
+        out[gi]["occ"] = occ
+    txt = open(os.path.join(lolpaths.LOL, "v2_grids", "grids_extra.txt")).read().split("\n\n")[1:]
+    for gi, blk in zip((5, 6), txt):
+        rows = [l for l in blk.split("\n") if len(l) == COLS]
+        g = {"des": {}, "hidden": {}, "occ": {}}
+        for r in range(ROWS):
+            for c in range(COLS):
+                ch = rows[r][c]
+                if ch == ".":
+                    continue
+                nm = EXTRA_NAMES[gi][ch.upper()]
+                g["des"].setdefault(nm, []).append(r * COLS + c)
+                g["occ"][r * COLS + c] = nm
+                if ch.islower():
+                    g["hidden"].setdefault(nm, []).append(r * COLS + c)
+        out[gi] = g
+    return out
+
+
+def quest_set(quest, rng):
+    """1Q-4Q: the quest's blocks 1-6 and 7-9 as they are (levels 1-9), and two LoL grids picked at random (of six),
+    whose designs of 12-20 rooms give the four shrines (any four of them)."""
+    import lol_quests
+    fp = lol_quests.footprints(quest)
+    lol = lol_grids()
+    lo, hi = RANGES["SH"]
+    while True:
+        pair = rng.sample(sorted(lol), 2)
+        cand = [(gi, nm) for gi in pair for nm, cs in sorted(lol[gi]["des"].items()) if lo <= len(cs) <= hi
+                and map_ok(cs)]
+        if len(cand) < 4:
+            continue
+        pick = rng.sample(cand, 4)
+        if all(need([(nm, "SA", lol[gi]["des"][nm]) for g2, nm in pick if g2 == gi])
+               <= ROWS * COLS - len(lol[gi]["occ"]) for gi in pair):
+            break
+    shrines = dict(zip(pick, SHRINES))
+    out = {}
+    for gi, (block, lvs) in enumerate((("1-6", range(1, 7)), ("7-9", range(7, 10))), 1):
+        names = {LETTERS[i]: f"{quest.upper()} L{lv}" for i, lv in enumerate(lvs)}
+        occ = {c: LETTERS[i] for i, lv in enumerate(lvs) for c in fp[lv][1]}
+        rows = ["".join(occ.get(r * COLS + c, ".") for c in range(COLS)) for r in range(ROWS)]
+        out[gi] = {"rows": rows, "names": names,
+                   "classes": {f"{quest.upper()} L{lv}": (f"L{lv}",) for lv in lvs}, "hidden": {}}
+    for gi, src in zip((3, 4), pair):
+        g = lol[src]
+        letters = {nm: LETTERS[i] for i, nm in enumerate(sorted(g["des"]))}
+        rows = ["".join(letters[g["occ"][r * COLS + c]] if r * COLS + c in g["occ"] else "." for c in range(COLS))
+                for r in range(ROWS)]
+        out[gi] = {"rows": rows, "names": {v: k for k, v in letters.items()},
+                   "classes": {nm: ((shrines[(src, nm)],) if (src, nm) in shrines else ()) for nm in g["des"]},
+                   "hidden": g["hidden"]}
+    return out

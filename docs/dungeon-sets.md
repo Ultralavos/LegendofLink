@@ -50,3 +50,11 @@ grids, inside its size range): level 9 one of the 3-shape grid's (30-40 rooms); 
 3-shape grids; level 6 from the 6-, 4- or 3-shape grids; the shrines the four smallest of the 8-shape grid; level 5,
 then 4, from the 6- or 4-shape grids; levels 1-3 from the 8- or 6-shape grids. The 8 shapes left over stay on their
 grids unused. (Level 4 wasn't named: it follows level 5's rule.)
+
+### Quest sets (owner, 2026-11-24)
+
+1Q-4Q: the quest's blocks 1-6 and 7-9 stay as they are (grids 1 and 2). The other two grid slots load two LoL grids
+at random (of six: grids.txt's four and grids_extra.txt's two, added by the owner), and the shrines are any four of
+their designs of 12-20 rooms. Cellars are given per design (its class's item stairs, one transport per extra piece
+plus the class's own; level 2's item cellar is never used and shares another's), which is exactly what the quests'
+blocks have room for (1Q: 7 and 13 free squares).

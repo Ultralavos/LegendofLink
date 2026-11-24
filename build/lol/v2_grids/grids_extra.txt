@@ -1,0 +1,23 @@
+Legend of Link v2 extra grids (the owner's, 2026-11-24): more LoL grids for the page's dungeon sets (a quest set
+loads two LoL grids beside the quest's two). '.' = free. A lowercase letter is a square the owner marked in a
+darker shade (part of that dungeon; read as a hidden room until the owner says otherwise).
+
+Grid 5 (G green, B blue, M magenta, Y yellow, C cyan, R red)
+.GGBBBBBMMYYMMYY
+G..GBBBMCMMMMCMY
+.RRGRB.MCCCCCCMY
+.RGGR..MMCCCCMMY
+.RGRR.BMMCCCCMMY
+.RGRRBBBMMCCMMYY
+RR..BBBBBMMMMYYY
+RRGBBBbBBBMMCCYY
+
+Grid 6 (C cyan, B blue, M magenta, G green, R red, Y yellow)
+CC..BB.C.MGGGRGG
+C..BMMBCMMMGGRGG
+..BBBMMMMMMMGRGY
+.BBBBB.MMMMMGGGy
+BBBBBBBMMMMRRRRY
+BBBBBBBMMGMRR.RY
+CBBBBBCMMGMRRRYY
+CCBBBCCMMGMR.RYY

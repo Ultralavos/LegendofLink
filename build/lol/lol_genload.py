@@ -127,7 +127,8 @@ def designs():
             free[gi] = [r * 16 + c for r in range(8) for c in range(16) if rows[r][c] == '.']
             for k in sorted(cs[gi]["names"]):
                 cells = [r * 16 + c for r in range(8) for c in range(16) if rows[r][c] == k]
-                out.append((gi, k, cs[gi]["names"][k], cells, []))
+                nm = cs[gi]["names"][k]
+                out.append((gi, k, nm, cells, list(cs[gi].get("hidden", {}).get(nm, []))))
         return out, free
     txt = open(GRID_FILE).read().split('\n\n')
     out, free = [], {}
@@ -176,17 +177,44 @@ def slot_mask(nm):
 _CACHE = {}
 
 
+def cellar_alloc(ds, free):
+    """A page set's cellars: {design: (item cellars, transport cellars)}, each design its own squares of its grid's
+    free ones (level 2's item cellar is never used, so it shares another's)."""
+    import lol_sets
+    out, used = {}, {}
+    for gi, k, nm, cells, hid in ds:
+        cl = classes_of(nm)
+        if not cl:
+            continue
+        ni, nt = lol_sets.cellar_need(cl[0], cells)
+        fr = [c for c in free[gi] if c not in used.get(gi, set())]
+        assert len(fr) >= ni + nt, (nm, gi, len(fr), ni, nt)
+        ic, tc = fr[:ni], fr[ni:ni + nt]
+        used.setdefault(gi, set()).update(ic + tc)
+        if cl[0] == "L2":
+            ic = [free[gi][0]]
+        out[nm] = (ic, tc)
+    return out
+
+
 def build_variants():
     if "v" in _CACHE:
         return _CACHE["v"]
     ds, free = designs()
     out = {}
     per_grid = {}
+    alloc = cellar_alloc(ds, free) if custom_set() is not None else None
     for d, (gi, k, nm, cells, hid) in enumerate(ds):
         fr = free[gi]
-        if custom_set() is not None:      # a page set: 7 transport cellars on a grid with a level 9, else 3
-            n9 = 7 if any("L9" in classes_of(x[2]) for x in ds if x[0] == gi) else 3
-            tc = fr[-n9:]
+        if alloc is not None:             # a page set: each design its own cellars (lol_sets.cellar_need)
+            if nm in alloc:
+                ic, tc = alloc[nm]
+                for cls in classes_of(nm):
+                    ci = CLASS_LIST.index(cls)
+                    out[(d, ci)] = G.make_variants(cells, cls, K, 1000 * d + ci, ic, tc, hid)
+            continue
+        if False:
+            pass
         else:
             n9 = 7 if gi in (1, 3) else (2 if gi == 4 else 7)
             tc = fr[-n9:] if gi != 4 else fr[9:12]
