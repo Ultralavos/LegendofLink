@@ -41,6 +41,11 @@ list.
 **Brain Potion** (50, tier 1; with Zombie Link and a potion, never with the Bat Potion): every potion becomes a
 brain potion (its own picture at all four pouch levels) and refills Zombie Link fully, as a normal potion would.
 
+**X-ray Glasses** (125, tier 2; `build/lol/lol_xray.py`): in dungeons and shrines, a bombable wall not yet blown
+open shows grey and a walk-through wall orange (only the wall's palette changes; a blown wall gets its color back).
+Always in the pool when the seed's dungeons can have walk-through walls (2Q, 3Q, 4Q, and Random when it deals one of
+their grids); otherwise it's rolled like any other upgrade.
+
 **Red Gleeok** (`build/lol/lol_gleeok.py`): at 12+ heart containers (as enemies see them) Gleeok turns red and,
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.

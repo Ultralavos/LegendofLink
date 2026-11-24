@@ -296,6 +296,8 @@ def main():
     lol_potion.apply(rom, notes)
     import lol_zombie
     lol_zombie.apply(rom, notes)
+    import lol_xray
+    lol_xray.apply(rom, notes)
     import lol_v3core
     lol_v3core.apply(rom, notes)
     import lol_modes

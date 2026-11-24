@@ -339,6 +339,25 @@ def _song_of_chaos():     # a whirlwind (white, tan) around a red question mark 
                "........2......."])
 
 
+def _xray_glasses():      # glasses with an eye in each lens (red: red 1 the iris, tan 2 the eye, white 3)
+    return _g(["................",
+               "................",
+               "................",
+               "................",
+               ".33333....33333.",
+               "3.....3333.....3",
+               "3.222.3..3.222.3",
+               "3213123..3213123",
+               "3.222.3..3.222.3",
+               ".3...3....3...3.",
+               "..333......333..",
+               "................",
+               "................",
+               "................",
+               "................",
+               "................"])
+
+
 def _zombie():            # a shambling zombie, arms out (Link's colors: green 1 skin, tan 2 trousers, brown 3 rags)
     return _g(["......3333......",
                ".....311113.....",

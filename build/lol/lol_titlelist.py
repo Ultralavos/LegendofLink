@@ -27,13 +27,13 @@ NAMES = {"beams": "SWORD BEAMS", "regen": "REGENERATION", "fairy bottle": "FAIRY
 
 
 def enc(s):
-    return bytes(0x24 if c == " " else (ord(c) - 48 if c.isdigit() else ord(c) - 55) for c in s)
+    return bytes(0x24 if c == " " else 0x2F if c == "-" else (ord(c) - 48 if c.isdigit() else ord(c) - 55) for c in s)
 
 
 def names():
     import lol_uptable as T
     out = sorted(NAMES.get(r[0], r[0].upper()) for r in T.ROWS)
-    assert all(len(n) <= 28 and all(c == " " or c.isalnum() for c in n) for n in out)
+    assert all(len(n) <= 28 and all(c in " -" or c.isalnum() for c in n) for n in out)
     return out
 
 

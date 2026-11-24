@@ -101,6 +101,9 @@ ROWS = [
     # owner 2026-11-24 (lol_zombie): with Zombie Link and a potion; never with the bat potion
     ("brain potion",    (UP6, 0x04),       50, 0, 13, [("owned", "zombie link"), ("ge", POTION, 1),
                                                        ("notowned", "bat potion")], "_brain", {}, 0x1A),
+    # owner 2026-11-24 (lol_xray): a dungeon's secret walls show (bombable grey, walk-through orange); always in the
+    # pool of a set whose dungeons can have walk-through walls (WALK_SET)
+    ("x-ray glasses",   (UP6, 0x08),      125, 1, 13, [], "_xray_glasses", {}, 0x1A),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)
@@ -130,8 +133,19 @@ def _pool():
         got = rng.sample(free, min(GUARANTEED, len(free)))
         rest = [k for k in tier if k not in got]
         got += rng.sample(rest, max(0, min(PER_TIER[t], len(tier)) - len(got)))
+        xr = next(k for k, r in enumerate(ROWS) if r[NAME] == "x-ray glasses")
+        if xr in tier and xr not in got and walk_set():     # (owner: always there with walk-through walls)
+            got[rng.randrange(GUARANTEED, len(got))] = xr
         out |= set(got)
     return out
+
+
+def walk_set():
+    """True if the page's dungeon set has designs that can get walk-through walls (a quest's levels with a share of
+    them: 2Q, 3Q, 4Q; in Mixed and Random when one is dealt). LoL's designs and the shapes never get them."""
+    import lol_genload
+    cs = lol_genload.custom_set()
+    return cs is not None and any(r[2] > 0 for g in cs.values() for r in g.get("rules", {}).values())
 
 
 POOL = _pool()

@@ -77,3 +77,6 @@ Zombie Link and the brain potion (2026-11-24):
 
 Red Gleeok (2026-11-24):
 54. Grow too strong and Gleeok sees red
+
+X-ray glasses (2026-11-24):
+55. X-ray glasses: bomb grey walls, walk through orange   [only with the upgrade x-ray glasses]
