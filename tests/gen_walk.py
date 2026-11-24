@@ -6,6 +6,9 @@ from collections import Counter
 from PIL import Image
 from tests.emulator import Emulator, ROOM_ID, GAME_MODE, CUR_LEVEL, Button
 import os; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'lol'))
+import lolpaths
+if os.environ.get('LOL_SOURCE'):           # the clean ROM (1Q / 2Q sets read their footprints from it)
+    lolpaths.SOURCE_ROM = open(os.environ['LOL_SOURCE'], 'rb').read()
 import lol_genload as GL
 rom = open(sys.argv[1], 'rb').read()
 seed = int(sys.argv[2]) if len(sys.argv) > 2 else 3

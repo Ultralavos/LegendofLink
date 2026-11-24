@@ -165,3 +165,165 @@ def shapes_set(seed):
         for gi, nm, _ in shapes:
             out[gi]["classes"][nm] = (got[nm],) if nm in got else ()
         return out
+
+
+# --- quests, Random and Mixed (docs/dungeon-sets.md) ---
+
+SOURCES = ("1q", "2q", "3q", "4q", "lol", "shapes")
+# LoL's pools (v2_grids/grids.txt, 2026-11-20)
+LOL_SHRINES = {"Giraffe", "Cactus", "Bat", "Face", "Pompadour", "Piranha", "Sock Puppet"}
+LOL_LEVELS = {"Vice", "Anteater", "Elephant", "Robber", "Whale", "Poodle", "Unicorn", "Gecko", "Stallion", "Rook",
+              "Bell"}
+LOL_NINES = {"Serpent", "Balloon", "Ghost"}
+SHRINES = ("SA", "SB", "SC", "SD")
+LEVEL_RANGE = {"L1": "L13", "L2": "L13", "L3": "L13", "L4": "L45", "L5": "L45", "L6": "L68", "L7": "L68",
+               "L8": "L68", "L9": "L9"}
+
+
+def _rc(c):
+    return divmod(c, COLS)
+
+
+def _shift(cells, dr, dc):
+    out = []
+    for c in cells:
+        r, k = _rc(c)
+        r, k = r + dr, k + dc
+        if not (0 <= r < ROWS and 0 <= k < COLS):
+            return None
+        out.append(r * COLS + k)
+    return out
+
+
+def _fresh_shape(n, rng):
+    """One random shape of n rooms on an empty grid (its map fits)."""
+    while True:
+        grid = [-1] * (ROWS * COLS)
+        cells = _grow(grid, rng.randrange(ROWS * COLS), n, rng)
+        if cells and map_ok(cells):
+            return sorted(cells)
+
+
+def _lol_pool():
+    """LoL's designs: [(name, cells, block, classes)]."""
+    import lol_genload as GL
+    ds, _ = GL.lol_designs()
+    return [(nm, cells, f"lol:{gi}", GL.classes_of(nm)) for gi, _, nm, cells, _ in ds]
+
+
+def need(names_classes):
+    """Free squares a grid needs for its designs (see free_needed)."""
+    nine = any(c == "L9" for _, c in names_classes)
+    return 2 * len(names_classes) + 2 + (7 if nine else 3)
+
+
+def pack(fps, rng, tries=300):
+    """fps: [dict(name, cls, block, cells)] -> at most four grids, each design at its own place on a grid of its
+    block when it fits there, else moved (whole) to wherever it fits; every grid keeps its cellars' free squares."""
+    for t in range(tries):
+        grids = []
+        order = sorted(fps, key=lambda f: -len(f["cells"]))
+        if t:
+            rng.shuffle(order)
+        ok = True
+        for f in order:
+            placed = None
+            def room(g, cs):              # it fits there, and the grid keeps its cellars' squares
+                return (not (set(cs) & g["occ"].keys())
+                        and ROWS * COLS - len(g["occ"]) - len(cs) >= need(g["des"] + [(f["name"], f["cls"])]))
+            for g in grids:
+                if f["block"] in g["blocks"] and room(g, f["cells"]):
+                    placed = (g, f["cells"])
+                    break
+            if placed is None and len(grids) < 4:
+                g = {"blocks": set(), "occ": {}, "des": []}
+                g["blocks"].add(f["block"])
+                grids.append(g)
+                placed = (g, f["cells"])
+            if placed is None:
+                offs = [(dr, dc) for dr in range(-7, 8) for dc in range(-15, 16)]
+                rng.shuffle(offs)
+                offs.sort(key=lambda o: abs(o[0]) + abs(o[1]))
+                for g in sorted(grids, key=lambda g: len(g["occ"])):
+                    for dr, dc in offs:
+                        cs = _shift(f["cells"], dr, dc)
+                        if cs is not None and room(g, cs):
+                            placed = (g, cs)
+                            break
+                    if placed:
+                        break
+            if placed is None:
+                ok = False
+                break
+            g, cs = placed
+            for c in cs:
+                g["occ"][c] = f["name"]
+            g["des"].append((f["name"], f["cls"]))
+        if ok and all(ROWS * COLS - len(g["occ"]) >= need(g["des"]) for g in grids):
+            return grids
+    return None
+
+
+def _grids_out(grids):
+    out = {}
+    for gi, g in enumerate(grids, 1):
+        letters = {nm: LETTERS[i] for i, (nm, _) in enumerate(g["des"])}
+        rows = ["".join(letters[g["occ"][r * COLS + c]] if r * COLS + c in g["occ"] else "."
+                        for c in range(COLS)) for r in range(ROWS)]
+        out[gi] = {"rows": rows, "names": {letters[nm]: nm for nm, _ in g["des"]},
+                   "classes": {nm: (cls,) for nm, cls in g["des"]}}
+    for gi in range(len(grids) + 1, 5):                     # (unused grids: empty)
+        out[gi] = {"rows": ["." * COLS] * ROWS, "names": {}, "classes": {}}
+    return out
+
+
+def build_set(which, seed):
+    """The page's dungeon set: 1q / 2q / 3q / 4q / shapes / random / mixed. None: LoL's own maps (grids.txt)."""
+    rng = random.Random(seed)
+    if which == "random":
+        which = rng.choice(SOURCES)
+    if which == "lol":
+        return None
+    if which == "shapes":
+        return shapes_set(seed)
+    import lol_quests
+    lol = _lol_pool()
+    for attempt in range(50):
+        fps, used = [], set()
+        srcs = {lv: (rng.choice(SOURCES) if which == "mixed" else which) for lv in range(1, 10)}
+        quests = {q: lol_quests.footprints(q) for q in set(srcs.values()) if q in ("1q", "2q", "3q", "4q")}
+        ok = True
+        for lv in range(1, 10):
+            cls, src = f"L{lv}", srcs[lv]
+            if src in quests:
+                block, cells = quests[src][lv]
+                fps.append(dict(name=f"{src.upper()} L{lv}", cls=cls, block=f"{src}:{block}", cells=cells))
+            elif src == "lol":
+                pool = LOL_NINES if lv == 9 else LOL_LEVELS
+                can = [d for d in lol if cls in d[3] and d[0] in pool and d[0] not in used]
+                if not can:
+                    ok = False
+                    break
+                nm, cells, block, _ = rng.choice(can)
+                used.add(nm)
+                fps.append(dict(name=nm, cls=cls, block=block, cells=cells))
+            else:
+                lo, hi = RANGES[LEVEL_RANGE[cls]]
+                fps.append(dict(name=f"Shape L{lv}", cls=cls, block=f"shape:{lv}",
+                                cells=_fresh_shape(rng.randint(lo, min(hi, 40)), rng)))
+        if not ok:
+            continue
+        # shrines: LoL's shrine designs, or (Shapes, or Mixed's coin) a small random shape
+        for sh in SHRINES:
+            if which == "mixed" and rng.random() < 0.5:
+                fps.append(dict(name=f"Shape {sh}", cls=sh, block=f"shape:{sh}",
+                                cells=_fresh_shape(rng.randint(12, 14), rng)))
+                continue
+            can = [d for d in lol if sh in d[3] and d[0] in LOL_SHRINES and d[0] not in used]
+            nm, cells, block, _ = rng.choice(can)
+            used.add(nm)
+            fps.append(dict(name=nm, cls=sh, block=block, cells=cells))
+        grids = pack(fps, rng)
+        if grids is not None:
+            return _grids_out(grids)
+    raise RuntimeError(f"couldn't fit the {which} set's dungeons on four grids")

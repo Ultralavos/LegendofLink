@@ -87,22 +87,34 @@ SLOT_INDEX = [0xFF, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0xFF, 0xFF]
 DESTS = list(range(1, 10)) + [0x0A, 0x0B, 0x0C, 0x0D]
 
 
+BUILDING = False                        # (while lol_sets builds the set: LoL's own designs and classes)
 CUSTOM = None                           # a dungeon set from lol_sets ({grid: rows, names, classes}); None: grids.txt
 
 
 def custom_set():
     """The page's dungeon set (LOL_SET, with LOL_SEED or LOL_SET_SEED), built once."""
-    global CUSTOM
+    global CUSTOM, BUILDING
     import os
     which = os.environ.get("LOL_SET", "lol")
-    if which == "lol":
+    if which == "lol" or CUSTOM is False or BUILDING:
         return None
     if CUSTOM is None:
         import lol_sets
         seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
-        assert which == "shapes", which
-        CUSTOM = lol_sets.shapes_set(seed)
-    return CUSTOM
+        BUILDING = True
+        try:
+            CUSTOM = lol_sets.build_set(which, seed)
+        finally:
+            BUILDING = False
+        if CUSTOM is None:                 # (Random picked LoL's own maps)
+            CUSTOM = False
+    return CUSTOM or None
+
+
+def lol_designs():
+    """LoL's own designs (grids.txt): call while BUILDING."""
+    assert BUILDING
+    return designs()
 
 
 def designs():
