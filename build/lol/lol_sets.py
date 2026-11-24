@@ -35,25 +35,44 @@ def free_needed(sizes, pools=None):
 
 
 def plan_sizes(rng):
-    """The 21 sizes and their pools, per grid. Each shape belongs to one pool (inside its size's ranges), so no
-    level can run out of shapes whatever order the game deals them in: grid 4's eight (12-14 rooms) are the four
-    shrines' (the four smallest) and levels 1-3's; grid 2's six (15-22) levels 4-5's (and levels 1-3 may take its
-    ones of 20 rooms or fewer: at most three, so at least three stay for levels 4-5); grid 1's four and grid 3's two
-    smaller ones (20-34) levels 6-8's; grid 3's largest (36-50) level 9's."""
+    """The 21 sizes per grid: grid 4 (8 shapes) 12-14 rooms, grid 2 (6) 15-22, grid 1 (4) 20-30, grid 3 (3, the
+    large ones) 30-40; each grid keeps the free squares its cellars need."""
     while True:
-        g4 = sorted(rng.randint(12, 14) for _ in range(8))
-        g2 = [rng.randint(15, 22) for _ in range(6)]
-        g1 = [rng.randint(24, 34), rng.randint(20, 28), rng.randint(20, 28), rng.randint(20, 30)]
-        g3 = [rng.randint(36, 50), rng.randint(20, 28), rng.randint(20, 28)]
-        sizes = {4: g4, 2: g2, 1: g1, 3: g3}
-        pools = {4: ["SH"] * 4 + ["L13"] * 4, 2: ["L45"] * 6, 1: ["L68"] * 4, 3: ["L9", "L68", "L68"]}
-        if any(sum(sizes[g]) + free_needed(sizes[g], pools[g]) > ROWS * COLS - 6 for g in sizes):
+        sizes = {4: sorted(rng.randint(12, 14) for _ in range(8)), 2: [rng.randint(15, 22) for _ in range(6)],
+                 1: [rng.randint(20, 30) for _ in range(4)], 3: [rng.randint(30, 40) for _ in range(3)]}
+        pools = {4: [], 2: [], 1: [], 3: ["L9"]}            # (grid 3 holds level 9: its transport cellars)
+        if all(sum(sizes[g]) + free_needed(sizes[g], pools[g]) <= ROWS * COLS - 6 for g in sizes):
+            return sizes, pools
+
+
+# The owner's order (2026-11-24): each level takes one shape, at random among those left that it may use (its
+# grids and its size range). The shrines take the four smallest of the 8-shape grid.
+ORDER = (("L9", (3,)), ("L8", (1, 3)), ("L7", (1, 3)), ("L6", (2, 1, 3)), ("SH", (4,)), ("L5", (2, 1)),
+         ("L4", (2, 1)), ("L1", (4, 2)), ("L2", (4, 2)), ("L3", (4, 2)))
+SIZE_OF = {"L9": "L9", "L8": "L68", "L7": "L68", "L6": "L68", "L5": "L45", "L4": "L45",
+           "L1": "L13", "L2": "L13", "L3": "L13"}
+
+
+def assign(shapes, rng):
+    """shapes: [(grid, name, rooms)] -> {name: level class}, in the owner's order."""
+    left = list(shapes)
+    out = {}
+    for cls, grids in ORDER:
+        if cls == "SH":
+            small = sorted((s for s in left if s[0] == 4), key=lambda s: (s[2], s[1]))[:4]
+            rng.shuffle(small)
+            for sh, s in zip(("SA", "SB", "SC", "SD"), small):
+                out[s[1]] = sh
+                left.remove(s)
             continue
-        for g in sizes:
-            for n, p in zip(sizes[g], pools[g]):
-                lo, hi = RANGES[p]
-                assert lo <= n <= hi, (g, n, p)
-        return sizes, pools
+        lo, hi = RANGES[SIZE_OF[cls]]
+        can = [s for s in left if s[0] in grids and lo <= s[2] <= hi]
+        if not can:
+            return None
+        s = rng.choice(can)
+        out[s[1]] = cls
+        left.remove(s)
+    return out
 
 
 def _grow(grid, start, size, rng):
@@ -118,11 +137,12 @@ def make_grid(sizes, rng, pools=None, tries=2000):
 
 
 def shapes_set(seed):
-    """Four grids of random shapes: {grid: {"rows": [...], "names": {letter: name}, "classes": {name: (...)}}}."""
+    """Four grids of random shapes: {grid: {"rows": [...], "names": {letter: name}, "classes": {name: (...)}}}.
+    Each level and shrine gets one shape (assign); the eight left over stay on their grids, unused."""
     rng = random.Random(seed)
     while True:
         sizes, pools = plan_sizes(rng)
-        out, ok = {}, True
+        out, ok, shapes = {}, True, []
         k = 0
         for gi in (1, 2, 3, 4):
             grid = make_grid(sizes[gi], rng, pools[gi])
@@ -131,14 +151,17 @@ def shapes_set(seed):
                 break
             rows = ["".join("." if grid[r * COLS + c] < 0 else LETTERS[grid[r * COLS + c]] for c in range(COLS))
                     for r in range(ROWS)]
-            names, classes = {}, {}
+            names = {}
             for i, n in enumerate(sizes[gi]):
                 k += 1
-                nm = f"Shape {k}"
-                names[LETTERS[i]] = nm
-                classes[nm] = CLASSES_BY_RANGE[pools[gi][i]]
-                if pools[gi][i] == "L45" and n <= RANGES["L13"][1]:     # (owner 2026-11-24: levels 1-3 may also
-                    classes[nm] = CLASSES_BY_RANGE["L13"] + classes[nm]    # take grid 2's shapes of 20 or fewer)
-            out[gi] = {"rows": rows, "names": names, "classes": classes}
-        if ok:
-            return out
+                names[LETTERS[i]] = f"Shape {k}"
+                shapes.append((gi, f"Shape {k}", n))
+            out[gi] = {"rows": rows, "names": names, "classes": {}}
+        if not ok:
+            continue
+        got = assign(shapes, rng)
+        if got is None:
+            continue
+        for gi, nm, _ in shapes:
+            out[gi]["classes"][nm] = (got[nm],) if nm in got else ()
+        return out

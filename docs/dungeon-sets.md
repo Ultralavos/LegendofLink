@@ -42,3 +42,11 @@ The page will build that library from the chosen footprints instead of `v2_grids
 - Every set (quests, LoL, Shapes) keeps LoL's rules, which `lol_gen` already applies by level class
   (`v2_grids/generator_spec.txt`): levels 1-8 their stairs (item cellars, transports by class) and old men
   (choice rooms); shrines the prize room behind the boss with shutter doors.
+
+### Order (owner, 2026-11-24, replaces the pools above)
+
+The page gives each level one shape, in this order, at random among the shapes left that the level may use (its
+grids, inside its size range): level 9 one of the 3-shape grid's (30-40 rooms); level 8, then 7, from the 4- or
+3-shape grids; level 6 from the 6-, 4- or 3-shape grids; the shrines the four smallest of the 8-shape grid; level 5,
+then 4, from the 6- or 4-shape grids; levels 1-3 from the 8- or 6-shape grids. The 8 shapes left over stay on their
+grids unused. (Level 4 wasn't named: it follows level 5's rule.)
