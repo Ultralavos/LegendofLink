@@ -87,8 +87,36 @@ SLOT_INDEX = [0xFF, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0xFF, 0xFF]
 DESTS = list(range(1, 10)) + [0x0A, 0x0B, 0x0C, 0x0D]
 
 
+CUSTOM = None                           # a dungeon set from lol_sets ({grid: rows, names, classes}); None: grids.txt
+
+
+def custom_set():
+    """The page's dungeon set (LOL_SET, with LOL_SEED or LOL_SET_SEED), built once."""
+    global CUSTOM
+    import os
+    which = os.environ.get("LOL_SET", "lol")
+    if which == "lol":
+        return None
+    if CUSTOM is None:
+        import lol_sets
+        seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
+        assert which == "shapes", which
+        CUSTOM = lol_sets.shapes_set(seed)
+    return CUSTOM
+
+
 def designs():
     """[(grid, letter, name, cells, hidden cells)] and the free squares per grid."""
+    cs = custom_set()
+    if cs is not None:
+        out, free = [], {}
+        for gi in (1, 2, 3, 4):
+            rows = cs[gi]["rows"]
+            free[gi] = [r * 16 + c for r in range(8) for c in range(16) if rows[r][c] == '.']
+            for k in sorted(cs[gi]["names"]):
+                cells = [r * 16 + c for r in range(8) for c in range(16) if rows[r][c] == k]
+                out.append((gi, k, cs[gi]["names"][k], cells, []))
+        return out, free
     txt = open(GRID_FILE).read().split('\n\n')
     out, free = [], {}
     for gi in (1, 2, 3, 4):
@@ -102,6 +130,11 @@ def designs():
 
 
 def classes_of(nm):
+    cs = custom_set()
+    if cs is not None:
+        for g in cs.values():
+            if nm in g["classes"]:
+                return tuple(g["classes"][nm])
     if nm in NINES:
         return ("L9",)
     cl = ["L13", "L4", "L57", "L8", "SH"]
@@ -139,10 +172,14 @@ def build_variants():
     per_grid = {}
     for d, (gi, k, nm, cells, hid) in enumerate(ds):
         fr = free[gi]
-        n9 = 7 if gi in (1, 3) else (2 if gi == 4 else 7)
-        tc = fr[-n9:] if gi != 4 else fr[9:12]
+        if custom_set() is not None:      # a page set: 7 transport cellars on a grid with a level 9, else 3
+            n9 = 7 if any("L9" in classes_of(x[2]) for x in ds if x[0] == gi) else 3
+            tc = fr[-n9:]
+        else:
+            n9 = 7 if gi in (1, 3) else (2 if gi == 4 else 7)
+            tc = fr[-n9:] if gi != 4 else fr[9:12]
         items = fr[:len(fr) - len(tc)]
-        if nm in NINES:
+        if classes_of(nm) == ("L9",):
             ic = items[-2:]                       # the 9s on a grid share (never two 9s in a game)
         else:
             i = per_grid.get(gi, 0); per_grid[gi] = i + 1

@@ -16,9 +16,11 @@ FRESH = ("lol_", "lolpaths", "new_grids", "build_q3", "build_mock", "release")
 def _b(x):                                       # a JS Uint8Array (JsProxy) or bytes -> bytes
     return x.to_bytes() if hasattr(x, "to_bytes") else bytes(x)
 
-def run_build(rom_bytes, original_bytes, seed, start):
+def run_build(rom_bytes, original_bytes, seed, start, dset, set_seed):
     os.environ["LOL_GEN"] = "1"
     os.environ["LOL_START"] = start
+    os.environ["LOL_SET"] = dset
+    os.environ["LOL_SET_SEED"] = str(set_seed)
     if seed is None:
         os.environ.pop("LOL_SEED", None)
     else:
@@ -58,7 +60,8 @@ onmessage = async (ev) => {
   try {
     postMessage({ type: "status", text: "Building your game..." });
     const run = pyodide.globals.get("run_build");
-    const res = run(new Uint8Array(msg.rom), new Uint8Array(msg.original), msg.seed, msg.start);
+    const res = run(new Uint8Array(msg.rom), new Uint8Array(msg.original), msg.seed, msg.start, msg.dset,
+                    msg.setSeed);
     const [rom, ips, log] = res.toJs();
     res.destroy();
     const romBytes = new Uint8Array(rom);           // (Python bytes arrive as Uint8Array)
