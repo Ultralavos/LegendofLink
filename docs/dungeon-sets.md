@@ -33,7 +33,8 @@ The page will build that library from the chosen footprints instead of `v2_grids
 - Shapes makes four new grids like LoL's: one grid with 8 random shapes, one with 6, one with 4, one with 3
   (21 shapes). Each shape is 12-60 rooms.
 - Which shapes a level may use, by room count:
-  - Levels 1-3 and every shrine: 12-20 rooms (shrines take the smallest shapes first)
+  - Levels 1-3 and every shrine: 12-20 rooms (shrines take the smallest shapes first); levels 1-3 may also take
+    the 6-shape grid's shapes of 20 rooms or fewer
   - Levels 4-5: 15-30
   - Levels 6-8: 20-45
   - Level 9: 30-60

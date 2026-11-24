@@ -37,7 +37,8 @@ def free_needed(sizes, pools=None):
 def plan_sizes(rng):
     """The 21 sizes and their pools, per grid. Each shape belongs to one pool (inside its size's ranges), so no
     level can run out of shapes whatever order the game deals them in: grid 4's eight (12-14 rooms) are the four
-    shrines' (the four smallest) and levels 1-3's; grid 2's six (15-22) levels 4-5's; grid 1's four and grid 3's two
+    shrines' (the four smallest) and levels 1-3's; grid 2's six (15-22) levels 4-5's (and levels 1-3 may take its
+    ones of 20 rooms or fewer: at most three, so at least three stay for levels 4-5); grid 1's four and grid 3's two
     smaller ones (20-34) levels 6-8's; grid 3's largest (36-50) level 9's."""
     while True:
         g4 = sorted(rng.randint(12, 14) for _ in range(8))
@@ -136,6 +137,8 @@ def shapes_set(seed):
                 nm = f"Shape {k}"
                 names[LETTERS[i]] = nm
                 classes[nm] = CLASSES_BY_RANGE[pools[gi][i]]
+                if pools[gi][i] == "L45" and n <= RANGES["L13"][1]:     # (owner 2026-11-24: levels 1-3 may also
+                    classes[nm] = CLASSES_BY_RANGE["L13"] + classes[nm]    # take grid 2's shapes of 20 or fewer)
             out[gi] = {"rows": rows, "names": names, "classes": classes}
         if ok:
             return out
