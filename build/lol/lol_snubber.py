@@ -11,7 +11,7 @@ Once Link owns it:
   rest), the white sword cave (its next item), level 9's upgrade (lol_genload), and the sword upgrades (beams, sword
   mastery: lol_uptable's NO_SNUB).
 - The status bar (this module): the heart row shows 3 containers at most; the top row, where hearts 9-16 would be,
-  shows a sword for every 2 levels and a cross (the hilt) for an odd level (level 16: 8 swords).
+  shows a sword for every 2 levels and the lower half of one for an odd level (level 16: 8 swords).
 
 The status bar's heart row (bank 1's WRAM code: LDA HeartValues / STA $0E / LDA $0670 / STA $0F / JSR $6E79 at
 $6D0D, reached with bank 5 in: after its JSR to lol_build's status-bar code at $BE60, or from bank 5's JSR $6D00)
@@ -23,14 +23,14 @@ WRAM_DELTA = 0x3870
 HEARTS_AT = 0xBD5E                      # bank 5 free (162 bytes)
 
 
-SWORD_TILE = 0x60                       # the common background patterns' one blank tile nothing draws (checked:
-HALF_TILE = 0x64                        # title, menu, play, item screen); the odd level's mark: the cross ($64)
-                                        # (no second free tile: LoL's pictures fill $34-$5F)
+# the sword and the odd level's half (the lower part) in a free background pair (lol_bombup's FREE_PAIRS: the old men
+# cards share one picture, which left two pairs)
 
 
 def sword_tiles():
-    """The sword (blade 3, hilt 2, in the heart row's palette)."""
+    """The sword (blade 3, hilt 2, in the heart row's palette) and its lower half."""
     full = ["...3....", "..333...", "..333...", "..333...", "..333...", ".22222..", "...2....", "...2...."]
+    half = ["........"] * 4 + full[4:]
 
     def tile(rows):
         lo, hi = bytearray(8), bytearray(8)
@@ -40,16 +40,18 @@ def sword_tiles():
                 lo[y] |= (c & 1) << (7 - x)
                 hi[y] |= (c >> 1) << (7 - x)
         return bytes(lo + hi)
-    return tile(full)
+    return tile(full) + tile(half)
 
 
 def apply(rom: bytearray, notes: list) -> None:
     import lol_bombup as B
     import lol_uptable as T
     snub = T.bit("heart snubber")
+    SWORD_TILE = B.FREE_PAIRS[2]
+    HALF_TILE = SWORD_TILE + 1
     at = B.BG_CHR + SWORD_TILE * 16
-    assert not any(rom[at:at + 16])
-    rom[at:at + 16] = sword_tiles()
+    assert not any(rom[at:at + 32])
+    rom[at:at + 32] = sword_tiles()
     a = Asm(HEARTS_AT)
     a.label("hearts").abs(0xAD, 0x066F).b(0x85, 0x0E).abs(0xAD, 0x0670).b(0x85, 0x0F)
     a.abs(0xAD, snub[0]).b(0x29, snub[1]).br(0xD0, "h_s").abs(0x4C, 0x6E79)

@@ -45,6 +45,28 @@ def tile_bytes(rows):
     return bytes(lo + hi)
 
 
+CARD = ["3333333333333333",            # the old men cards (owner, 2026-11-24): the cave old man's sprite in a box,
+        "3....222222....3",            # one picture in three palettes (shops Link's: a brown box; dungeons red,
+        "3...32322323...3",            # shrines blue: a white box)
+        "3...22.22.22...3",
+        "3...22.22.22...3",
+        "3...13222231...3",
+        "3..1333333331..3",
+        "3.1133....3311.3",
+        "3113313333133113",
+        "3113113333113113",
+        "3111113333111113",
+        "3111.113311.1113",
+        "3111.111111.1113",
+        "3111.111111.1113",
+        "3.1.11111111.1.3",
+        "3333333333333333"]
+
+
+def _card():
+    return [[0 if ch == "." else int(ch) for ch in row] for row in CARD]
+
+
 def _badge(letter):
     L = ["........", "......11", ".....111", "....1111", "...11111", "..111111", ".1111111", ".1111111",
          "....1111", "....1111", "....1111", "....1111", "....1111", "....1111", "....1111", "....1111"]
@@ -379,12 +401,13 @@ def _piercing():          # an arrow through a block (blue palette)
 
 # code: (name, picture); the palette comes from the item they're drawn as (CONV, from $24 on). The upgrades'
 # pictures come from lol_uptable (by index; the first POWER_ON of them in the power-on tiles, for the title's legend)
-NEW_ITEMS = {0x26: ("S badge", lambda: _badge("S")), 0x27: ("D badge", lambda: _badge("D")),
-             0x28: ("X badge", lambda: _badge("X")), 0x29: ("XP potion +15", _xp_potion),
+NEW_ITEMS = {0x26: ("shop card (S)", _card), 0x27: ("dungeon card (D)", _card),
+             0x28: ("shrine card (X)", _card), 0x29: ("XP potion +15", _xp_potion),
              0x2A: ("XP potion +25", _xp_potion)}
-# drawn as: $24 bombs (blue), $25 the book, S the bow (Link's palette), D bombs (blue), X / orange XP the recorder
-# (red), blue XP bombs (blue); $2B-$30 the upgrade slots: SCONV (RAM, set with their pictures)
-CONV = (0x00, 0x11, 0x0A, 0x00, 0x05, 0x05, 0x00)
+# drawn as: $24 bombs (blue), $25 the book, the shop card (S) the bow (Link's palette), the dungeon card (D) and the
+# orange XP the recorder (red), the shrine card (X) and blue XP bombs (blue); $2B-$30 the upgrade slots: SCONV (RAM,
+# set with their pictures)
+CONV = (0x00, 0x11, 0x0A, 0x05, 0x00, 0x05, 0x00)
 SLOT_CONV = (len(CONV), len(CONV) + 6)       # the draw's X range read from SCONV
 
 

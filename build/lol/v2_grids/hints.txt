@@ -18,7 +18,7 @@ random to fill the seed's set up to 40 quotes (at least 3 fun ones).
 11. Blue dodongos don't mind smoke
 12. Red Wallmasters are said to be severed hands of darkwraiths   [fun]
 13. Shop wares and dungeon items can increase with your level
-14. Badges increase the item level of its type
+14. Old men cards improve your odds at better items
 15. The blue candle can only burn brown bushes
 16. The blue like likes may drop bombs, but they eat them too!   [about the upgrade blue like likes]
 17. Don't forget the push block in west Death mountain
@@ -61,3 +61,8 @@ Poison bait (v2.02 web):
 
 Heart snubber (2026-11-24):
 46. Heart Snubber: 3 hearts, but your sword grows with you   [only with the upgrade heart snubber]
+
+Old men cards (2026-11-24; the badges: shop S brown box, dungeon D red, shrine X blue):
+47. White border cards boost dungeon and shrine finds
+48. Brown border cards make shops sell better items
+49. Blue cards improve shrine prizes, red cards dungeon gifts

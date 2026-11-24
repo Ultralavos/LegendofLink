@@ -346,7 +346,7 @@ def build_show(org, rom, names, items, L):
 
 
 STRINGS = [f"LEVEL-{n}" for n in range(1, 10)] + [f"SHRINE-{c}" for c in "ABCD"] + [
-    "???", "START-FLIP  SELECT-END", "TIME", "BADGES", "UPGRADES", "INVENTORY"]
+    "???", "START-FLIP  SELECT-END", "TIME", "OLD MEN CARDS", "UPGRADES", "INVENTORY"]
 S_LABEL, S_UNSEEN, S_KEYS, S_TIME, S_BADGES, S_UPGRADES, S_INVENTORY = 0, 13, 14, 15, 16, 17, 18
 FONT_X = 0x21                           # "X"
 # the inventory: (row, column, address, kind, base): kind 0 the item base + the byte (1-3 / 1-2), $80-$82 special
