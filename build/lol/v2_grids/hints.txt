@@ -68,9 +68,12 @@ Old men cards (2026-11-24; the badges: shop S brown box, dungeon D red, shrine X
 49. Blue cards improve shrine prizes, red cards dungeon gifts
 
 Divining rod and song of chaos (2026-11-24):
-50. The divining rod points you to every compass   [only with the upgrade divining rod]
+50. The divining rod points you to the prize   [only with the upgrade divining rod]
 51. Play the song of chaos and the wind takes you anywhere   [only with the upgrade song of chaos]
 
 Zombie Link and the brain potion (2026-11-24):
 52. Zombies hate hearts, but love the taste of brains   [only with the upgrade zombie link]
 53. Brain potions put the life back in a zombie   [only with the upgrade brain potion]
+
+Red Gleeok (2026-11-24):
+54. Grow too strong and Gleeok sees red
