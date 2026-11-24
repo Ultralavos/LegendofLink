@@ -107,15 +107,15 @@ def footprints(quest):
 
 
 # The levels' nicknames (owner, 2026-11-24; 2Q by the level number the game shows), for the page and a spoiler log.
-# 3Q's are the proposed ones (q3/nicknames.json, not yet picked by the owner); 4Q's from the 4Q build (level 9:
+# 3Q's: the owner's picks (2026-11-24; 1-4 and 9 as proposed in q3/nicknames.json); 4Q's from the 4Q build (level 9:
 # the Swiss Cheese with the Torch wing, one dungeon here).
 NICKNAMES = {
     "1q": {1: "The Eagle", 2: "The Moon", 3: "The Manji", 4: "The Snake", 5: "The Lizard", 6: "The Dragon",
            7: "The Demon", 8: "The Lion", 9: "The Skull"},
     "2q": {1: "The E", 2: "The A", 3: "The L", 4: "The D", 5: "The Z", 6: "The Cap", 7: "The Flail",
            8: "The Whip", 9: "The Pig"},
-    "3q": {1: "The Sword", 2: "The Kite", 3: "The Islands", 4: "The Candle", 5: "The Chalice", 6: "The Jellyfish",
-           7: "The Twin Pines", 8: "The Trident", 9: "The Serpent"},
+    "3q": {1: "The Sword", 2: "The Kite", 3: "The Islands", 4: "The Candle", 5: "The Crane", 6: "The Dancer",
+           7: "The Lock Picks", 8: "The Vire", 9: "The Serpent"},
     "4q": {1: "The Bow and Arrow", 2: "The Rabbit", 3: "The Broken Boomerang", 4: "The Whirlwind", 5: "The Hammer",
            6: "The Scorpion", 7: "The Armos", 8: "The Crown", 9: "The Swiss Cheese"},
 }
