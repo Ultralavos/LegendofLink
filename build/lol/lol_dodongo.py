@@ -14,7 +14,7 @@ HC_AT = 0x90                                   # HeartValues >= $90: 10 containe
 HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 BOMB_TYPE = 0x29
 TRAMP = 0xBD46                                 # banks 2 and 4: free
-MORE = 0xB940                                  # bank 2: lol_enemies2's handlers (Y 2+)
+MORE = 0xB680                                  # bank 2: lol_enemies2's handlers (Y 2+; to $B8FF at most)
 CODE2 = 0xB200                                 # bank 2 free ($B16A-$BBA0)
 WRAP4, PAL4, STUN4 = 0x9088, 0xBDEA, 0xBF42    # bank 4 free (vanilla padding)
 SWITCH = 0xFFAC

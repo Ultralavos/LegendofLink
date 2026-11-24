@@ -1,4 +1,9 @@
-"""Legend of Link: brown darknuts (9+ heart containers) and blue Aquamentus (10+).
+"""Legend of Link: brown darknuts (9+ heart containers) and blue Aquamentus (10+); blue charging red moblins (8+)
+and Zora-colored bomb-shooting red octoroks (10+). (Containers as enemies see them: HVE, hard mode + 3.)
+
+Red moblin at 8+: 6 health, 2 hearts on contact, blue; when it faces Link lined up with him it charges (the rope's
+speed $60), 10 XP. Red octoroks (slow and fast) at 10+: 4 health, the Zora's colors, and their rocks are red bombs
+(type $54 rocks, drawn and blasting as the blue Aquamentus' bombs, on Link or a wall), 12 XP.
 
 Brown darknut: every red darknut ($0B) once Link has 9 containers: 10 HP, speed $30 (red $20, blue $28: both now from SPD, set at each init), the blue
 darknut's damage (2; the WRAM damage table's entry is set at each darknut's init), 14 XP (blue's 12 + 2; lol_build's
@@ -22,6 +27,10 @@ BROWN_AT, BLUE_AQ_AT = 0x80, 0x90       # HeartValues: 9 / 10 containers
 HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 BROWN_HP, BROWN_SPEED, BROWN_DMG, RED_DMG = 0xA0, 0x30, 2, 1
 BLUE_AQ_HP = 0x80
+MOBLIN_AT, OCTOROK_AT = 0x70, 0x90      # HVE: red moblins level up at 8 containers, red octoroks at 10
+PALT = 0x76DF                           # WRAM: the sprite frames' palettes (bank 1); red moblin's 4 from 23, red octorok's 6
+MOBLIN_FRAMES, OCTOROK_FRAMES = 23, 27  # from 27 (both octorok speeds share them)
+OCTOROK_PAL = (0x02, 0x82, 0x02, 0x02, 0x82, 0x02)   # (vanilla: palette 2; bit 7 the vertical flip)
 DMG = 0x7A4A                            # WRAM: ObjTypeToDamagePoints
 LI = 0x6B7E                             # LevelInfo: palettes from +3
 TUNIC, PAL1, PAL3 = LI + 3 + 16 + 1, LI + 3 + 20 + 1, LI + 3 + 28 + 1
@@ -72,9 +81,52 @@ def apply(rom: bytearray, notes: list) -> None:
     assert rom[jw:jw + 3] == bytes([0x4C, WM4 & 0xFF, WM4 >> 8])
     rom[jw + 1:jw + 3] = bytes([STUB_I & 0xFF, STUB_I >> 8])
 
+    # bank 4: the red moblin's charge, the red octorok's bomb rocks (type $54, unused: the rock code's own)
+    from lol_newups import free_in
+    def hooks(at):
+        h = Asm(at)
+        # UpdateMoblin's LDY #$5B / JMP $87D1 (the shooter, speed $20 in $01): an upgraded red moblin that faces
+        # Link while lined up with him (within 8 px) charges at the rope's speed $60
+        h.label("mob").abs(0xBD, 0x034F).b(0xC9, 0x04).br(0xD0, "m_n").abs(0xAD, HVE).b(0xC9, MOBLIN_AT)
+        h.br(0x90, "m_n").b(0xB5, 0x98, 0x29, 0x0C).br(0xF0, "m_h")
+        h.b(0xA5, 0x70, 0x38, 0xF5, 0x70).abs(0x20, 0x701F).b(0xC9, 0x08).br(0xB0, "m_n")     # |x - Link's| < 8
+        h.b(0xA0, 0x04, 0xA5, 0x84, 0xD5, 0x84).br(0xB0, "m_d").b(0xA0, 0x08)                 # Link below: down
+        h.label("m_d").b(0x98, 0xD5, 0x98).br(0xD0, "m_n").br(0xF0, "m_c")
+        h.label("m_h").b(0xA5, 0x84, 0x38, 0xF5, 0x84).abs(0x20, 0x701F).b(0xC9, 0x08).br(0xB0, "m_n")
+        h.b(0xA0, 0x01, 0xA5, 0x70, 0xD5, 0x70).br(0xB0, "m_d").b(0xA0, 0x02).br(0xD0, "m_d")  # Link right: right
+        h.label("m_c").b(0xA0, 0x5B, 0xA9, 0x60, 0x85, 0x01).abs(0x4C, 0x87D5)
+        h.label("m_n").b(0xA0, 0x5B).abs(0x4C, 0x87D1)
+        # UpdateOctorok's LDY #$53 / JSR $87D3 (A kept): an upgraded red octorok shoots a bomb rock ($54)
+        h.label("oct").b(0xA0, 0x53, 0x48).abs(0xBD, 0x034F).b(0xC9, 0x09).br(0xB0, "o_n")
+        h.abs(0xAD, HVE).b(0xC9, OCTOROK_AT).br(0x90, "o_n").b(0xA0, 0x54)
+        h.label("o_n").b(0x68).abs(0x4C, 0x87D3)
+        # the rock's wall / edge check (JSR $6FB8 / BEQ gone): a bomb rock blasts there
+        h.label("rw").abs(0x20, 0x6FB8).br(0xD0, "rw_r").abs(0xBD, 0x034F).b(0xC9, 0x54).br(0xD0, "rw_z")
+        h.b(0xA0, 0x0B).abs(0x20, TR).b(0x68, 0x68, 0x60)
+        h.label("rw_z").b(0xA9, 0x00)
+        h.label("rw_r").b(0x60)
+        # the rock's tile check (JSR $EDFA / CMP $034A / BCS gone: a solid tile): a bomb rock blasts there
+        h.label("rt").abs(0x20, 0xEDFA).b(0x48).abs(0xCD, 0x034A).br(0x90, "rt_ok")
+        h.abs(0xBD, 0x034F).b(0xC9, 0x54).br(0xD0, "rt_ok")
+        h.b(0x68, 0xA0, 0x0B).abs(0x20, TR).b(0x68, 0x68, 0x60)
+        h.label("rt_ok").b(0x68, 0x60)
+        # the rock's Link check (JSR $8371): a bomb rock is the blue Aquamentus' bomb (Y 10), the rest skipped
+        h.label("rl").abs(0xBD, 0x034F).b(0xC9, 0x54).br(0xF0, "rl_b").abs(0x4C, 0x8371)
+        h.label("rl_b").b(0xA0, 0x0A).abs(0x20, TR).b(0x68, 0x68, 0x60)
+        return h
+    hat = free_in(rom, 4, len(hooks(0xB000).bytes()), 0xB000)
+    h = hooks(hat)
+    place(rom, 4, hat, h.bytes())
+    J = lambda n, op=0x20: bytes([op, h.labels[n] & 0xFF, h.labels[n] >> 8])
+    patch(rom, 4, 0x87C7, bytes.fromhex("a05b4cd187"), J("mob", 0x4C) + b"\xEA\xEA")
+    patch(rom, 4, 0x8C1E, bytes.fromhex("a05320d387"), J("oct") + b"\xEA\xEA")
+    patch(rom, 4, 0x82F6, bytes.fromhex("20b86f"), J("rw"))
+    patch(rom, 4, 0x82EE, bytes.fromhex("20faed"), J("rt"))
+    patch(rom, 4, 0x82FE, bytes.fromhex("207183"), J("rl"))
+
     # bank 2: Y = 2, 3, 4
     a = Asm(D.MORE)
-    for k, name in ((2, "fb"), (3, "edge"), (4, "init"), (6, "dodo"), (8, "arrow")):
+    for k, name in ((2, "fb"), (3, "edge"), (4, "init"), (6, "dodo"), (8, "arrow"), (10, "rk"), (11, "ed_m")):
         a.b(0xC0, k).br(0xD0, f"dn{k}").abs(0x4C, name).label(f"dn{k}")
     a.abs(0x4C, "wizz")                                                  # (9)
     # is a blue Aquamentus here? (C set: yes)
@@ -88,7 +140,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("fb_m").b(0xA9, 0x00).abs(0x9D, 0x0394)                 # (as $8371 does each frame)
     a.label("fb_m2").b(0xB5, 0x70, 0xC9, 0x1C).br(0x90, "fb_b").b(0xC9, 0xDC).br(0xB0, "fb_b")
     a.b(0xB5, 0x84, 0xC9, 0x58).br(0x90, "fb_b").b(0xC9, 0xCC).br(0xB0, "fb_b")
-    a.b(0xA5, 0x70, 0x18, 0x69, 0x04, 0x38, 0xF5, 0x70).abs(0x20, DL["abs"]).b(0xC9, 0x0C).br(0xB0, "fb_d")
+    a.label("fb_l").b(0xA5, 0x70, 0x18, 0x69, 0x04, 0x38, 0xF5, 0x70).abs(0x20, DL["abs"]).b(0xC9, 0x0C).br(0xB0, "fb_d")
     a.b(0xA5, 0x84, 0x38, 0xF5, 0x84).abs(0x20, DL["abs"]).b(0xC9, 0x0C).br(0xB0, "fb_d")
     a.label("fb_b").abs(0x20, "boom").b(0xA0, 0x01, 0x60)
     a.label("fb_d").b(0xB5, 0x70, 0x85, 0x00, 0xB5, 0x84, 0x85, 0x01, 0xA9, 0x00).abs(0x20, DL["draw"])
@@ -119,9 +171,27 @@ def apply(rom: bytearray, notes: list) -> None:
         a.abs(0xAD, PAL1 + k).abs(0x8D, t)
     a.abs(0x4C, "i_set")
     # blue pols voice (lol_newups, 10+ containers): 5 health
-    a.label("i_ot").b(0xC9, 0x16).br(0xD0, "i_back").abs(0xAD, HVE).b(0xC9, 0x90).br(0x90, "i_back")
+    a.label("i_ot").b(0xC9, 0x16).br(0xD0, "i_mb").abs(0xAD, HVE).b(0xC9, 0x90).br(0x90, "i_back")
     a.b(0xA9, 0x50).abs(0x9D, 0x0485)
     a.label("i_back").b(0x60)
+    # red moblin ($04) at 8+ (HVE $70): 6 health, 2 hearts on contact, blue (its 4 frames' sprite palette 1);
+    # below: half a heart, red (palette 2). (The damage and palette tables are WRAM: set both ways.)
+    a.label("i_mb").b(0xC9, 0x04).br(0xD0, "i_oc").b(0xA0, 0x80, 0xA9, 0x02, 0x48).abs(0xAD, HVE).b(0xC9, MOBLIN_AT)
+    a.br(0x90, "i_mn").b(0x68, 0xA9, 0x60).abs(0x9D, 0x0485).b(0xA0, 0x02, 0xA9, 0x01, 0x48)
+    a.label("i_mn").abs(0x8C, DMG + 0x04).b(0x68)
+    for f in range(4):
+        a.abs(0x8D, PALT + MOBLIN_FRAMES + f)
+    a.b(0x60)
+    # red octoroks ($07 slow, $08 fast) at 10+ (HVE $90): 4 health, the Zora's sprite palette 3 (frames 27-32)
+    a.label("i_oc").b(0xC9, 0x07).br(0xF0, "oc").b(0xC9, 0x08).br(0xD0, "i_back")
+    a.label("oc").abs(0xAD, HVE).b(0xC9, OCTOROK_AT).br(0xB0, "oc_u").b(0xA0, 0x05)
+    a.label("oc_v").abs(0xB9, "ocpv").abs(0x99, PALT + OCTOROK_FRAMES).b(0x88).br(0x10, "oc_v").b(0x60)
+    a.label("oc_u").b(0xA9, 0x40).abs(0x9D, 0x0485).b(0xA0, 0x05)
+    a.label("oc_w").abs(0xB9, "ocpu").abs(0x99, PALT + OCTOROK_FRAMES).b(0x88).br(0x10, "oc_w").b(0x60)
+    a.label("ocpv").b(*OCTOROK_PAL)
+    a.label("ocpu").b(*[(v & 0x80) | 3 for v in OCTOROK_PAL])
+    # Y 10: a bomb octorok's rock (X), each frame after its move: touching Link? blast; else drawn as a red bomb
+    a.label("rk").b(0xA9, 0x00).abs(0x9D, 0x0394).abs(0x4C, "fb_l")
     # Y 6: a dodongo (X), each frame: with piercing arrows, a flying arrow (slot $12) on it stuns it
     a.label("dodo").abs(0xAD, U.PIERCING[0]).b(0x29, U.PIERCING[1]).br(0xF0, "dd_r")
     a.b(0xB5, 0xAC, 0xC9, 0x02).br(0xB0, "dd_r").b(0xA5, 0xAC + 0x12, 0x29, 0xF0, 0xC9, 0x10).br(0xD0, "dd_r")
@@ -149,6 +219,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA9, 0xFF).abs(0x9D, 0x0308).b(0x8A, 0x18, 0x69, 0x06).abs(0x8D, 0x0301)
     a.b(0x68, 0xAA, 0x60)
     code = a.bytes()
+    assert D.MORE + len(code) <= 0xB900, hex(D.MORE + len(code))
     place(rom, 2, D.MORE, code)
     s2 = Asm(STUB_W)
     s2.b(0xA0, 0x08).abs(0x4C, a.labels["arrow"])

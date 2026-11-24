@@ -50,6 +50,8 @@ TABLE_SIZE = 0x4B
 XP_EXT = 0xBC10                                # bank 4 free ($BC0D-$BC83): the value, with the 9 / 10 container enemies
 XP_BROWN, XP_BLUE_AQUA = 14, BOSS | 20         # brown darknut (blue's 12 + 2), blue Aquamentus (15 + 5)
 XP_BLUE_POLS = 7 + 3                           # blue pols voice (lol_newups): the pols voice's 7 + 3
+XP_BLUE_MOBLIN = 10                            # red moblins at 8+ containers (lol_enemies2): blue, charging
+XP_BOMB_OCTOROK = 12                           # red octoroks at 10+ containers (lol_enemies2): Zora-colored, red bombs
 
 HOOK = 0x1FCCD                                 # bank 7 $FCBD: LDA $034F,X / CMP #$11 / BEQ $FCC7 / INC RoomKillCount
 HOOK_BYTES = bytes.fromhex("bd4f03c911f003ee4f03")
@@ -200,12 +202,15 @@ def main():
     rom[HOOK:HOOK + 10] = bytes([0x20, FREE & 0xFF, FREE >> 8]) + b"\xEA" * 7
     x = bytearray()                                      # ext (Y = the type)
     tbl = build_helper.labels["table"]
-    # (HVE: the containers enemies level up by) brown darknut 9+, blue Aquamentus 10+, blue pols voice 10+
-    x += bytes([0xAD, HVE & 0xFF, HVE >> 8, 0xC0, 0x0B, 0xD0, 0x07, 0xC9, 0x80, 0x90, 25, 0xA9, XP_BROWN, 0x60])
-    x += bytes([0xC0, 0x3D, 0xD0, 0x07, 0xC9, 0x90, 0x90, 14, 0xA9, XP_BLUE_AQUA, 0x60])
-    x += bytes([0xC0, 0x16, 0xD0, 0x07, 0xC9, 0x90, 0x90, 3, 0xA9, XP_BLUE_POLS, 0x60])
+    # (HVE: the containers enemies level up by) the levelled-up enemies' values, else the table's
+    ups = [(0x0B, 0x80, XP_BROWN), (0x3D, 0x90, XP_BLUE_AQUA), (0x16, 0x90, XP_BLUE_POLS),
+           (0x04, 0x70, XP_BLUE_MOBLIN), (0x07, 0x90, XP_BOMB_OCTOROK), (0x08, 0x90, XP_BOMB_OCTOROK)]
+    tail = 3 + 11 * len(ups)
+    x += bytes([0xAD, HVE & 0xFF, HVE >> 8])
+    for k, (t, at, v) in enumerate(ups):                 # CPY #t / BNE next / CMP #at / BCC table / LDA #v / RTS
+        here = 3 + 11 * k
+        x += bytes([0xC0, t, 0xD0, 0x07, 0xC9, at, 0x90, tail - (here + 8), 0xA9, v, 0x60])
     x += bytes([0xB9, tbl & 0xFF, tbl >> 8, 0x60])
-    assert len(x) == 40
     xo = BANK4 + XP_EXT - 0x8000
     assert all(v == 0xFF for v in rom[xo:xo + len(x)]) and XP_EXT + len(x) <= 0xBC80
     rom[xo:xo + len(x)] = x

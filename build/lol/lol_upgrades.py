@@ -234,10 +234,15 @@ def apply(rom: bytearray, notes: list) -> None:
     # drops as a blue octorok ($09) does: the drop group with bombs
     def build4(cpu):
       g4 = Asm(cpu)
-      g4.abs(0xBD, 0x0412).b(0xC9, 0x17).br(0xD0, "ll_r").abs(0xAD, LIKELIKE_BOMBS[0]).b(0x29, LIKELIKE_BOMBS[1])
+      g4.abs(0xBD, 0x0412).b(0xC9, 0x17).br(0xD0, "oc_c").abs(0xAD, LIKELIKE_BOMBS[0]).b(0x29, LIKELIKE_BOMBS[1])
       g4.br(0xF0, "ll_n").b(0xA9, 0x09, 0x60)
       g4.label("ll_n").b(0xA9, 0x17)
       g4.label("ll_r").b(0x60)
+      # red octoroks at 10+ containers (HVE, lol_enemies2's bomb octoroks): the bomb-dropping class (the third
+      # list, whose table holds the bombs; looked up as a blue octorok, $09, as the like-like's upgrade does)
+      g4.label("oc_c").b(0xC9, 0x07).br(0xF0, "oc_x").b(0xC9, 0x08).br(0xD0, "ll_r")
+      g4.label("oc_x").abs(0xAD, HVE).b(0xC9, 0x90).br(0x90, "oc_n").b(0xA9, 0x09, 0x60)
+      g4.label("oc_n").abs(0xBD, 0x0412).b(0x60)
       # Ganon (bank 4 Ganon_CheckCollisions' JSR CheckMonsterSwordCollision): with the upgrade the boomerang (slot
       # $0F) near his middle ([02] / [03]) hits him for the sword's damage: it turns back, and the hit goes to
       # HandleMonsterWeaponCollision (WRAM $7C16) as the sword's would (CheckMonsterWeaponCollision's own boomerang
