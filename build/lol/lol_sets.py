@@ -174,7 +174,10 @@ SOURCES = ("1q", "2q", "3q", "4q", "lol", "shapes")
 LOL_SHRINES = {"Giraffe", "Cactus", "Bat", "Face", "Pompadour", "Piranha", "Sock Puppet"}
 LOL_LEVELS = {"Vice", "Anteater", "Elephant", "Robber", "Whale", "Poodle", "Unicorn", "Gecko", "Stallion", "Rook",
               "Bell"}
-LOL_NINES = {"Serpent", "Balloon", "Ghost"}
+LOL_NINES = {"Serpent", "Balloon", "Ghost", "Hero", "Hellhound"}
+LOL_LEVELS |= {"Hero", "Hellhound", "Bomb", "Camel", "Guillotine", "Bird", "Corners", "Ladle",   # (grids 7-9: their
+               "Notes", "Pyramids", "Heart", "Bull", "Periscope"}                                #  classes say which)
+LOL_SHRINES |= {"Guillotine", "Bird", "Corners", "Ladle", "Bull", "Notes", "Periscope", "Question Mark"}
 SHRINES = ("SA", "SB", "SC", "SD")
 LEVEL_RANGE = {"L1": "L13", "L2": "L13", "L3": "L13", "L4": "L45", "L5": "L45", "L6": "L68", "L7": "L68",
                "L8": "L68", "L9": "L9"}
@@ -205,10 +208,34 @@ def _fresh_shape(n, rng):
 
 
 def _lol_pool():
-    """LoL's designs: [(name, cells, block, classes)]."""
+    """LoL's designs: [(name, cells, block, classes)] (grids 1-4, and grids 7 and 8)."""
     import lol_genload as GL
     ds, _ = GL.lol_designs()
-    return [(nm, cells, f"lol:{gi}", GL.classes_of(nm)) for gi, _, nm, cells, _ in ds]
+    out = [(nm, cells, f"lol:{gi}", GL.classes_of(nm)) for gi, _, nm, cells, _ in ds]
+    g = lol_grids()
+    for gi in (7, 8, 9):
+        out += [(nm, sorted(cs), f"lol:{gi}", EXTRA_CLASSES[nm]) for nm, cs in sorted(g[gi]["des"].items())]
+    return out
+
+
+def lol_alt_set(swap2, swap3):
+    """The plain LoL set with grid 8 (Corners, Bomb, Camel, Guillotine, Bird, Ladle) or 9 (Notes, Question Mark,
+    Pyramids, Heart, Bull, Periscope) in grid 2's place (swap2: 8 or 9, or 0) and / or grid
+    7 (the Hero and the Hellhound) in grid 3's (the Ghost, the Gecko and the Balloon); the other grids as they are,
+    every design with LoL's own classes."""
+    import lol_genload as GL
+    g = lol_grids()
+    out = {}
+    for slot, src in ((1, 1), (2, swap2 or 2), (3, 7 if swap3 else 3), (4, 4)):
+        names = sorted(g[src]["des"])
+        letters = {nm: LETTERS[i] for i, nm in enumerate(names)}
+        occ = {c: nm for nm in names for c in g[src]["des"][nm]}
+        rows = ["".join(letters[occ[r * COLS + c]] if r * COLS + c in occ else "." for c in range(COLS))
+                for r in range(ROWS)]
+        out[slot] = {"rows": rows, "names": {letters[nm]: nm for nm in names},
+                     "classes": {nm: EXTRA_CLASSES.get(nm) or GL.classes_of(nm) for nm in names},
+                     "hidden": dict(g[src]["hidden"])}
+    return out
 
 
 def quest_counts(cls, rule):
@@ -304,8 +331,9 @@ def build_set(which, seed):
     rng = random.Random(seed)
     if which == "random":
         which = rng.choice(SOURCES)
-    if which == "lol":
-        return None
+    if which == "lol":                    # grid 2's place: grid 2, 8 or 9 (a third each); grid 3's: 3 or 7 (half)
+        swap2, swap3 = rng.choice((0, 8, 9)), rng.random() < 0.5     # (owner, 2026-11-24)
+        return lol_alt_set(swap2, swap3) if swap2 or swap3 else None
     if which == "shapes":
         return shapes_set(seed)
     if which in ("1q", "2q", "3q", "4q"):
@@ -356,11 +384,30 @@ def build_set(which, seed):
 # --- quest sets: the quest's two blocks as they are, and two LoL grids for the shrines (owner, 2026-11-24) ---
 
 EXTRA_NAMES = {5: {"G": "Green 5", "B": "Blue 5", "M": "Magenta 5", "Y": "Yellow 5", "C": "Cyan 5", "R": "Red 5"},
-               6: {"C": "Cyan 6", "B": "Blue 6", "M": "Magenta 6", "G": "Green 6", "R": "Red 6", "Y": "Yellow 6"}}
+               6: {"C": "Cyan 6", "B": "Blue 6", "M": "Magenta 6", "G": "Green 6", "R": "Red 6", "Y": "Yellow 6"},
+               7: {"H": "Hero", "D": "Hellhound"},
+               8: {"T": "Corners", "B": "Bomb", "P": "Camel", "R": "Guillotine", "G": "Bird", "Y": "Ladle"},
+               9: {"R": "Notes", "G": "Question Mark", "B": "Pyramids", "P": "Heart", "T": "Bull", "Y": "Periscope"}}
+# grid 7's levels (owner, 2026-11-24): the Hero 6-9, the Hellhound 7-9
+EXTRA_CLASSES = {"Hero": ("L6", "L7", "L8", "L9"), "Hellhound": ("L7", "L8", "L9")}
+# grid 8's (no levels given: by size, as LoL's own designs; its 12 free squares hold the stairs this allows)
+_S = ("SA", "SB", "SC", "SD")
+EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(1, 9)), "Camel": tuple(f"L{n}" for n in range(1, 9)),
+                      "Guillotine": tuple(f"L{n}" for n in range(1, 7)) + _S,
+                      "Bird": tuple(f"L{n}" for n in range(1, 7)) + _S,
+                      "Corners": ("L1", "L2", "L3") + _S, "Ladle": ("L1", "L2", "L3") + _S,   # (Corners: four
+                      # pieces, too few rooms for levels 4-6's boss rooms; tried in lol_gen)
+                      # grid 9's (by size too; its 13 free squares hold their stairs)
+                      "Heart": tuple(f"L{n}" for n in range(1, 9)), "Pyramids": tuple(f"L{n}" for n in range(1, 9)),
+                      "Bull": tuple(f"L{n}" for n in range(1, 9)) + _S,
+                      "Notes": tuple(f"L{n}" for n in range(1, 7)) + _S,
+                      "Periscope": tuple(f"L{n}" for n in range(1, 7)) + _S,
+                      "Question Mark": _S})                # (ten rooms in four pieces: only a shrine generates)
+SHRINE_GRIDS = (1, 2, 3, 4, 5, 6)       # (a quest set's shrine grids: grid 7 has no shrine-sized design)
 
 
 def lol_grids():
-    """LoL's grids 1-6, whole: {grid: {"rows", "des": {name: cells}, "hidden": {name: cells}}}."""
+    """LoL's grids 1-9, whole: {grid: {"rows", "des": {name: cells}, "hidden": {name: cells}}}."""
     import os
     import lol_genload as GL
     import lolpaths
@@ -375,7 +422,7 @@ def lol_grids():
         occ = {c: nm for nm, cs in out[gi]["des"].items() for c in cs}
         out[gi]["occ"] = occ
     txt = open(os.path.join(lolpaths.LOL, "v2_grids", "grids_extra.txt")).read().split("\n\n")[1:]
-    for gi, blk in zip((5, 6), txt):
+    for gi, blk in zip((5, 6, 7, 8, 9), txt):
         rows = [l for l in blk.split("\n") if len(l) == COLS]
         g = {"des": {}, "hidden": {}, "occ": {}}
         for r in range(ROWS):
@@ -401,7 +448,7 @@ def quest_set(quest, rng):
     lol = lol_grids()
     lo, hi = RANGES["SH"]
     while True:
-        pair = rng.sample(sorted(lol), 2)
+        pair = rng.sample([g for g in sorted(lol) if g in SHRINE_GRIDS], 2)
         cand = [(gi, nm) for gi in pair for nm, cs in sorted(lol[gi]["des"].items()) if lo <= len(cs) <= hi
                 and map_ok(cs)]
         if len(cand) < 4:

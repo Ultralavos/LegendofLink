@@ -21,3 +21,36 @@ BBBBBBBMMMMRRRRY
 BBBBBBBMMGMRR.RY
 CBBBBBCMMGMRRRYY
 CCBBBCCMMGMR.RYY
+
+Grid 7 (H teal = the Hero, D pink = the Hellhound; the owner's picture's dark blue left out, 2026-11-24)
+.H.HHH..D...DD.D
+.H.HHH..DDDDD..D
+.H..H.HHD.D.DDDD
+HHHHHHHHDDDDDDDD
+.H..H.HHD.D.D.D.
+...HHH..D...D.D.
+...H.H..DD.DD.DD
+...H.H...DDD.DDD
+
+Grid 8 (T teal = the Corners, B blue = the Bomb, P pink = the Camel, R red = the Guillotine, G green = the Bird,
+Y yellow = the Ladle; owner 2026-11-24: swapped in for grid 2 at random)
+TT..BB.T.PGGGRGG
+T..BPPBTPPPGGRGG
+..BBBPPPPPPPGRGY
+.BBBBB.PPPPPGGGY
+BBBBBBBPPPPRRRRY
+BBBBBBBPPGPRR.RY
+TBBBBBTPPGPRRRYY
+TTBBBTTPPGPR.RYY
+
+Grid 9 (R red = the Notes, G green = the Question Mark, B blue = the Pyramids, P pink = the Heart, T teal = the
+Bull, Y yellow = the Periscope; the Pyramids' darker square is a hidden room; owner 2026-11-24: swapped in for
+grid 2 at random, as grid 8)
+.GGBBBBBPPYYPPYY
+G..GBBBPTPPPPTPY
+.RRGRB.PTTTTTTPY
+.RGGR..PPTTTTPPY
+.RGRR.BPPTTTTPPY
+.RGRRBBBPPTTPPYY
+RR..BBBBBPPPPYYY
+RRGBBBbBBBPPTTYY

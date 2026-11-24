@@ -82,3 +82,17 @@ Designs on the two LoL grids that no shrine uses leave their grid, which frees t
 | 2Q | 1, 2, 3 |
 | 3Q | 1, 2, 4, 6, 7, 8 |
 | 4Q | 1, 2, 3, 5, 6, 7, 8 |
+
+### More LoL grids (owner, 2026-11-24)
+
+- **Grid 7** (Hero 31 rooms: levels 6-9; Hellhound 43: levels 7-9) takes grid 3's place (Ghost, Gecko, Balloon) in
+  half the seeds of the plain LoL set.
+- **Grid 8** (Corners, Bomb, Camel, Guillotine, Bird, Ladle) and **grid 9** (Notes, Question Mark, Pyramids,
+  Heart, Bull, Periscope; the Pyramids' darker square a hidden room) each take grid 2's place in a third of the
+  seeds (grid 2 itself the other third). Their levels go by size, kept where lol_gen can generate them: Corners
+  1-3 or a shrine (four pieces), Question Mark only a shrine (ten rooms in four pieces).
+- All of them join the Mixed / Random pool.
+- Ghost's five and Balloon's one hidden rooms are deleted (Ghost 42 rooms, Balloon 39).
+- Page sets' cellars: item cellars stay each design's own (grid 4's two room-memory areas reuse each other's
+  squares), transport cellars are shared by a grid's designs (as LoL's own grids share them); a design reserves
+  what its neediest level takes.

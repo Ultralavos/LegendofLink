@@ -36,7 +36,7 @@ NAMES = {1: {'G': 'Serpent', 'M': 'Bell', 'B': 'Face', 'O': 'Rook'},
          3: {'P': 'Ghost', 'G': 'Gecko', 'B': 'Balloon'},
          4: {'M': 'Anteater', 'O': 'Robber', 'B': 'Sock Puppet', 'Y': 'Vice', 'P': 'Elephant', 'G': 'Cactus',
              'C': 'Poodle', 'N': 'Piranha'}}
-HIDDEN = {'Pompadour': ['B15'], 'Ghost': ['B4', 'B6', 'D5', 'E4', 'E5'], 'Balloon': ['D11']}
+HIDDEN = {'Pompadour': ['B15']}            # (Ghost's five and Balloon's one hidden rooms deleted, owner 2026-11-24)
 NINES = {'Serpent', 'Balloon', 'Ghost'}
 NO_SHRINE = {'Bell', 'Rook', 'Unicorn', 'Stallion'}
 NO_78 = {'Cactus', 'Vice', 'Piranha', 'Robber', 'Pompadour', 'Bat', 'Giraffe', 'Face'}
@@ -96,7 +96,7 @@ def custom_set():
     global CUSTOM, BUILDING
     import os
     which = os.environ.get("LOL_SET", "lol")
-    if which == "lol" or CUSTOM is False or BUILDING:
+    if CUSTOM is False or BUILDING:
         return None
     if CUSTOM is None:
         import lol_sets
@@ -206,22 +206,38 @@ def floor_levels():
 
 
 def cellar_alloc(ds, free):
-    """A page set's cellars: {design: (item cellars, transport cellars)}, each design its own squares of its grid's
-    free ones (level 2's item cellar is never used, so it shares another's)."""
+    """A page set's cellars: {design: (item cellars, transport cellars)} on its grid's free squares. Item cellars are
+    each design's own (their items' taken flags are the squares'; level 2's is never used, so it shares another's);
+    transport cellars are shared by the grid's designs, as LoL's own grids share them (only the level being played
+    is loaded): the grid's last free squares, as many as its neediest design takes. Each design takes the most any
+    of its levels needs."""
     import lol_sets
-    out, used = {}, {}
+    need = {}
     for gi, k, nm, cells, hid in ds:
         cl = classes_of(nm)
         if not cl:
             continue
-        ni, nt = lol_sets.cellar_need(cl[0], cells, rule_of(nm))
-        fr = [c for c in free[gi] if c not in used.get(gi, set())]
-        assert len(fr) >= ni + nt, (nm, gi, len(fr), ni, nt)
-        ic, tc = fr[:ni], fr[ni:ni + nt]
-        used.setdefault(gi, set()).update(ic + tc)
-        if cl[0] == "L2":
-            ic = [free[gi][0]]
-        out[nm] = (ic, tc)
+        needs = [lol_sets.cellar_need(c, cells, rule_of(nm)) for c in cl]
+        need[nm] = (gi, cl, max(x[0] for x in needs), max(x[1] for x in needs))
+    # grid 4's designs alternate between two room memory areas (flags_of): one area's item cellars can be the
+    # other's squares too
+    area = {ds[d][2]: (grid_index(d, ds) % 2 if ds[d][0] == 4 else 0) for d in range(len(ds))}
+    out = {}
+    for gi in free:
+        mine = {nm: v for nm, v in need.items() if v[0] == gi}
+        if not mine:
+            continue
+        nt = max(v[3] for v in mine.values())
+        ni = max(sum(v[2] for nm, v in mine.items() if area[nm] == a) for a in (0, 1))
+        assert ni + nt <= len(free[gi]), (gi, len(free[gi]), ni, nt)
+        shared = free[gi][len(free[gi]) - nt:]
+        p = [0, 0]
+        for nm, (_, cl, i_n, t_n) in mine.items():
+            a = area[nm]
+            ic = free[gi][p[a]:p[a] + i_n]; p[a] += i_n
+            if cl[0] == "L2":
+                ic = [free[gi][0]]
+            out[nm] = (ic, shared[:t_n])
     return out
 
 
