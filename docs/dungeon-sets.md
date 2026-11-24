@@ -2,7 +2,7 @@
 
 Decided with the owner:
 
-- One dropdown: **1Q, 2Q, 3Q, 4Q, LoL, Shapes, Random** (the seed picks one set for levels 1-9) and **Mixed**
+- One dropdown: **1Q, 2Q, 3Q, 4Q, LoL, Shapes, Random** (any four grids, below) and **Mixed**
   (each level from any set).
 - Quest shapes are **footprint only**: which squares are rooms. Doors, locked doors, bomb walls, room layouts,
   enemies and items are made by Legend of Link's generator (`build/lol/lol_gen.py`) and the game's loader.
@@ -112,3 +112,14 @@ Designs on the two LoL grids that no shrine uses leave their grid, which frees t
 | 9 | The Skull | The Pig | The Serpent | The Swiss Cheese (+ the Torch) |
 
 (`lol_quests.NICKNAMES`; 3Q's 1-4 and 9 as proposed, 5-8 the owner's.)
+
+
+## Random: any four grids (owner, 2026-11-24)
+
+Random draws four grids from a pool of 18: LoL's grids 1-9, the quests' blocks (1Q-4Q, levels 1-6 and levels 7-9:
+eight grids) and one grid of random shapes (made like one of the Shapes set's four). Levels 1-9 and shrines A-D are
+dealt to the drawn grids' designs: LoL's grids 1-4 and 7-9 by their own classes, the shrine grids 5-6, the quest
+levels and the random shapes by their room count (any level it fits; a quest level keeps its own stair rules as a
+level, none as a shrine). Only those 13 designs are used: the rest leave their grids, and their squares become free
+for cellars. A draw that can't take every level, or whose grids can't hold their cellars, is drawn again
+(`lol_sets.random_grids_set`).

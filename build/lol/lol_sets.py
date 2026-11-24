@@ -327,10 +327,11 @@ def _grids_out(grids):
 
 
 def build_set(which, seed):
-    """The page's dungeon set: 1q / 2q / 3q / 4q / shapes / random / mixed. None: LoL's own maps (grids.txt)."""
+    """The page's dungeon set: 1q / 2q / 3q / 4q / shapes / random (four grids) / mixed. None: LoL's own maps
+    (grids.txt)."""
     rng = random.Random(seed)
     if which == "random":
-        which = rng.choice(SOURCES)
+        return random_grids_set(rng)
     if which == "lol":                    # grid 2's place: grid 2, 8 or 9 (a third each); grid 3's: 3 or 7 (half)
         swap2, swap3 = rng.choice((0, 8, 9)), rng.random() < 0.5     # (owner, 2026-11-24)
         return lol_alt_set(swap2, swap3) if swap2 or swap3 else None
@@ -489,3 +490,117 @@ def quest_set(quest, rng):
                    "classes": {nm: (shrines[(src, nm)],) for nm in used},
                    "hidden": {nm: h for nm, h in g["hidden"].items() if nm in letters}}
     return out
+
+
+# --- Random: any four grids (owner, 2026-11-24) ---
+# The pool: LoL's grids 1-9, the quests' blocks (1Q-4Q, levels 1-6 and 7-9: 8 grids) and a grid of random shapes.
+# Four are drawn; levels 1-9 and the four shrines are dealt to their designs: LoL's designs by their own classes, a
+# quest's or a random shape by its size (any level its room count fits: classes_for; a quest level keeps its stair
+# rules). Designs no level takes leave their grid (their squares hold cellars). A draw whose designs can't take every
+# level, or whose grids can't hold their cellars, is drawn again.
+NEEDED = ("L9", "L8", "L7", "L6", "L5", "L4", "L3", "L2", "L1", "SA", "SB", "SC", "SD")
+
+
+def _quest_grids():
+    import lol_quests
+    out = []
+    for q in ("1q", "2q", "3q", "4q"):
+        fp, qr = lol_quests.footprints(q), lol_quests.rules(q)
+        for block, lvs in (("1-6", range(1, 7)), ("7-9", range(7, 10))):
+            des, rules, cls = {}, {}, {}
+            for lv in lvs:
+                nm = f"{q.upper()} L{lv}"
+                des[nm] = sorted(fp[lv][1])
+                rules[nm] = tuple(qr[lv])
+                cls[nm] = classes_for(len(des[nm])) or (f"L{lv}",)
+            out.append({"src": f"{q}:{block}", "des": des, "hidden": {}, "rules": rules, "cls": cls})
+    return out
+
+
+def _shape_grid(rng):
+    """One grid of random shapes, as one of the Random shapes set's four (its sizes and count)."""
+    while True:
+        sizes, pools = plan_sizes(rng)
+        gi = rng.choice((1, 2, 3, 4))
+        grid = make_grid(sizes[gi], rng, pools[gi], tries=200)
+        if grid is None:
+            continue
+        des = {}
+        for i, n in enumerate(sizes[gi]):
+            des[f"Shape {i + 1}"] = [c for c in range(ROWS * COLS) if grid[c] == i]
+        return {"src": "shapes", "des": des, "hidden": {}, "rules": {},
+                "cls": {nm: classes_for(len(cs)) for nm, cs in des.items()}}
+
+
+def _deal(cands, rng):
+    """cands: {name: classes} -> {class: name} for every NEEDED class (random order, augmenting paths), or None."""
+    who = {}
+    names = list(cands)
+
+    def try_cls(cls, seen):
+        opts = [nm for nm in names if cls in cands[nm] and nm not in seen]
+        rng.shuffle(opts)
+        for nm in opts:
+            seen.add(nm)
+            if nm not in who or try_cls(who[nm], seen):
+                who[nm] = cls
+                return True
+        return False
+    for cls in NEEDED:
+        if not try_cls(cls, set()):
+            return None
+    return {cls: nm for nm, cls in who.items()}
+
+
+def random_grids_set(rng):
+    import lol_genload as GL
+    lol = lol_grids()
+    pool = []
+    for gi in sorted(lol):
+        g = lol[gi]
+        pool.append({"src": f"lol:{gi}", "des": g["des"], "hidden": g["hidden"], "rules": {},
+                     "cls": {nm: tuple(EXTRA_CLASSES.get(nm) or (GL.classes_of(nm) if gi <= 4 else
+                                                                   classes_for(len(cs))))
+                             for nm, cs in g["des"].items()}})
+    pool += _quest_grids()
+    pool.append("shapes")
+    for attempt in range(500):
+        pick = [p if p != "shapes" else _shape_grid(rng) for p in rng.sample(pool, 4)]
+        cands = {nm: [c for c in g["cls"][nm] if c in NEEDED] for g in pick for nm in g["des"]}
+        got = _deal(cands, rng)
+        if got is None:
+            continue
+        cls_of = {nm: cls for cls, nm in got.items()}
+        out, ok = {}, True
+        for gi, g in enumerate(pick, 1):
+            used = sorted(nm for nm in g["des"] if nm in cls_of)
+            letters = {nm: LETTERS[i] for i, nm in enumerate(used)}
+            occ = {c: nm for nm in used for c in g["des"][nm]}
+            rows = ["".join(letters[occ[r * COLS + c]] if r * COLS + c in occ else "." for c in range(COLS))
+                    for r in range(ROWS)]
+            rules = {nm: list(g["rules"][nm]) for nm in used if nm in g["rules"] and cls_of[nm][0] == "L"}
+            free = sum(ch == "." for r in rows for ch in r)
+            def need_of(nm):
+                return cellar_need(cls_of[nm], g["des"][nm], rules.get(nm))
+            def total():                    # (lol_genload.cellar_alloc: item cellars each, transports shared)
+                ns = [need_of(nm) for nm in used]
+                return sum(i for i, t in ns) + max([t for i, t in ns] or [0])
+            while total() > free:           # a quest level's stairs, as quest_set trims them
+                rl = [nm for nm in rules if rules[nm][1] > 0 or (rules[nm][0] > 0 and cls_of[nm] != "L9")]
+                if not rl:
+                    break
+                nm = max(rl, key=lambda n: (rules[n][1], rules[n][0]))
+                if rules[nm][1] > 0:
+                    rules[nm][1] -= 1
+                else:
+                    rules[nm][0] -= 1
+            if total() > free:
+                ok = False
+                break
+            out[gi] = {"rows": rows, "names": {v: k for k, v in letters.items()},
+                       "classes": {nm: (cls_of[nm],) for nm in used},
+                       "hidden": {nm: h for nm, h in g["hidden"].items() if nm in letters},
+                       "rules": {nm: tuple(r) for nm, r in rules.items()}}
+        if ok:
+            return out
+    raise RuntimeError("Random: no four grids took every level")
