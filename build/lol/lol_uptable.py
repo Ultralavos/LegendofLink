@@ -10,7 +10,7 @@ slot holds (WIX for the wares; owned ones are listed in order), and lol_pictures
 Codes $31-$3E are free for new items.
 
 Conditions: a list of rules, all of which must hold for the upgrade to be offered: ("ge", address, n) the byte is
-n or more; ("lt", address, n) below n; ("ge_or_swordless", address, n) n or more, or swordless mode (lol_modes); ("notowned", name) Link doesn't own that upgrade; ("rank1",) only in the second upgrade cave Link enters; ("rank0",) only in the
+n or more; ("lt", address, n) below n; ("ge_or_swordless", address, n) n or more, or swordless mode (lol_modes); ("notowned", name) Link doesn't own that upgrade; ("owned", name) he does; ("rank1",) only in the second upgrade cave Link enters; ("rank0",) only in the
 first upgrade cave Link enters; ("anynz", a, b) either byte is nonzero. (Addresses: page $06, the inventory.)"""
 import os
 
@@ -36,6 +36,7 @@ BOMB_UPGRADE = [("ge", MAX_BOMBS, 12)]  # at least one bomb upgrade (8 -> 12)
 WAND = 0x065F
 RECORDER = 0x065C
 TRIFORCE = 0x0671
+RING = 0x0662
 UP6 = 0x600E                            # the third batch's bits (file 2's name, as lol_stats' clock; cleared for a
                                         # new file by lol_saveblock)
 FOOD = 0x065D                           # the bait
@@ -46,7 +47,7 @@ ROWS = [
     ("beams",           (UPGRADES, 0x01),  50, 0, 13, HAS_SWORD + NO_SNUB, "_beam_sword", {}, 0x00),
     ("boomstick",       (UPGRADES, 0x02), 100, 1, 13, [("ge", WAND, 1), ("notowned", "divining rod")], "_boomstick",
      {0: 0x4A}, 0x00),
-    ("regen",           (UPGRADES, 0x04), 200, 2, 13, [], "_regen", {}, 0x1A),
+    ("regen",           (UPGRADES, 0x04), 200, 2, 13, [("notowned", "zombie link")], "_regen", {}, 0x1A),
     ("skull ring",      (UPGRADES, 0x10),  50, 0, 13, [], "_skull_ring", {}, 0x12),
     ("sword mastery",   (UPGRADES, 0x08), 100, 1, 13, HAS_SWORD + NO_SNUB, "_sword_plus", {0: 0x20}, 0x00),
     ("fairy bottle",    (UPGRADES, 0x40), 150, 2, 13, [], "_fairy_bottle", {0: 0x40, 8: 0x50}, 0x00),   # (owned: the
@@ -58,7 +59,8 @@ ROWS = [
     ("statue jammer",   (UP3, 0x02),      100, 1, 13, [], "_statue_jammer", {}, 0x00),
     ("bombsmith",       (UP3, 0x04),      150, 2, 13, BOMB_UPGRADE, "_bombsmith", {}, 0x00),
     ("potion pouch",    (UP3, 0x08),       50, 0, 12, HAS_POTION, "_pouch", {}, 0x00),
-    ("bat potion",      (UP3, 0x10),      125, 1, 12, HAS_POTION, "_bat_potion", {}, 0x1A),
+    ("bat potion",      (UP3, 0x10),      125, 1, 12, HAS_POTION + [("notowned", "brain potion")], "_bat_potion", {},
+     0x1A),
     ("bow mastery",     (UP3, 0x20),      150, 2, 12, HAS_BOW + [("ge", ARROWS, 1)], "_bow_mastery", {0: 0x2A}, 0x00),
     # the second batch (test14)
     ("ganon visible",   (UP4, 0x01),       25, 0, RARE, [], "_ganon_visible", {}, 0x1A),
@@ -93,6 +95,12 @@ ROWS = [
     # screen, one of those safe to land on (lol_entrances' SAFE_Y). Its bit: UP6's $01.
     ("song of chaos",   (UP6, 0x01),       25, 0, 13, [("ge", RECORDER, 1), ("ge", TRIFORCE, 1)], "_song_of_chaos",
      {}, 0x05),                         # (owner: with a triforce piece, as the whirlwind needs)
+    # owner 2026-11-24 (lol_zombie; was "glass cannon"): only at exactly 3 containers, with no ring, never with regen
+    ("zombie link",     (UP6, 0x02),       75, 1, RARE, [("ge", HEARTS, 0x20), ("lt", HEARTS, 0x30), ("lt", RING, 1),
+                                                         ("notowned", "regen")], "_zombie", {}, 0x0A),
+    # owner 2026-11-24 (lol_zombie): with Zombie Link and a potion; never with the bat potion
+    ("brain potion",    (UP6, 0x04),       50, 0, 13, [("owned", "zombie link"), ("ge", POTION, 1),
+                                                       ("notowned", "bat potion")], "_brain", {}, 0x1A),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

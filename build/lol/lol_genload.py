@@ -1090,6 +1090,9 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
     ups = [(0x0661, [0x11, 0x25]), (0x0662, [0x12, 0x13]), (0x0657, [0x02, 0x02, 0x03]), (0x0659, [0x08, 0x09]),
            (0x0664, [0x0B])]
     for i, (addr, nxt) in enumerate(ups):
+        if addr == 0x0662:              # (Zombie Link: no ring)
+            import lol_uptable as UT
+            a.abs(0xAD, UT.bit("zombie link")[0]).b(0x29, UT.bit("zombie link")[1]).br(0xD0, f"up{i}")
         if addr == 0x0657:              # lol_modes' swordless: the sword is a bomb upgrade (below 32 bombs)
             import lol_uptable as UT    # (the heart snubber: no sword at all)
             a.abs(0xAD, UT.bit("heart snubber")[0]).b(0x29, UT.bit("heart snubber")[1]).br(0xD0, f"up{i}")

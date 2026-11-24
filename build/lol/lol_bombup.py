@@ -363,6 +363,15 @@ def potion_rows(liquid, bat):
     return rows
 
 
+BRAIN_POTION = POTION[:8] + ["3.2222.3", "32122123", "32212213", "32122123", "3.2222.3", "33.11.33", "33333333",
+                             ".333333."]           # (Zombie Link's brain potion: a brain in the bottle)
+
+
+def brain_rows(liquid):
+    m = {"blue": {}, "orange": {"1": "2", "2": "1"}, "white": {"1": "3", "3": "1"}}[liquid]
+    return ["".join(m.get(c, c) for c in r) for r in BRAIN_POTION]
+
+
 def pair_bytes(rows):
     return tile_bytes(rows[:8]) + tile_bytes(rows[8:])
 
@@ -501,9 +510,12 @@ def apply(rom: bytearray, notes: list) -> None:
     from lol_odds import STORE
     from lol_af import AF_LEVELS
     REC_T = 0x0173                                      # (scratch: b_hi's too)
+    import lol_zombie
+    ZL = lol_zombie.lib(rom)
     def b_af(org):                                      # A-F's reward: out as the triforce (A = the item, kept)
         t = Asm(org)
-        t.label("af").abs(0x20, "rec").b(0x48, 0xC5, 0xAB).br(0xD0, "k_n")       # PHA / the room's item?
+        t.label("af").abs(0x20, "rec").abs(0x20, ZL["z_item"])                   # (Zombie Link: hearts drain him)
+        t.b(0x48, 0xC5, 0xAB).br(0xD0, "k_n")                                     # PHA / the room's item?
         t.b(0xA5, 0x10).br(0xF0, "k_n").abs(0xAD, INSIDE).br(0xF0, "k_n")        # in A-F
         t.abs(0xAD, REWARD_ROOM).b(0x49, 0x80, 0xC5, 0xEB).br(0xD0, "k_n")       # the reward's room
         t.b(0xA9, 0x00).abs(0x8D, REWARD_ROOM).abs(0x20, 0xEBA3).b(0xA9, 0x12, 0x85, 0x12)

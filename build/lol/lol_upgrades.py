@@ -118,12 +118,16 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("bm_out").b(0xA9, 0x00, 0xA0, 0x0B).label("bv").abs(0x99, 0x04F0).b(0x88).br(0xD0, "bv")
         return a.b(0x60)
     SNUB = T.bit("heart snubber")
+    import lol_zombie
+    ZL = lol_zombie.lib(rom)                           # (bank 0: Zombie Link's routines)
+    ZB = T.bit("zombie link")
     def b_sword(org):                                  # the heart snubber's level, sword +1, then the books' bonus
         a = Asm(org)
         ROD = T.bit("divining rod")                    # the divining rod's stab (weapon slot $12): 1 less, $10 at least
         a.label("sword").b(0xA5, 0x00, 0xC9, 0x12).br(0xD0, "sw_s").abs(0xAD, ROD[0]).b(0x29, ROD[1]).br(0xF0, "sw_s")
         a.b(0xA5, 0x07, 0xC9, 0x20).br(0x90, "sw_s").b(0xE9, 0x10, 0x85, 0x07)
-        a.label("sw_s").b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")
+        a.label("sw_s").abs(0x20, ZL["z_melee"])                    # (Zombie Link: double, a humanoid heals him)
+        a.b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")
         # heart snubber: the attack is at least half the level (the containers' nibble + 1) from level 4: 2 .. 8
         a.abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "sw_m")
         a.abs(0xAD, 0x066F).b(0x4A, 0x4A, 0x4A, 0x4A, 0x18, 0x69, 0x01, 0x4A, 0xC9, 0x02).br(0x90, "sw_m")
@@ -168,13 +172,12 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("frame").abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xF0, "f1").abs(0x20, B0["regen"])
         a.label("f1").abs(0xAD, RF[0]).b(0x29, RF[1]).br(0xF0, "f2").abs(0x20, B0["refill"])
         a.label("f2").abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "f3").abs(0x20, B0["snub"])
-        return a.label("f3").b(0x60)
+        a.label("f3").abs(0xAD, ZB[0]).b(0x29, ZB[1]).br(0xF0, "f4").abs(0x20, ZL["z_frame"])
+        return a.label("f4").b(0x60)
     B0["frame"] = V.put0(rom, b_frame).labels["frame"]
     # --- bank 7 stubs ---
-    s_regen = V.put7(rom, lambda o: Asm(o).abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xD0, "go").abs(0xAD, RF[0])
-                     .b(0x29, RF[1]).br(0xD0, "go").abs(0xAD, SNUB[0]).b(0x29, SNUB[1])
-                     .br(0xF0, "o").label("go").b(*V.far(0, B0["frame"]))
-                     .label("o").abs(0xAD, 0x066C).b(0x60)).cpu                     # (then the replaced LDA InvClock)
+    s_regen = V.put7(rom, lambda o: Asm(o).b(*V.far(0, B0["frame"]))          # (bank 0 checks each upgrade;
+                     .abs(0xAD, 0x066C).b(0x60)).cpu                     #  then the replaced LDA InvClock)                     # (then the replaced LDA InvClock)
     s_boom = V.put7(rom, lambda o: Asm(o).abs(0xAD, UPGRADES).b(0x29, 0x02).br(0xF0, "d").b(*V.far(0, B0["boom"]))
                     .label("d").abs(0x4C, DEACT_LINK_SHOT)).cpu                      # (the shot ends)
     # --- the common area (banks 0-6): what WRAM code calls, and the beams' check ---
@@ -421,9 +424,11 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 5, 0xB366, bytes([0xA9, 0x60, 0x85, 0x00]), bytes([0x20, at5 & 0xFF, at5 >> 8, 0xEA]))
 
     # a fairy fountain fills the bottle again (once Link has had one)
+    from lol_newups import put as put_in
+    POND_Z = put_in(rom, 4, lambda o: Asm(o).b(*ZL["far"]("z_pond")).b(0xA9, 0x40, 0x85, 0xAC, 0x60)).cpu
     f4 = Asm(POND_CODE)
     f4.abs(0xAD, UPGRADES).b(0x29, FAIRY_OWNED).br(0xF0, "pn").abs(0xAD, UPGRADES).b(0x09, FAIRY).abs(0x8D, UPGRADES)
-    f4.label("pn").b(0xA9, 0x40, 0x85, 0xAC, 0x60)
+    f4.label("pn").abs(0x4C, POND_Z)                                     # (Zombie Link: drained, then the rest)
     place(rom, 4, POND_CODE, f4.bytes())
     patch(rom, 4, POND, bytes.fromhex("e6ada94085ac"), bytes([0xE6, 0xAD, 0x20, POND_CODE & 0xFF, POND_CODE >> 8, 0xEA]))
     import lol_build                      # bank 5: the XP status bar code's RTS
@@ -483,6 +488,8 @@ apply_caves_later = []
 def apply_caves(rom: bytearray, notes: list) -> None:
     """The upgrade caves (bank 0's engine, bank 1's hooks) and the white sword cave: after lol_pictures (its LOAD)."""
     import lol_books
+    import lol_zombie
+    ZL = lol_zombie.lib(rom)
     # bank 1: the cave
     f = BANK(1) + 0x85F9 - 0x8000
     assert rom[f] == 0x20
@@ -502,7 +509,7 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     assert BAT_I == POUCH_I + 1
     from lol_af import AF_MAP
     weights = [w for tier in T.TIERS for w in T.weights256(tier)]
-    KINDS = {"ge": 0, "lt": 1, "notowned": 2, "rank0": 3, "anynz": 4, "ge_or_swordless": 5, "rank1": 6}
+    KINDS = {"ge": 0, "lt": 1, "notowned": 2, "rank0": 3, "anynz": 4, "ge_or_swordless": 5, "rank1": 6, "owned": 7}
     clauses, cptr = [], []
     for k in range(N_UP):
         cptr.append(len(clauses))
@@ -512,6 +519,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
                 clauses += [KINDS[c[0]], c[1] & 0xFF, c[2]]
             elif c[0] == "notowned":
                 clauses += [2, 0, T.index(c[1])]
+            elif c[0] == "owned":
+                clauses += [7, 0, T.index(c[1])]
             elif c[0] == "rank0":
                 clauses += [3, 0, 0]
             elif c[0] == "rank1":
@@ -577,14 +586,17 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.b(0x8A, 0x38).abs(0xED, TB).b(0x60)
         # elig: Y = the upgrade; C clear if every condition of its holds (X kept)
         b.label("elig").abs(0x8E, ESX).abs(0xBE, "cptr")
-        b.label("e_lp").abs(0xBD, "cl").b(0xC9, 0xFF).br(0xF0, "e_ok")
+        b.label("e_lp").abs(0xBD, "cl").b(0xC9, 0xFF).br(0xD0, "e_go").abs(0x4C, "e_ok")
+        b.label("e_go")
         b.abs(0x8D, EK).abs(0xBC, "cl1").abs(0xBD, "cl2").abs(0x8D, EB)
         b.abs(0xAD, EK).br(0xF0, "k_ge").b(0xC9, 0x01).br(0xF0, "k_lt").b(0xC9, 0x02).br(0xF0, "k_no")
-        b.b(0xC9, 0x03).br(0xF0, "k_r0").b(0xC9, 0x05).br(0xF0, "k_gs").b(0xC9, 0x06).br(0xF0, "k_r1")
+        b.b(0xC9, 0x03).br(0xF0, "k_r0").b(0xC9, 0x05).br(0xF0, "k_gs").b(0xC9, 0x06).br(0xF0, "k_r1").b(0xC9, 0x07).br(0xF0, "k_ow")
         b.abs(0xB9, 0x0600).abs(0xAC, EB).abs(0x19, 0x0600).br(0xF0, "e_no").br(0xD0, "e_nx")   # anynz
         b.label("k_gs").abs(0xAD, 0x7FF7).br(0xD0, "e_nx")                         # (lol_modes' swordless)
         b.label("k_ge").abs(0xB9, 0x0600).abs(0xCD, EB).br(0x90, "e_no").br(0xB0, "e_nx")
         b.label("k_lt").abs(0xB9, 0x0600).abs(0xCD, EB).br(0xB0, "e_no").br(0x90, "e_nx")
+        b.label("k_ow").b(0x8A, 0x48).abs(0xAE, EB).abs(0x20, "uget").abs(0x8D, EK).b(0x68, 0xAA)   # (owned)
+        b.abs(0xAD, EK).br(0xF0, "e_no").br(0xD0, "e_nx")
         b.label("k_no").b(0x8A, 0x48).abs(0xAE, EB).abs(0x20, "uget").abs(0x8D, EK).b(0x68, 0xAA)
         b.abs(0xAD, EK).br(0xD0, "e_no").br(0xF0, "e_nx")
         b.label("k_r0").abs(0xAD, RANK).br(0xD0, "e_no").br(0xF0, "e_nx")
@@ -611,7 +623,10 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.b(0xA9, 0xFF).abs(0x8D, 0x0668).abs(0x8D, AF_MAP).b(0xA9, 0x01).abs(0x8D, 0x066A)
         b.label("t_nm").b(0xE0, T.index("divining rod")).br(0xD0, "t_nr")          # the divining rod: every compass
         b.b(0xA9, 0xFF).abs(0x8D, 0x0667).abs(0x8D, 0x0679).b(0xA9, 0x01).abs(0x8D, 0x0669)
-        b.label("t_nr").b(0xE0, POUCH_I).br(0x90, "t_np").b(0xE0, BAT_I + 1).br(0xB0, "t_np")
+        b.label("t_nr").b(0xE0, T.index("zombie link")).br(0xD0, "t_nz").abs(0x20, ZL["z_buy"])   # health 0, teal
+        b.label("t_nz").b(0xE0, T.index("brain potion")).br(0xF0, "t_bp")
+        b.b(0xE0, POUCH_I).br(0x90, "t_np").b(0xE0, BAT_I + 1).br(0xB0, "t_np")
+        b.label("t_bp")
         b.b(0xA2, 0x01).abs(0x20, PIC.LOAD["load"])                               # the potion's pictures anew
         b.label("t_np").b(0xA9, 0x08).abs(0x8D, 0x0602).b(0x60)                   # the item tune
         # tables

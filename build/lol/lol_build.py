@@ -294,6 +294,8 @@ def main():
     lol_gleeok.apply(rom, notes)
     import lol_potion
     lol_potion.apply(rom, notes)
+    import lol_zombie
+    lol_zombie.apply(rom, notes)
     import lol_v3core
     lol_v3core.apply(rom, notes)
     import lol_modes

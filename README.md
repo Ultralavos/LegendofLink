@@ -26,7 +26,20 @@ title's list still shows every upgrade.
 `build/lol/lol_snubber.py`): Link stays at 3 hearts for good while his level keeps counting (enemies, offers and
 hard mode go by it). From level 4 his sword's attack is half his level (2 at 4, up to 8 at 16); no sword or sword
 upgrade is offered again (a sword's odds go evenly to the rest); the top heart row shows a sword per 2 levels and a
-cross for an odd one.
+half sword for an odd one.
+
+**Zombie Link** (75, tier 2, rare; replaces Glass Cannon; only at exactly 3 heart containers, with no ring and no
+Regen, and Regen is never offered after it; `build/lol/lol_zombie.py`): Link takes sprite palette 3, as the blue
+Moblins do (each level's colors in a dungeon). His health drops to 0 with the containers kept (as paying the mugger
+with 3 hearts does) when he buys it and after every continue, death or save. Nothing heals him the usual way: a potion
+drains half his hearts, a fairy 3, a heart 1 and a fairy fountain all of them (never below 0). His sword or wand
+swing (not beams) deals double, and a swing that hits a Darknut, Moblin, Goriya, Lynel, Rope or Wizzrobe heals a
+quarter of the damage (a 2-damage hit heals half a heart). He takes double damage, half from touching a Pols Voice,
+Gibdo, Ghini or Stalfos, and 4x from his own candle flame with Holy Fire. No low-health beep; rings leave every prize
+list.
+
+**Brain Potion** (50, tier 1; with Zombie Link and a potion, never with the Bat Potion): every potion becomes a
+brain potion (its own picture at all four pouch levels) and refills Zombie Link fully, as a normal potion would.
 
 **Red Gleeok** (`build/lol/lol_gleeok.py`): at 12+ heart containers (as enemies see them) Gleeok turns red and,
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves

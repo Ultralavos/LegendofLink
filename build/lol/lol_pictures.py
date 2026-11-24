@@ -73,6 +73,7 @@ def apply(rom: bytearray, notes: list) -> None:
     pp = [B.pair_bytes(B.potion_rows(l, bt)) for l, bt in (("blue", True), ("orange", True), ("white", True),
                                                              ("blue", True), ("blue", True), ("blue", True),
                                                              ("orange", False), ("white", False))]
+    pp += [B.pair_bytes(B.brain_rows(l)) for l in ("blue", "orange", "white")]   # 8-10: Zombie Link's brain potions
 
     def build(org, blob_at=None):
         datas, blob = {}, b""
@@ -101,7 +102,9 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("o_nx").b(0xE8, 0xE0, N_UP).br(0xD0, "o_lp")
         a.abs(0xAD, U_SLOT).abs(0x8D, T.OWN_N)
         # the potion's pictures: with the bat potion its own for 1-2 (else the game's $40), 3 orange, 4 white
-        a.b(0xA2, BAT).abs(0x20, "uget").br(0xF0, "p_nb")
+        a.b(0xA2, T.index("brain potion")).abs(0x20, "uget").br(0xF0, "p_nbr")   # brain potions: their three
+        a.b(0xA2, 8).abs(0x20, "pot").b(0xA2, 9).br(0xD0, "p_34")
+        a.label("p_nbr").b(0xA2, BAT).abs(0x20, "uget").br(0xF0, "p_nb")
         a.b(0xA2, 0).abs(0x20, "pot").b(0xA2, 1).br(0xD0, "p_34")
         a.label("p_nb").b(0xA9, 0x40).abs(0x8D, B.PTILE).abs(0x8D, B.PTILE + 1).b(0xA2, 6)
         a.label("p_34").abs(0x20, "pot").b(0xE8).abs(0x20, "pot")
@@ -148,7 +151,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("ubits").b(*[T.ROWS[k][T.SAVE][1] for k in range(N_UP)])
         a.label("upal").b(*[T.ROWS[k][T.PAL] for k in range(N_UP)])
         a.label("slotp").b(*pairs)
-        a.label("ppk").b(0, 1, 2, 0, 0, 0, 1, 2)
+        a.label("ppk").b(0, 1, 2, 0, 0, 0, 1, 2, 0, 1, 2)
         a.label("ppair").b(*ppairs)
         a.label("pplo").b(*plo)
         a.label("pphi").b(*phi)
