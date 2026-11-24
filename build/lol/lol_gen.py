@@ -163,7 +163,8 @@ N_BOSS = {"L13": 2, "L4": 3, "L57": 5, "L8": 5, "SH": 2, "L9": 5,
           "L1": 2, "L2": 2, "L3": 2, "L5": 3, "L6": 3, "L7": 5, "SA": 2, "SB": 2, "SC": 2, "SD": 2}
 
 
-def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None):
+def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None):
+    """rule: a quest's (item stairs, transports, walk-through share, floor item) in place of LoL's counts."""
     lvcls = cls                           # the level's own class (its walls, layouts, bosses)
     if cls in GROUP:
         cls = GROUP[cls]                  # the rules' group
@@ -196,7 +197,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         a, b = rng.choice(a_opts), rng.choice(b_opts)
         trans.append((a, b)); roles[a] = roles[b] = "transport"; joined.add(k)
     reserved = {nb(ent, N_)} if cls == "L9" else set()
-    for _ in range(TRANSPORTS.get(cls, 0)):
+    n_extra = TRANSPORTS.get(cls, 0) if rule is None else max(0, rule[1] - len(trans))
+    for _ in range(n_extra):
         cand = sorted(c for c in cells if c not in roles and c not in reserved and c not in hidden)
         a = rng.choice(cand)
         far = [c for c in cand if c != a and abs(c % 16 - a % 16) + abs(c // 16 - a // 16) >= 3]
@@ -213,7 +215,9 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             if y not in cells or piece[y] != piece[c]:
                 continue
             k = rng.choices(range(8), wts)[0]
-            if k in (WALK1, WALK2, KEY2):
+            if rule is not None and rule[2] and rng.random() < rule[2]:
+                k = WALK1                         # the quest's share of walk-through walls (both sides)
+            elif k in (WALK1, WALK2, KEY2):
                 k = {WALK1: OPEN, WALK2: OPEN, KEY2: KEY}[k]
             if k == WALL:
                 if nwalls >= max_walls:
@@ -408,7 +412,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
 
     # item stairs: 1 (levels 1-7), 2 (level 8); levels 1-3 always push-block (level 2 turns it into a floor item)
     item_stairs = []
-    for _ in range(ITEM_STAIRS[cls]):
+    n_items = ITEM_STAIRS[cls] if rule is None or lvcls == "L2" else rule[0]
+    for _ in range(n_items):
         c = rng.choice([x for x in free() if x not in hidden]); roles[c] = "item_stairs"; item_stairs.append(c)
 
     # more boss rooms (level 9: the Patra rooms), shutters on their own side
@@ -611,7 +616,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
                 bosses=sorted(bosses_ok) if bosses_ok else [])
 
 
-def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None):
+def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None):
     out = []
     rng = random.Random(seed)
     tries = 0
@@ -620,7 +625,7 @@ def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars
         if tries > 400:
             raise RuntimeError(f"could not generate {cls}")
         try:
-            out.append(generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden, n_boss))
+            out.append(generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden, n_boss, rule))
         except Fail:
             continue
     return out

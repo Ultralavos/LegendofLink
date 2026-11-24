@@ -211,7 +211,16 @@ def _lol_pool():
     return [(nm, cells, f"lol:{gi}", GL.classes_of(nm)) for gi, _, nm, cells, _ in ds]
 
 
-def cellar_need(cls, cells=()):
+def quest_counts(cls, rule):
+    """A quest level's (item stairs, transports) from its rule: level 2's stairs stay LoL's (a floor item), level 9
+    keeps two cellars (its record's item and the red potion), at most two (the level header's)."""
+    items, trans = rule[0], rule[1]
+    if cls == "L9":
+        items = 2
+    return min(items, 2), trans
+
+
+def cellar_need(cls, cells=(), rule=None):
     """(item cellars, transport cellars) a design of this level class takes on its grid: LoL's item stairs per class
     (level 2's is a floor item: its cellar shares another's; shrines none), and its transports: one per extra piece
     of its footprint plus the class's own (lol_gen.generate)."""
@@ -219,6 +228,9 @@ def cellar_need(cls, cells=()):
     grp = G.GROUP[cls]
     items = 0 if cls == "L2" else G.ITEM_STAIRS[grp]
     pieces = len(set(G.pieces(set(cells)).values())) if cells else 1
+    if rule is not None:                  # a quest's own stair rules (lol_quests.rules)
+        qi, qt = quest_counts(cls, rule)
+        return (0 if cls == "L2" else qi), max(qt, pieces - 1)
     return items, G.TRANSPORTS.get(grp, 0) + pieces - 1
 
 
@@ -385,6 +397,7 @@ def quest_set(quest, rng):
     whose designs of 12-20 rooms give the four shrines (any four of them)."""
     import lol_quests
     fp = lol_quests.footprints(quest)
+    qr = lol_quests.rules(quest)
     lol = lol_grids()
     lo, hi = RANGES["SH"]
     while True:
@@ -394,23 +407,38 @@ def quest_set(quest, rng):
         if len(cand) < 4:
             continue
         pick = rng.sample(cand, 4)
-        if all(need([(nm, "SA", lol[gi]["des"][nm]) for g2, nm in pick if g2 == gi])
-               <= ROWS * COLS - len(lol[gi]["occ"]) for gi in pair):
-            break
+        break                          # (the unused designs leave their grids: room for any cellars)
     shrines = dict(zip(pick, SHRINES))
     out = {}
     for gi, (block, lvs) in enumerate((("1-6", range(1, 7)), ("7-9", range(7, 10))), 1):
         names = {LETTERS[i]: f"{quest.upper()} L{lv}" for i, lv in enumerate(lvs)}
         occ = {c: LETTERS[i] for i, lv in enumerate(lvs) for c in fp[lv][1]}
         rows = ["".join(occ.get(r * COLS + c, ".") for c in range(COLS)) for r in range(ROWS)]
+        rl = {f"{quest.upper()} L{lv}": list(qr[lv]) for lv in lvs}
+        # the quest's stairs, when its block can't hold them all: fewer extra transports (the most first), then items
+        free = sum(ch == "." for r in rows for ch in r)
+        def total():
+            return sum(sum(cellar_need(f"L{lv}", fp[lv][1], rl[f"{quest.upper()} L{lv}"])) for lv in lvs)
+        while total() > free:
+            nm = max(rl, key=lambda n: (rl[n][1] - (len(set(__import__("lol_gen").pieces(set(fp[int(n[-1])][1]))
+                                                              .values())) - 1), rl[n][0]))
+            if rl[nm][1] > 0 and cellar_need(f"L{nm[-1]}", fp[int(nm[-1])][1], rl[nm])[1] > \
+                    len(set(__import__("lol_gen").pieces(set(fp[int(nm[-1])][1])).values())) - 1:
+                rl[nm][1] -= 1
+            elif rl[nm][0] > 0 and nm[-1] != "9":
+                rl[nm][0] -= 1
+            else:
+                raise RuntimeError(f"{quest} block {block}: no room for its stairs")
         out[gi] = {"rows": rows, "names": names,
-                   "classes": {f"{quest.upper()} L{lv}": (f"L{lv}",) for lv in lvs}, "hidden": {}}
+                   "classes": {f"{quest.upper()} L{lv}": (f"L{lv}",) for lv in lvs}, "hidden": {},
+                   "rules": {n: tuple(r) for n, r in rl.items()}}
     for gi, src in zip((3, 4), pair):
         g = lol[src]
-        letters = {nm: LETTERS[i] for i, nm in enumerate(sorted(g["des"]))}
-        rows = ["".join(letters[g["occ"][r * COLS + c]] if r * COLS + c in g["occ"] else "." for c in range(COLS))
-                for r in range(ROWS)]
+        used = sorted(nm for (g2, nm) in shrines if g2 == src)       # (owner: a design not used on a grid can
+        letters = {nm: LETTERS[i] for i, nm in enumerate(used)}       # give up its squares for stairs)
+        rows = ["".join(letters[g["occ"][r * COLS + c]] if g["occ"].get(r * COLS + c) in letters else "."
+                        for c in range(COLS)) for r in range(ROWS)]
         out[gi] = {"rows": rows, "names": {v: k for k, v in letters.items()},
-                   "classes": {nm: ((shrines[(src, nm)],) if (src, nm) in shrines else ()) for nm in g["des"]},
-                   "hidden": g["hidden"]}
+                   "classes": {nm: (shrines[(src, nm)],) for nm in used},
+                   "hidden": {nm: h for nm, h in g["hidden"].items() if nm in letters}}
     return out

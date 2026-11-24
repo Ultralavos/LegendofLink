@@ -80,7 +80,7 @@ for k, s in enumerate(ents):
     ic = Counter(A[c][4] & 0x1F for c in cells)
     marks = [c for c in cells if (A[c][4] & 0x1C) == 0x10]
     print(f"   items: tri {ic[0x1B]} map {ic[0x17]} compass {ic[0x16]} potion {ic[0x1F]} key {ic[0x19]} bombs {ic[0x00]} "
-          f"rupees {ic[0x0F]} leftover marks {len(marks)} tri room {nm(g[0x6B7E+0x30])} floor {hex(g[0x16C] if False else 0)}")
+          f"rupees {ic[0x0F]} leftover marks {len(marks)} tri room {nm(g[0x6B7E+0x30])} item rooms {[nm(g[0x16A + i]) if g[0x16A + i] < 0x80 else "-" for i in (0, 1)]} items {[hex(g[0x16C + i]) for i in (0, 1)]}")
     print(f"{nm(s):4} dest {d:2x} {ds[cg][2]:11} bossrooms {len(bossrooms)} {[hex(mon(c)) for c in bossrooms]} "
           f"items {len(items)} dropped {drop} roar {roars} push-no-stairs {push_bad} push-no-shutter {push_noshut} "
           f"flags {flags:04X} top monster {mons.most_common(2)}")

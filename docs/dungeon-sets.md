@@ -58,3 +58,27 @@ at random (of six: grids.txt's four and grids_extra.txt's two, added by the owne
 their designs of 12-20 rooms. Cellars are given per design (its class's item stairs, one transport per extra piece
 plus the class's own; level 2's item cellar is never used and shares another's), which is exactly what the quests'
 blocks have room for (1Q: 7 and 13 free squares).
+
+Designs on the two LoL grids that no shrine uses leave their grid, which frees their squares for cellars.
+
+### Quest rules (owner, 2026-11-24)
+
+- **Level numbers as the game shows them.** 2Q's levels 2-3, 4-5 and 7-8 are stored in each other's slots; the sets
+  use the number on the status bar (ZORA's `rom_level_num`).
+- **Each quest's own stairs** (`lol_quests.rules`): item stairs and transports per level. 1Q and 2Q come from the
+  ROM; 3Q from our 3Q maps; 4Q levels 1-5 from our 4Q designs, levels 6-9 (not designed yet) use 3Q's. Level 2's
+  stairs stay LoL's (its floor item), level 9 keeps two cellars (its upgrade and the red potion), and a level has at
+  most two item stairs. When a block can't hold every stair, the extra transports go first (4Q's 7-9 block: 15 free
+  squares, so L7-L9 lose some).
+- **Walk-through walls in 2Q-4Q**, at the quest's own share of the doors between rooms, per level (2Q from the ROM,
+  3Q from our maps, 4Q levels 1-5 from our designs, 6-9 3Q's). 1Q has none.
+- **Floor items.** A level whose quest has a major item on the floor or dropped (2Q L1's boomerang, 3Q L4's blue
+  candle, 4Q L3's boomerang-choice old man) gets a floor badge / XP like LoL's levels 1 and 2. The level's two rolled
+  items go to its cellars first, then its floor room. Heart containers don't count (LoL puts a blue potion in 1-8).
+
+| Quest | Floor-item levels |
+|---|---|
+| 1Q | 1, 2 |
+| 2Q | 1, 2, 3 |
+| 3Q | 1, 2, 4, 6, 7, 8 |
+| 4Q | 1, 2, 3, 5, 6, 7, 8 |

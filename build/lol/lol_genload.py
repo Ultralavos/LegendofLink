@@ -177,6 +177,34 @@ def slot_mask(nm):
 _CACHE = {}
 
 
+def rule_of(nm):
+    """A quest design's stair rules (lol_sets.quest_set), with the counts the level can take; None: LoL's."""
+    cs = custom_set()
+    if cs is None:
+        return None
+    for g in cs.values():
+        if nm in g.get("rules", {}):
+            import lol_sets
+            r = g["rules"][nm]
+            return lol_sets.quest_counts(g["classes"][nm][0], r) + tuple(r[2:])
+    return None
+
+
+def floor_levels():
+    """Levels 1-9 that get a floor badge / XP: LoL's 1 and 2; a quest's own levels with a major item on the floor."""
+    out = {1, 2}
+    cs = custom_set()
+    if cs is not None:
+        for g in cs.values():
+            for nm, r in g.get("rules", {}).items():
+                lv = int(g["classes"][nm][0][1:])
+                if r[3]:
+                    out.add(lv)
+                elif lv != 2:
+                    out.discard(lv)
+    return out
+
+
 def cellar_alloc(ds, free):
     """A page set's cellars: {design: (item cellars, transport cellars)}, each design its own squares of its grid's
     free ones (level 2's item cellar is never used, so it shares another's)."""
@@ -186,7 +214,7 @@ def cellar_alloc(ds, free):
         cl = classes_of(nm)
         if not cl:
             continue
-        ni, nt = lol_sets.cellar_need(cl[0], cells)
+        ni, nt = lol_sets.cellar_need(cl[0], cells, rule_of(nm))
         fr = [c for c in free[gi] if c not in used.get(gi, set())]
         assert len(fr) >= ni + nt, (nm, gi, len(fr), ni, nt)
         ic, tc = fr[:ni], fr[ni:ni + nt]
@@ -211,7 +239,7 @@ def build_variants():
                 ic, tc = alloc[nm]
                 for cls in classes_of(nm):
                     ci = CLASS_LIST.index(cls)
-                    out[(d, ci)] = G.make_variants(cells, cls, K, 1000 * d + ci, ic, tc, hid)
+                    out[(d, ci)] = G.make_variants(cells, cls, K, 1000 * d + ci, ic, tc, hid, rule=rule_of(nm))
             continue
         if False:
             pass
@@ -484,8 +512,8 @@ def decoder(groups, ptr_table, maps, info):
         lab = f"pl_{it:02x}"
         if cond == "18":
             a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xB0, lab)
-        elif cond == "12":
-            a.b(0xA5, 0x0E, 0xC9, 0x03).br(0xB0, lab)
+        elif cond == "12":                # the floor item: levels 1-2, and a quest's levels with a floor major item
+            a.b(0xA6, 0x0E).abs(0xBD, "flr").br(0xF0, lab)
         a.b(0xA9, 0x1C).abs(0x8D, S_T).b(0xA9, 0x10).abs(0x8D, S_CNT).abs(0x20, "pl_pick").b(0xE0, 0xFF).br(0xF0, lab)
         if cond == "12":
             a.b(0x86, 0x08)
@@ -597,6 +625,8 @@ def decoder(groups, ptr_table, maps, info):
     a.label("gcnt").b(*gcnt)
     a.label("gtrap").b(*gtrap)
     a.label("postab").b(*G.POS_TABLE)
+    fl = floor_levels()                   # the levels that get a floor badge / XP, by slot code $0E
+    a.label("flr").b(*[1 if i in fl else 0 for i in range(16)])
     ds, _ = build_variants()
     a.label("flo").b(*[flags_of(i, ds) & 0xFF for i in range(len(ds))])
     a.label("fhi").b(*[flags_of(i, ds) >> 8 for i in range(len(ds))])
@@ -816,8 +846,13 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA5, 0x01, 0x4A, 0x4A, 0x4A, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT + 1)
     a.b(0xA5, 0x0E, 0xC9, 0x02).br(0xD0, "nf_1")
     a.b(0xA5, 0x08).abs(0x8D, SUB_RM).abs(0x4C, "nf_end")                   # level 2: the floor room
-    a.label("nf_1").b(0xC9, 0x01).br(0xD0, "nf_c")
-    a.b(0xA5, 0x06).abs(0x8D, SUB_RM).b(0xA5, 0x08).abs(0x8D, SUB_RM + 1).abs(0x4C, "nf_end")   # level 1
+    # levels 1, 3-8: the two items go to the level's cellars, then its floor item room (whichever it has)
+    a.label("nf_1").b(0xC9, 0x09).br(0xF0, "nf_c")
+    a.b(0xA2, 0x00, 0xA9, 0xFF).abs(0x8D, SUB_RM).abs(0x8D, SUB_RM + 1)
+    a.b(0xA5, 0x06).abs(0x20, "nf_add").b(0xA5, 0x07).abs(0x20, "nf_add").b(0xA5, 0x08).abs(0x20, "nf_add")
+    a.abs(0x4C, "nf_end")
+    a.label("nf_add").b(0xC9, 0xFF).br(0xF0, "na_x").b(0xE0, 0x02).br(0xB0, "na_x").abs(0x9D, SUB_RM).b(0xE8)
+    a.label("na_x").b(0x60)
     a.label("nf_c").b(0xA5, 0x06).abs(0x8D, SUB_RM).b(0xA5, 0x07).abs(0x8D, SUB_RM + 1)
     a.label("nf_end")
     for z in reversed(range(0x00, 0x10)):
