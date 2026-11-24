@@ -28,6 +28,7 @@ HVE = 0x016F                            # lol_build: the containers enemies leve
 BROWN_HP, BROWN_SPEED, BROWN_DMG, RED_DMG = 0xA0, 0x30, 2, 1
 BLUE_AQ_HP = 0x80
 MOBLIN_AT, OCTOROK_AT = 0x70, 0x90      # HVE: red moblins level up at 8 containers, red octoroks at 10
+RED_GLEEOK_AT = 0xB0                    # HVE: Gleeok turns red at 12 containers (lol_gleeok)
 PALT = 0x76DF                           # WRAM: the sprite frames' palettes (bank 1); red moblin's 4 from 23, red octorok's 6
 MOBLIN_FRAMES, OCTOROK_FRAMES = 23, 27  # from 27 (both octorok speeds share them)
 OCTOROK_PAL = (0x02, 0x82, 0x02, 0x02, 0x82, 0x02)   # (vanilla: palette 2; bit 7 the vertical flip)

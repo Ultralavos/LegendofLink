@@ -28,6 +28,10 @@ hard mode go by it). From level 4 his sword's attack is half his level (2 at 4, 
 upgrade is offered again (a sword's odds go evenly to the rest); the top heart row shows a sword per 2 levels and a
 cross for an odd one.
 
+**Red Gleeok** (`build/lol/lol_gleeok.py`): at 12+ heart containers (as enemies see them) Gleeok turns red and,
+every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
+16 pixels and burns about a second, 2 hearts to Link.
+
 ## The end screen
 
 After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips them, Select goes on):

@@ -35,6 +35,7 @@ NO_SNUB = [("notowned", "heart snubber")]   # (sword upgrades leave the pool wit
 BOMB_UPGRADE = [("ge", MAX_BOMBS, 12)]  # at least one bomb upgrade (8 -> 12)
 WAND = 0x065F
 RECORDER = 0x065C
+TRIFORCE = 0x0671
 UP6 = 0x600E                            # the third batch's bits (file 2's name, as lol_stats' clock; cleared for a
                                         # new file by lol_saveblock)
 FOOD = 0x065D                           # the bait
@@ -90,7 +91,8 @@ ROWS = [
      {}, 0x0A),
     # owner 2026-11-24 (lol_rodsong): the recorder's whirlwind (with or without triforces) drops Link on a random
     # screen, one of those safe to land on (lol_entrances' SAFE_Y). Its bit: UP6's $01.
-    ("song of chaos",   (UP6, 0x01),       25, 0, 13, [("ge", RECORDER, 1)], "_song_of_chaos", {}, 0x05),
+    ("song of chaos",   (UP6, 0x01),       25, 0, 13, [("ge", RECORDER, 1), ("ge", TRIFORCE, 1)], "_song_of_chaos",
+     {}, 0x05),                         # (owner: with a triforce piece, as the whirlwind needs)
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

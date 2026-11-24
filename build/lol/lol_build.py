@@ -290,6 +290,8 @@ def main():
     lol_ending.apply(rom, notes)
     import lol_enemies2
     lol_enemies2.apply(rom, notes)
+    import lol_gleeok
+    lol_gleeok.apply(rom, notes)
     import lol_potion
     lol_potion.apply(rom, notes)
     import lol_v3core
