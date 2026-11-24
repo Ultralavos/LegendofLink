@@ -1,0 +1,163 @@
+{
+ "status": "4Q dungeon shapes from the user (2026-11-13), stored for later. Levels assigned by the user 2026-11-13 (see 'levels').",
+ "legend": {
+  "B": "blue",
+  "R": "red",
+  "O": "orange",
+  "Y": "yellow",
+  "M": "magenta",
+  "T": "teal",
+  "G": "green",
+  "W": "free"
+ },
+ "block_1_6": {
+  "image": "q4_block_1_6_user.jpg",
+  "rows": [
+   "BBBBOOOOOWWYYYWW",
+   "BRRBOOOOMMMYYYMW",
+   "BRRRRWOOMTMWYMMM",
+   "BRRRRROOMTTMYWMW",
+   "BRRRWBBOMTTMYWMW",
+   "BWWRRBBOMTTMYMMM",
+   "BBBBBBTTMTMOYWMW",
+   "BBBRRBBTMMOOYMMM"
+  ],
+  "counts": {
+   "blue": 25,
+   "orange": 17,
+   "free": 19,
+   "yellow": 12,
+   "red": 17,
+   "magenta": 27,
+   "teal": 11
+  },
+  "note": "6 colors = Levels 1-6 (mapping to come). Teal is in two pieces: C10-F11/G10 and G7-G8/H8."
+ },
+ "block_7_9": {
+  "image": "q4_block_7_9_user.jpg",
+  "rows": [
+   "GGWGGGGGRWRBBRWR",
+   "GGGWGGGGRRRBBRRR",
+   "GGGGWGGGRBBBBBBR",
+   "GGGGGGGTRBWBBRBR",
+   "WGGWGTTTRRRBBRRR",
+   "GGGGGTTTRRBBBBRR",
+   "WGWGGGTWWBBRRBBR",
+   "GGGGWWTWBBBRRBBB"
+  ],
+  "counts": {
+   "green": 43,
+   "free": 18,
+   "red": 28,
+   "blue": 30,
+   "teal": 9
+  },
+  "note": "green, red, blue = Levels 7-9 (mapping to come; green likely 9 with teal its separate-entrance wing)"
+ },
+ "levels": {
+  "block_1_6:T": {
+   "level": 3,
+   "nickname": "The Broken Boomerang"
+  },
+  "block_1_6:R": {
+   "level": 2,
+   "nickname": "The Rabbit"
+  },
+  "block_1_6:M": {
+   "level": 1,
+   "nickname": "The Bow and Arrow"
+  },
+  "block_1_6:O": {
+   "level": 4,
+   "nickname": "The Whirlwind"
+  },
+  "block_1_6:Y": {
+   "level": 5,
+   "nickname": "The Hammer"
+  },
+  "block_1_6:B": {
+   "level": 6,
+   "nickname": "The Scorpion"
+  },
+  "block_7_9:B": {
+   "level": 7,
+   "nickname": "The Armos"
+  },
+  "block_7_9:R": {
+   "level": 8,
+   "nickname": "The Crown"
+  },
+  "block_7_9:G": {
+   "level": 9,
+   "nickname": "The Swiss Cheese"
+  },
+  "block_7_9:T": {
+   "level": 9,
+   "nickname": "The Torch (Level 9's second entrance)"
+  }
+ },
+ "built": "q3_test14: every 4Q room is an entrance-style room in the 2Q data (2Q room blocks overwritten), open doors inside each piece, entrances at the bottom of each largest piece: L1 G10, L2 F4, L3 H15, L4 F8, L5 H13, L6 H3, L7 H14, L8 F10, L9 H4. Pieces not connected to the entrance piece are unreachable until stairs go in (L1 3, L2 2, L3 9+3+1+1, L4 3, L8 12+4, L9 Torch 9).",
+ "overworld_entrances_4q": {
+  "3": "G6 (middle rock of column 10, row 5; pushable in 4Q only)",
+  "9": "B10 (bombable wall, main, H4)",
+  "9 Torch": "B11: waterfall solid in 4Q; play the recorder, stairs appear in the waterfall's doorway and stay (starts in H7; exit on the sand below)",
+  "7": "A16 (its open cave; 4Q only)",
+  "1": "F15 (3Q's Level 8 front; 4Q only)",
+  "2": "G2 (lost woods: the recorder turns the bush above the path, column 7 row 3, into stairs; 4Q only)",
+  "5": "C3 (the recorder's lake, same as 3Q's hint cave spot; 4Q goes to Level 5)",
+  "6": "A7 (recorder: stairs mid-valley; 4Q only)",
+  "8": "B1 (recorder turns the lone rock, column 8 row 5, into stairs; B1's bomb wall is 3Q only)",
+  "4": "D7 (bombable wall: the flat rock above the sand, 6th square; 4Q only)"
+ },
+ "overworld_4q": {
+  "D8": "letter cave, 4Q only: the Book, 'KNOWLEDGE IS POWER' (quote 22)"
+ },
+ "progression_4q": {
+  "start": "wood sword cave H8: pick one of power bracelet / ladder / recorder",
+  "recorder": "Levels 2 (G2) and 5 (C3)",
+  "ladder": "Levels 1 (F15) and 4 (D7); the ladder reaches 2 sections of the map",
+  "power_bracelet": "Levels 3 (G6 push rock) and 7 (A16); any roads lead to sections that need the bracelet",
+  "level_1": "anyone can enter; an early ladder block inside stops progress without the ladder",
+  "white_sword": "4Q L6 B4 (tip of the Scorpion's tail)",
+  "note": "user, 2026-11-14"
+ },
+ "dungeon_items_4q": {
+  "1": [
+   "bow"
+  ],
+  "2": [
+   "blue candle"
+  ],
+  "3": [
+   "boomerang",
+   "magical boomerang"
+  ],
+  "4": [
+   "recorder"
+  ],
+  "5": [
+   "power bracelet"
+  ],
+  "6": [
+   "white sword (B4, placed)",
+   "red candle"
+  ],
+  "7": [
+   "ladder"
+  ],
+  "8": [
+   "wand",
+   "magic key"
+  ],
+  "9": [
+   "magical sword",
+   "red ring"
+  ],
+  "note": "user, 2026-11-14",
+  "boss_hearts": "levels 1-8 bosses drop a heart container"
+ },
+ "overworld_items_4q": {
+  "coast F16": "raft (in the patch)",
+  "armos D4": "heart container (in the patch)"
+ }
+}

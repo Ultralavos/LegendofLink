@@ -1,0 +1,49 @@
+Old man hint caves for LoL 2.01 (2026-11-21, from the user). Each hint cave picks one quote, all equally likely.
+More quotes to come.
+For now: 12 hint caves on the overworld.
+
+1. The book will teach you how to deal more damage with all weapons   (shown: THE BOOK TEACHES YOU TO DEAL MORE DAMAGE WITH ALL WEAPONS)
+2. Levels 1-8 all have an old man, seek them
+3. Shrines A-D will have a prize if you make it to the end
+4. There are three caves that sell powerful upgrades
+5. Watch out, some enemies level up just like you
+6. If you use up your fairy bottle, visit a fairy pond
+7. Good luck scrolling and clipping with rupee speed
+8. Have you ever taken down Gannon with a boomerang
+9. Every level is basically a cactus
+10. Randomize my mind into nothing...
+11. Blue dodongos don't mind smoke
+12. Red Wallmasters are said to be severed hands of darkwraiths
+13. Shop wares and dungeon items can increase with your level
+14. Badges increase the item level of its type
+15. The blue candle can only burn brown bushes
+16. The blue like likes may drop bombs, but they eat them too!
+17. Don't forget the push block in west Death mountain
+18. Something is under the push block east of the waterfall
+19. I hear of a bombable wall one screen west of waterfall   (was: I hear there is a bombable wall... - 4 lines)
+20. The 4 triforce prize will change if you get the item elsewhere
+21. Orange Gibdos are fast!
+22. Try to kill Orange Vires in one hit
+
+Conditional (only offered when Link has the item at the time he first enters that hint cave):
+23. I see you like blue bananas   [only with the magical boomerang]
+24. Worried about those beams and fireballs?   [only with the magical shield]
+25. You are a level grinding machine!   [only with 16 heart containers]
+26. I guess you did like more bombs!   [only with 20 max bombs]
+
+Upgrade quotes (v2.02 test 16, drafted by Claude for the user to edit; only offered once Link owns that upgrade):
+27. Critter crusher lets you stomp gels and keese   [only with the upgrade critter crusher]
+28. The skull ring keeps bubbles from cursing you   [only with the upgrade skull ring]
+29. Statue jammer keeps the statues from firing   [only with the upgrade statue jammer]
+30. The boomstick turns your wand into a bomb launcher   [only with the upgrade boomstick]
+31. Healerang heals you when your boomerang finishes a foe   [only with the upgrade healerang]
+32. Holy fire burns the undead twice as hard   [only with the upgrade holy fire]
+33. Shield breaker lets you strike darknuts from the front   [only with the upgrade shield breaker]
+34. Spider bomber lets bombs hurt Gohma even with its eye shut   [only with the upgrade spider bomber]
+35. Ghost hunter makes every ghini drop a rupee   [only with the upgrade ghost hunter]
+36. Key hoarder counts every key twice   [only with the upgrade key hoarder]
+37. The misers bow shoots free arrows, but they hit softer   [only with the upgrade misers bow]
+38. The bow of greed hits twice as hard for 5 rupees a shot   [only with the upgrade bow of greed]
+39. A refilling bomb bag slowly grows new bombs   [only with the upgrade refilling bag]
+40. The membership card cuts shop prices in half   [only with the upgrade membership card]
+41. XP boost doubles the XP enemies give you   [only with the upgrade xp boost]

@@ -1,0 +1,38 @@
+Dungeon generator spec (user, 2026-11-21). Runs the first time a dungeon loads; saved per file (via a per-file seed).
+
+1. Decide shrine or level, then which (A-D or 1-8). Dungeon footprint = the chosen design from the grids.
+2. Shrine: entrance = any eligible room (the square below it is not the same dungeon). One room is the triforce /
+   prize room (prize loads when entered; taking it exits the dungeon, as now). A shutter door blocks the prize room,
+   which has only one way in.
+3. Level: entrance = any eligible square. Place:
+   - an old man room with a choice
+   - one push-block room (from either quest) or open-stair room anywhere, leading to a cellar item
+     (level 2: a floor drop item instead, from the same pool)
+   - fill the rest with vanilla room layouts, EXCLUDING: turnstiles, T moats, black rooms, Zelda's and Ganon's
+     rooms, triforce rooms, entrance room, lava moats (for now). Chute rooms only if no room becomes unreachable.
+   - open doors vs shutters: the vanilla ratio of the level number picked
+   - levels 1-3: every wall between two connected rooms with no door gets a bombable wall (except the top of the
+     old man room and the east side of corridor stairs)
+   - level 4: one unbombable wall is OK as long as the whole dungeon is reachable
+   - levels 5-7: one set of transport stairs (open or push-block, 1Q or 2Q style). Keep vanilla's ratio of solid
+     walls; add bomb walls where needed so the whole dungeon is reachable
+   - level 8: two stair-cellar items (open or push-block rooms, 1Q or 2Q) plus one transport (same rules); walls as 5-7
+4. Drops: every dungeon/shrine has one room with the map and one with the compass(?). Items by the vanilla ratio of
+   that level number; shrines A-D use the 1Q levels 1-3 ratios.
+5. Cellar items (and level 2's drop): 3 badges 20/20/20, 2 XP potions 2/2 (of 64). A badge already at level 12:
+   its 20 goes 10/10 to the two XP potions.
+6. Choose enemy group and boss group. Boss room:
+   Aquamentus - his room; Gohma - his room, two-shooter or four-shooter; Manhandla - desert, two- or four-shooter;
+   Gleeok - his room; Dodongo (and 3 Dodongos) - desert, two- or four-shooter; Digdogger - two- or four-shooter.
+7. Fill all other rooms with enemies from the group at ratios similar to vanilla. No blade traps in pointless-moat
+   rooms or spiral-stair rooms.
+Test patch: the first 8 caves entered become dungeons (shrine or level) built this way.
+
+Answers (2026-11-21):
+- Key doors: yes, at the vanilla ratio. No key-before-lock guarantee needed: keys can always be bought when Link has none.
+- Levels 1-8: the triforce can be in any room; that room may have enemies; the triforce stands free in the room's
+  center (a map may instead be a center drop after the enemies die). One room has a blue potion (drop or standing).
+  The boss drops the heart container as usual.
+- Map and compass: two separate rooms.
+- Test patch: grid 4's eight dungeons (levels pool: Anteater, Robber, Elephant, Vice, Poodle; shrine pool: Cactus,
+  Sock Puppet, Piranha). Vice's two halves get a transport stairway joining them.

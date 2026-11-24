@@ -1,0 +1,144 @@
+"""Legend of Link: the bat potion (upgrade $38) and bow mastery (upgrade $39, was "piercing arrows").
+
+Bat potion: every potion becomes a bat potion (its picture: lol_pictures). Drinking one (bank 5 $8EC0, UsePotion)
+in play (mode 5; not in caves) uses it up and starts the bats instead of the heart refill: the game pauses ($E0 = 2,
+as the refill does, so every monster and shot freezes), and bank 7's pause step (JSR $B559 at $EC52) runs BATF each
+frame:
+  frame 1   every enemy shot (types $53-$5C, the dodongo bombs $29) is removed; Link's own sprites hidden and drawn
+            holding the potion up (tile $78, and flipped: the triforce pose, the potion above); the bat's picture is sent through the transfer
+            buffer to the third ware slot's pair (no cave is open)
+  16-89     eight bats fly out (N S E W and the diagonals); one touching a monster that can die kills it at once:
+            no XP and no drop (it dies as type $5D), but the room's kill count goes up (shutters, push blocks, the
+            room's item). Zoras only when up (states 2-4), blue leevers in state 3, red leevers above ground.
+            Bosses, rocks, bubbles and traps are untouched.
+  90        the pause ends.
+
+Piercing arrows: arrows hurt wizzrobes, Gleeok and Patra (their arrow immunity bit, $04 of $04B2, cleared at their
+init: lol_enemies2's init handler), and stun dodongos (normal and blue) on touch (lol_dodongo's state wrapper calls
+the trampoline every frame with Y = 6)."""
+from lol_af import Asm, place, patch, BANK
+
+USE_AT = 0x8EC0                          # bank 5: UsePotion's LDA $065E ... STA $E0 ($8EC0-$8ECF), RTS at $8ED0
+CODE5 = 0xAC94                           # bank 5 free (the old item screen code's place: 285 bytes)
+FIRST5, HIT5, USE5 = 0xBAD0, 0xAF6E, 0xADF2     # bank 5 free (208 / 147 / 79 bytes)
+TABLE5 = 0x9378                          # bank 5 free (218 bytes)
+BX, BY, BA, FO, FN, BAT_T, TMP = 0x0120, 0x0128, 0x0130, 0x0138, 0x0143, 0x0144, 0x0145   # (stack page)
+ARROW = 0x04
+DX = (0, 0, 3, 0xFD, 2, 0xFE, 2, 0xFE)
+DY = (0xFD, 3, 0, 0, 0xFE, 0xFE, 2, 2)
+KILL = {**{t: 1 for t in list(range(0x01, 0x18)) + [0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x21, 0x22, 0x23, 0x24, 0x27,
+                                                       0x28, 0x2A, 0x30, 0x3A, 0x3B, 0x41]},
+        0x11: 2, 0x0F: 3, 0x10: 4}      # 2 zora, 3 blue leever, 4 red leever (only when up)
+END, LAUNCH = 90, 16
+
+
+def apply(rom: bytearray, notes: list) -> None:
+    import lol_bombup as B
+    import lol_upgrades as U
+    pair = B.UP_PAIRS[10]                 # the third ware slot's first pair
+    a = Asm(USE5)
+    # UsePotion (JMP here)
+    a.label("use").abs(0xAD, 0x065E).br(0xF0, "u_r")
+    a.abs(0xAD, U.BAT_POTION[0]).b(0x29, U.BAT_POTION[1]).br(0xF0, "u_van")
+    a.b(0xA5, 0x12, 0xC9, 0x05).br(0xD0, "u_r")
+    a.abs(0xCE, 0x065E).b(0xA9, 0x02, 0x85, 0xE0, 0xA9, 0x01).abs(0x8D, BAT_T).b(0x60)
+    a.label("u_van").abs(0xCE, 0x065E).b(0xA9, 0x01, 0x85, 0x63, 0xA9, 0x02, 0x85, 0xE0)
+    a.label("u_r").b(0x60)
+    u, a = a, Asm(CODE5)
+    # the pause step
+    a.label("pause").abs(0xAD, BAT_T).br(0xD0, "bat").abs(0x4C, 0xB559)
+    a.label("bat").b(0xC9, 0x01).br(0xD0, "run").abs(0x20, FIRST5).abs(0x4C, "run")
+    f = Asm(FIRST5)                      # frame 1
+    a_main, a = a, f
+    # frame 1: the shots go
+    a.b(0xA2, 0x0B)
+    a.label("ci").abs(0xBD, 0x034F).b(0xC9, 0x29).br(0xF0, "clr").b(0xC9, 0x53).br(0x90, "cn").b(0xC9, 0x5D).br(0xB0, "cn")
+    a.label("clr").b(0xA9, 0x00).abs(0x9D, 0x034F).b(0x95, 0xAC)
+    a.label("cn").b(0xCA).br(0xD0, "ci")
+    a.b(0xA2, 0x07)
+    a.label("bi").b(0xA5, 0x70, 0x18, 0x69, 0x04).abs(0x9D, BX).b(0xA5, 0x84).abs(0x9D, BY)
+    a.b(0xA9, 0x01).abs(0x9D, BA).b(0xCA).br(0x10, "bi")
+    # Link's sprites hidden; the free OAM entries listed
+    a.b(0xA0, 0x00, 0xA2, 0x00)
+    a.label("oi").abs(0xBD, 0x0200).b(0xC9, 0xEF).br(0xB0, "of")
+    a.abs(0xBD, 0x0201).b(0xC9, 0x20).br(0xB0, "onx")
+    a.abs(0xBD, 0x0203).b(0x38, 0xE5, 0x70, 0xC9, 0x09).br(0xB0, "onx")
+    a.abs(0xBD, 0x0200).b(0x38, 0xE5, 0x84, 0xC9, 0x04).br(0xB0, "onx")
+    a.b(0xA9, 0xF8).abs(0x9D, 0x0200)
+    a.label("of").b(0xC0, 11).br(0xB0, "onx").b(0x8A).abs(0x99, FO).b(0xC8)
+    a.label("onx").b(0xE8, 0xE8, 0xE8, 0xE8).br(0xD0, "oi")
+    a.abs(0x8C, FN)
+    # the bat's picture through the transfer buffer
+    ppu = 0x1000 + pair * 16
+    a.abs(0xAE, 0x0301).b(0xA9, ppu >> 8).abs(0x9D, 0x0302).b(0xA9, ppu & 0xFF).abs(0x9D, 0x0303)
+    a.b(0xA9, 0x20).abs(0x9D, 0x0304).b(0xA0, 0x00)
+    a.label("bu").abs(0xB9, "batd").abs(0x9D, 0x0305).b(0xE8, 0xC8, 0xC0, 0x20).br(0xD0, "bu")
+    a.b(0xA9, 0xFF).abs(0x9D, 0x0305).b(0x8A, 0x18, 0x69, 0x03).abs(0x8D, 0x0301).b(0x60)
+    a = a_main
+    # every frame: Link holding the potion up
+    a.label("run").abs(0xAD, FN).b(0xC9, 0x03).br(0x90, "bats")
+    a.abs(0xAE, FO).b(0xA5, 0x84, 0x18, 0x69, 0x02).abs(0x9D, 0x0200).b(0xA9, 0x78).abs(0x9D, 0x0201)
+    a.b(0xA9, 0x00).abs(0x9D, 0x0202).b(0xA5, 0x70).abs(0x9D, 0x0203)
+    a.abs(0xAE, FO + 1).b(0xA5, 0x84, 0x18, 0x69, 0x02).abs(0x9D, 0x0200).b(0xA9, 0x78).abs(0x9D, 0x0201)
+    a.b(0xA9, 0x40).abs(0x9D, 0x0202).b(0xA5, 0x70, 0x18, 0x69, 0x08).abs(0x9D, 0x0203)
+    a.abs(0xAE, FO + 2).b(0xA5, 0x84, 0x38, 0xE9, 0x0E).abs(0x9D, 0x0200).abs(0xAC, 0x065E)
+    a.abs(0xB9, B.PTILE).abs(0x9D, 0x0201).abs(0xB9, B.PPAL).abs(0x9D, 0x0202)
+    a.b(0xA5, 0x70, 0x18, 0x69, 0x04).abs(0x9D, 0x0203)
+    # the bats
+    a.label("bats").abs(0xAD, BAT_T).b(0xC9, LAUNCH).br(0xB0, "b_go").abs(0x4C, "fin")
+    a.label("b_go").b(0xA2, 0x07)
+    a.label("bl").abs(0xBD, BA).br(0xF0, "bn")
+    a.abs(0xBD, BX).b(0x18).abs(0x7D, "dx").abs(0x9D, BX).abs(0xBD, BY).b(0x18).abs(0x7D, "dy").abs(0x9D, BY)
+    a.abs(0xBD, BX).b(0xC9, 0xF4).br(0xB0, "dead").b(0xC9, 0x04).br(0x90, "dead")
+    a.abs(0xBD, BY).b(0xC9, 0xE0).br(0xB0, "dead").b(0xC9, 0x3E).br(0x90, "dead")
+    a.abs(0x20, "hit")
+    a.b(0x8A, 0x18, 0x69, 0x03, 0xA8).abs(0xCC, FN).br(0xB0, "bn").abs(0xB9, FO).b(0xA8)
+    a.abs(0xBD, BY).abs(0x99, 0x0200).b(0xA9, pair + 1).abs(0x99, 0x0201).b(0xA9, 0x02).abs(0x99, 0x0202)
+    a.abs(0xBD, BX).abs(0x99, 0x0203).abs(0x4C, "bn")
+    a.label("dead").b(0xA9, 0x00).abs(0x9D, BA)
+    a.b(0x8A, 0x18, 0x69, 0x03, 0xA8).abs(0xCC, FN).br(0xB0, "bn").abs(0xB9, FO).b(0xA8, 0xA9, 0xF8).abs(0x99, 0x0200)
+    a.label("bn").b(0xCA).br(0x30, "fin").abs(0x4C, "bl")
+    a.label("fin").abs(0xEE, BAT_T).abs(0xAD, BAT_T).b(0xC9, END).br(0x90, "f_r")
+    a.b(0xA9, 0x00).abs(0x8D, BAT_T).b(0x85, 0xE0)
+    # the pose and any bat still out: their sprite entries hidden (the game doesn't redraw entries it isn't using)
+    a.abs(0xAC, FN)
+    a.label("f_h").b(0x88).br(0x30, "f_r").abs(0xBE, FO).b(0xA9, 0xF8).abs(0x9D, 0x0200).br(0xD0, "f_h")
+    a.label("f_r").b(0x60)
+    # hit: bat X against every monster
+    a_main, a = a, Asm(HIT5)
+    a.label("hit").abs(0x8E, TMP).b(0xA0, 0x0B)
+    a.label("hl").abs(0xB9, 0x034F).b(0xC9, 0x49).br(0xB0, "hn").b(0xAA).abs(0xBD, "kcls").br(0xF0, "hn")
+    a.b(0xC9, 0x01).br(0xF0, "hc").b(0xC9, 0x02).br(0xD0, "h3")
+    a.abs(0xB9, 0x00AC).b(0xC9, 0x02).br(0x90, "hn").b(0xC9, 0x05).br(0xB0, "hn").br(0x90, "hc")
+    a.label("h3").b(0xC9, 0x03).br(0xD0, "h4").abs(0xB9, 0x00AC).b(0xC9, 0x03).br(0xD0, "hn").br(0xF0, "hc")
+    a.label("h4").abs(0xB9, 0x00AC).br(0xF0, "hn")
+    a.label("hc").abs(0xB9, 0x0405).br(0xD0, "hn").abs(0xAE, TMP)
+    a.abs(0xBD, BX).b(0x38).abs(0xF9, 0x0070).b(0x38, 0xE9, 0x04).abs(0x20, "abs").b(0xC9, 0x0C).br(0xB0, "hn")
+    a.abs(0xBD, BY).b(0x38).abs(0xF9, 0x0084).abs(0x20, "abs").b(0xC9, 0x0C).br(0xB0, "hn")
+    a.abs(0xB9, 0x034F).b(0xC9, 0x11).br(0xF0, "nk").abs(0xEE, 0x034F)
+    a.label("nk").b(0xA9, 0x5D).abs(0x99, 0x034F).b(0xA9, 0x10).abs(0x99, 0x0405).b(0xA9, 0x00).abs(0x99, 0x0485)
+    a.label("hn").b(0x88).br(0xD0, "hl").abs(0xAE, TMP).b(0x60)
+    a.label("abs").b(0xC9, 0x80).br(0x90, "ab_r").b(0x49, 0xFF, 0x18, 0x69, 0x01)
+    a.label("ab_r").b(0x60)
+    h, a = a, a_main
+    t = Asm(TABLE5)
+    t.label("dx").b(*DX)
+    t.label("dy").b(*DY)
+    t.label("kcls").b(*[KILL.get(k, 0) for k in range(0x49)])
+    t.label("batd").b(*B.pair_bytes(B.BAT))
+    tc = t.bytes()
+    for x in (a, f, h, u):
+        x.labels.update(t.labels)
+    a.labels["hit"] = h.labels["hit"]
+    f.labels.update({k: v for k, v in a.labels.items() if k not in f.labels})
+    code, fc, hc = a.bytes(), f.bytes(), h.bytes()
+    uc = u.bytes()
+    assert len(code) <= 285 and len(tc) <= 136 and len(fc) <= 207 and len(hc) <= 146 and len(uc) <= 78, \
+        (len(code), len(tc), len(fc), len(hc), len(uc))
+    place(rom, 5, CODE5, code); place(rom, 5, FIRST5, fc); place(rom, 5, HIT5, hc); place(rom, 5, USE5, uc)
+    place(rom, 5, TABLE5, tc)
+    L = dict(a.labels); L["use"] = u.labels["use"]
+    patch(rom, 5, USE_AT, bytes.fromhex("ad5e06f00bce5e06a9018563a90285e0"),
+          bytes([0x4C, L["use"] & 0xFF, L["use"] >> 8]))
+    patch(rom, 7, 0xEC52, bytes([0x20, 0x59, 0xB5]), bytes([0x20, L["pause"] & 0xFF, L["pause"] >> 8]))
+    notes.append(f"bat potion ({len(code)} + {len(tc)} bytes in bank 5 at ${CODE5:04X} / ${TABLE5:04X})")

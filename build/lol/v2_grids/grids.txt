@@ -1,0 +1,91 @@
+Legend of Link v2 dungeon grids (user's designs, 2026-11-20). Reference only - not built yet.
+Rows A-H top to bottom, columns 1-16. '.' = no room.
+
+Grid 1 (G green, B blue - one dungeon in four pieces (A8, A10, C9-F10, H7-H11) joined by transport stairs, M magenta, O orange)
+GGGGGGGBMB.O.O.O
+.....GGMMM.OOOOO
+GGGGGGMMBMM.OOO.
+GG....MMBMM.OOO.
+GGGG.MMMBMMMOOO.
+..GG.MMBBBMMOOO.
+.GGGGMMMMMMMOOO.
+..GG..BBBBBOOOOO
+
+Grid 2 (B blue, C cyan, G green, R red, O orange, M magenta)
+B....B.CC.GRRRRR
+BB..BB.CCCGG.RRR
+.BBBB..C.GGGGRRR
+OOBBCCCC.GGGG.RR
+OOC.CCCCC.MGGGGG
+.OCCCCCMCMMMGGGG
+.OOOC.CMCMMMMG.G
+.O.OC.CMMMMMMG.G
+
+Grid 3 (P purple, G green, B blue)
+.PPPPPP.GGBBBBB.
+PPPPPPPGGBB.BBBB
+PPPPPPPGGBB.BBBB
+.PPPPPPGGBBBBBBB
+.PPPPPPGGBBBBBBB
+.PPPPPGGGGBBBBB.
+PPPPPPG.GGGBBB..
+PPPPGGG.GGGGB...
+
+Grid 4 (M magenta west, N magenta east - two different levels, B blue, C cyan, Y yellow, O orange, P purple, G green)
+MMMM..BBBB.CCYYY
+MMMMMMBB..CCCYY.
+MOOM.MBBBBNCCYY.
+MOOMPPBBGNNNCCCC
+.OOPPPGBGNGNCCCC
+OOPPPPGGGGGNCYYC
+OOPOOPPPGN.NCYYC
+OOOO.P.PGNNNNYYY
+
+Dungeon names (2026-11-20; user-confirmed):
+Grid 1: G green = The Serpent, M magenta = The Bell, B blue = The Face (stairs), O orange = The Rook
+Grid 2: B blue = The Bat, C cyan = The Stallion, O orange = The Giraffe, G green = The Unicorn,
+        R red = The Pompadour, M magenta = The Whale
+Grid 3: P purple = The Ghost, G green = The Gecko, B blue = The Balloon
+Grid 4: M west magenta = The Anteater, O orange = The Robber, B blue = The Sock Puppet,
+        Y yellow = The Vice (two pieces: stairs), P purple = The Elephant, G green = The Cactus,
+        C cyan = The Poodle, N east magenta = The Piranha
+
+Pools (2026-11-20):
+- Shrines A-D (4 of 7): Giraffe, Cactus, Bat, Face, Pompadour, Piranha, Sock Puppet
+- Levels 1-8 (8 of 11): Vice, Anteater, Elephant, Robber, Whale, Poodle, Unicorn, Gecko, Stallion, Rook, Bell
+- Level 9 (1 of 3): Serpent, Balloon, Ghost
+Palettes: levels 1-8 and shrines get random dungeon palettes (vanilla and new ones that don't clash or hurt the
+eyes), so a dungeon can't be recognized by its color. Level 9s keep theirs. Rolled when a level/shrine is first
+entered (like the random entrances): its dungeon and its palette are picked then and locked in for that file.
+Dark-room fades and death fades generated to match each palette.
+
+Entrances for v2 (2026-11-20):
+- Remove the entrances at E8, G8, H2, H12 (no cave there any more): 71 -> 67 random entrances
+- Contents: shrines A-D only (E, F gone); the most common shop ($1D) 13 -> 11; total 67 = 67 entrances
+- Shop rule (my reading, unless corrected): a shop item Link already owns is replaced, in order, by bombs, then a
+  key, then a recovery heart ("pity heart" = recovery heart)
+- A15 can't hold levels 1-8 (the recorder can't drop Link there); level 9 IS allowed on A15 (never a recorder
+  target). Shrines allowed on A15. (v1.01's code blocks 1-9 there: change to 1-8.)
+- Level guarantee: if A15 hasn't been rolled and the levels 1-8 still to place = the unrolled entrances - 1,
+  every entrance other than A15 gets a level 1-8
+- The A15 "10 secret" fallback is no longer needed
+- Item-gated screens (entrances that need the ladder, raft, recorder or power bracelet), from the user:
+  B2, B12, E6, C16, E3, B10
+  * Dungeon/shrine guarantee: until a level or shrine has been placed on a gated screen, the last one left can only
+    go on a gated screen (while any gated screen is still unrolled)
+  * Upgrade guarantee: the same for the last upgrade cave
+
+Overworld contents for LoL 2.01 (2026-11-21, from the user):
+ 9 dungeons (levels 1-9), 4 shrines (A-D), 1 white sword cave, 1 magic sword cave,
+ 3 x 100 secret, 6 x 30 secret, 4 x 10 secret, shop 1 x2, shop 2 x2, shop 3 x2, shop 4 x1,
+ 5 gambling games, 4 any roads, 1 wood sword cave  = 45 screens
+ Entrance screens available: 76 now (71 random + H8 + 4 any roads) - 4 removed (E8, G8, H2, H12) = 72
+ + 3 upgrade caves + 12 hint caves (see hints.txt) = 60 screens -> 12 free
+ Shop 4 = a new, fourth shop.
+ Shops: each shop rolls its wares the first time it's entered and keeps them, rerolling only when Link enters
+ while owning one of its wares, or when the shop level has changed (shop level = heart containers + badges).
+ Ware pools: for now every shop keeps its current wares (no rolling yet). Shop 4: a copy of shop 1 until the
+ user decides its wares.
+
+Changes 2026-11-21: H9 (grid 1) moved from the Bell to the Face.
+Hidden rooms (in the grids above, reached some hidden way): Pompadour B15; Ghost B4, B6, D5, E4, E5; Balloon D11.

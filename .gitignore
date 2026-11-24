@@ -1,0 +1,9 @@
+# Never commit game data: no ROMs, no built games.
+*.nes
+*.NES
+*.fds
+# Built by scripts/package_build.py (the Pages workflow makes it)
+web/lol-build.zip
+__pycache__/
+*.pyc
+/zora/

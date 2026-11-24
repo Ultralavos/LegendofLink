@@ -1,0 +1,70 @@
+// Legend of Link randomizer: the build, run in the browser (Pyodide in a web worker).
+// In:  {type: "build", rom: ArrayBuffer (a clean PRG1 ROM), original: ArrayBuffer (the player's ROM), seed, start}
+// Out: {type: "status", text} while loading; {type: "ready"}; {type: "result", rom, ips, log} or {type: "error", text}
+"use strict";
+
+const PYODIDE = "0.28.3";
+let pyodide = null;
+
+const GLUE = `
+import os, sys, io, contextlib, traceback
+sys.path.insert(0, "/lol/build/lol")
+os.environ["ZORA_PATH"] = "/lol/zora"
+
+FRESH = ("lol_", "lolpaths", "new_grids", "build_q3", "build_mock", "release")
+
+def _b(x):                                       # a JS Uint8Array (JsProxy) or bytes -> bytes
+    return x.to_bytes() if hasattr(x, "to_bytes") else bytes(x)
+
+def run_build(rom_bytes, original_bytes, seed, start):
+    os.environ["LOL_GEN"] = "1"
+    os.environ["LOL_START"] = start
+    if seed is None:
+        os.environ.pop("LOL_SEED", None)
+    else:
+        os.environ["LOL_SEED"] = str(seed)
+    for m in list(sys.modules):                  # every build starts from fresh module state
+        if m.startswith(FRESH):
+            del sys.modules[m]
+    with open("/tmp/in.nes", "wb") as f:
+        f.write(_b(rom_bytes))
+    sys.argv = ["lol_build.py", "/tmp/in.nes", "/tmp/out.ips", "/tmp/out.nes"]
+    log = io.StringIO()
+    with contextlib.redirect_stdout(log):
+        import lol_build
+        lol_build.main()
+    out = open("/tmp/out.nes", "rb").read()
+    ips = lol_build.make_ips(_b(original_bytes), out)
+    return out, ips, log.getvalue()
+`;
+
+async function init() {
+  postMessage({ type: "status", text: "Loading Python (first time takes a little while)..." });
+  importScripts(`https://cdn.jsdelivr.net/pyodide/v${PYODIDE}/full/pyodide.js`);
+  pyodide = await loadPyodide();
+  postMessage({ type: "status", text: "Loading the Legend of Link build..." });
+  const zip = await (await fetch("lol-build.zip", { cache: "no-cache" })).arrayBuffer();
+  pyodide.unpackArchive(zip, "zip", { extractDir: "/lol" });
+  pyodide.runPython(GLUE);
+  postMessage({ type: "ready" });
+}
+
+const ready = init().catch((e) => postMessage({ type: "error", text: String(e) }));
+
+onmessage = async (ev) => {
+  await ready;
+  const msg = ev.data;
+  if (msg.type !== "build") return;
+  try {
+    postMessage({ type: "status", text: "Building your game..." });
+    const run = pyodide.globals.get("run_build");
+    const res = run(new Uint8Array(msg.rom), new Uint8Array(msg.original), msg.seed, msg.start);
+    const [rom, ips, log] = res.toJs();
+    res.destroy();
+    const romBytes = new Uint8Array(rom);           // (Python bytes arrive as Uint8Array)
+    const ipsBytes = new Uint8Array(ips);
+    postMessage({ type: "result", rom: romBytes, ips: ipsBytes, log }, [romBytes.buffer, ipsBytes.buffer]);
+  } catch (e) {
+    postMessage({ type: "error", text: String(e) });
+  }
+};

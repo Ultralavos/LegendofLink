@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legend of Link Randomizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d12; --panel: #17171f; --line: #2c2c3a; --text: #ecebf2; --muted: #9b9aab;
+    --accent: #e8a33a; --accent-ink: #1a1206; --good: #6fcf7d; --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font: 18px/1.4 "Press Start 2P", monospace; color: var(--accent); margin: 0 0 6px; letter-spacing: .5px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  input[type=text], select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: #101017; color: var(--text); font: inherit; }
+  input[type=file] { width: 100%; color: var(--muted); }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; }
+  button { font: 600 14px Inter, sans-serif; border-radius: 8px; border: 1px solid var(--line); background: #22222d;
+    color: var(--text); padding: 10px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: 100%;
+    padding: 14px; font-size: 15px; }
+  button:disabled { opacity: .45; cursor: default; }
+  #romstatus.ok { color: var(--good); } #romstatus.bad { color: var(--bad); }
+  #status { color: var(--muted); min-height: 1.5em; margin: 12px 0 0; }
+  #status.bad { color: var(--bad); }
+  .downloads { display: none; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .downloads a { flex: 1; text-align: center; text-decoration: none; color: var(--text); background: #22222d;
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-weight: 600; min-width: 140px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>LEGEND OF LINK</h1>
+  <p class="sub">Randomizer. Your ROM stays on your device: everything is built here, in your browser.</p>
+
+  <section>
+    <h2>1. Your ROM</h2>
+    <label for="rom">The Legend of Zelda (USA), PRG0 or PRG1, .nes</label>
+    <input id="rom" type="file" accept=".nes">
+    <p id="romstatus" class="hint">Not chosen yet.</p>
+  </section>
+
+  <section>
+    <h2>2. Settings</h2>
+    <label for="seed">Seed</label>
+    <div class="row">
+      <input id="seed" type="text" inputmode="numeric" placeholder="Blank: a different game every new file">
+      <button id="roll" type="button">Random</button>
+    </div>
+    <p class="hint">With a seed, everyone who builds the same seed and settings gets the same overworld and dungeons.</p>
+
+    <label for="start">Mode</label>
+    <select id="start">
+      <option value="normal">Normal (the secret modes can still be found)</option>
+      <option value="swordless">Swordless from the start</option>
+      <option value="hard">Hard mode from the start</option>
+    </select>
+  </section>
+
+  <section>
+    <button id="build" class="primary" disabled>Build my game</button>
+    <p id="status">Loading the builder...</p>
+    <div class="downloads" id="downloads">
+      <a id="dl-rom" download>Download ROM</a>
+      <a id="dl-ips" download>Download IPS patch</a>
+    </div>
+  </section>
+
+  <footer>Legend of Link is a fan project built on ZORA. You need your own copy of the game; no game data is hosted here.</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
