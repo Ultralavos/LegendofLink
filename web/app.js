@@ -70,7 +70,8 @@ $("build").addEventListener("click", () => {
   // the dungeon set's own seed: the game's seed, or (no seed) a fresh one for this build
   const setSeed = seed !== null ? seed : crypto.getRandomValues(new Uint32Array(1))[0];
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
-                       start: $("start").value, dset: $("dset").value, setSeed });
+                       start: $("start").value, dset: $("dset").value, setSeed,
+                       mix: $("mix").checked });
 });
 
 worker.onmessage = (ev) => {
@@ -80,7 +81,7 @@ worker.onmessage = (ev) => {
   else if (m.type === "error") { status("Something went wrong: " + m.text, true); refresh(); }
   else if (m.type === "result") {
     const seed = $("seed").value.trim() || "free";
-    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}-${seed}`;
+    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}${$("mix").checked ? "-mix" : ""}-${seed}`;
     const link = (id, data, ext) => {
       const a = $(id); a.href = URL.createObjectURL(new Blob([data], { type: "application/octet-stream" }));
       a.download = `${name}.${ext}`;

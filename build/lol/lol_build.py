@@ -277,6 +277,8 @@ def main():
         import lol_genload
         lol_genload.apply(rom, notes)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
+    import lol_mixgroups
+    lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
     print("\n".join(notes))
     open(sys.argv[2], "wb").write(make_ips(src, bytes(rom)))
     if len(sys.argv) > 3:

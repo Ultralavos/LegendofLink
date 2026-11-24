@@ -20,6 +20,8 @@
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 12px; }
   label { display: block; font-weight: 600; margin: 12px 0 6px; }
   label:first-of-type { margin-top: 0; }
+  label.check { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; }
+  label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
   .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
   input[type=text], select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: #101017; color: var(--text); font: inherit; }
@@ -82,6 +84,11 @@
       <option value="swordless">Swordless from the start</option>
       <option value="hard">Hard mode from the start</option>
     </select>
+
+    <label class="check"><input id="mix" type="checkbox"> Mix enemy groups</label>
+    <p class="hint">Deals the dungeon and overworld enemies into new groups (Moblins in dungeons, Stalfos outside...).
+      Wallmasters, Vires, Like Likes, Zols, Lanmolas, Gels and Keese stay in dungeons; Octoroks, Peahats, Leevers,
+      boulders, Zoras, Ghinis and Armos stay outside.</p>
   </section>
 
   <section>

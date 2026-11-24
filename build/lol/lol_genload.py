@@ -307,8 +307,11 @@ def enemy_groups():
     """Per enemy group, the vanilla first-quest rooms' (monster id, count index, holds traps)."""
     from zora.rom.parse.bin_files import load_bin_files_from_rom
     from zora.rom.parse.game_world import parse_game_world
-    rom = lolpaths.source_rom()
-    w = parse_game_world(load_bin_files_from_rom(rom), rom_bytes=rom)
+    import lol_mixgroups
+    rom = lol_mixgroups.source()          # (Mix enemy groups: the rooms and lists redrawn from the new groups)
+    from zora.rom.base_rom import player_rom_of, using_player_rom
+    with using_player_rom(player_rom_of(bytes(lolpaths.source_rom()))):
+        w = parse_game_world(load_bin_files_from_rom(rom), rom_bytes=rom)
     b5, la = BANK(5), 0x873F
     lists = []
     for gi, lvs in enumerate(ENEMY_GROUP_LEVELS):

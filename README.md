@@ -11,6 +11,9 @@ data is stored in this repository.
 - **Seed**: blank gives a different game on every new file (as the IPS releases do). A number fixes the game: the
   same seed and settings give everyone the same overworld and dungeons.
 - **Mode**: normal (the secret modes can still be found), swordless from the start, or hard mode from the start.
+- **Mix enemy groups**: the dungeon and overworld enemies dealt into new groups (ZORA's Shuffle Enemy Groups with its
+  overworld group, `build/lol/lol_mixgroups.py`). Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and
+  Keese stay in dungeons; Octoroks, Peahats, Leevers, boulders, Zoras, Ghinis and Armos stay outside.
 
 ## Planned
 
