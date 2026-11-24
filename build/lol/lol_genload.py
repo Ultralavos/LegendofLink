@@ -712,7 +712,8 @@ def hint_quotes():
 
 # conditional quotes ("[only with ...]" in the hints file): (inventory byte - $0600, the least it must hold)
 HINT_CONDS = {"the magical boomerang": (0x75, 1), "the magical shield": (0x76, 1),
-              "16 heart containers": (0x6F, 0xF0), "20 max bombs": (0x7C, 20)}
+              "16 heart containers": (0x6F, 0xF0), "20 max bombs": (0x7C, 20),
+              "level 10": (0x016F, 0x90)}      # (a full address: lol_build's HVE, the containers enemies see)
 
 
 def hint_conds():
@@ -733,7 +734,7 @@ def hint_conds():
             out.append((addr, bit, bit))
         else:
             off, least = HINT_CONDS[c.group(1)]
-            out.append((0x0600 + off, 0xFF, least))
+            out.append((off if off > 0xFF else 0x0600 + off, 0xFF, least))
     return out
 
 

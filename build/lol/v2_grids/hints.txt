@@ -47,3 +47,7 @@ Upgrade quotes (v2.02 test 16, drafted by Claude for the user to edit; only offe
 39. A refilling bomb bag slowly grows new bombs   [only with the upgrade refilling bag]
 40. The membership card cuts shop prices in half   [only with the upgrade membership card]
 41. XP boost doubles the XP enemies give you   [only with the upgrade xp boost]
+
+Blue pols voice (v2.02 web): blue once enemies see 10 containers (hard mode 7); only bombs hurt them
+42. Blue Pols Voice can only be damaged with bombs
+43. The Blue Bunnies actually do hate loud noises   [only with level 10]

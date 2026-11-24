@@ -15,6 +15,8 @@ lol_icons2, lol_upgrades' engine).
                     a bomb deals its damage, eye open or not
   holy fire         CheckMonsterBombOrFireCollision (bank 1 $B552): fire deals $20 to stalfos, gibdos, ghinis and
                     pols voice; pols voice's mask ($9C31, bank 4) lets fire in
+  blue pols voice   (not an upgrade) once enemies see 10 containers: pols voice's mask ($9C31) lets only bombs in,
+                    its draw ($9C2E) uses palette 1, and the arrow kill (bank 1 $B604) is skipped
   xp boost          the XP helper's value (bank 4 $B4A8, JSR XP_EXT): non-boss values doubled, bosses + 5
   ghost hunter      SetUpDroppedItem's help-drop check (bank 4 $B0C3): a ghini ($21 / $22) drops 5 rupees
   healerang         HandleMonsterDied (bank 1 $B4E6, INC WorldKillCount): a boomerang kill ($0F) heals 1/4 heart
@@ -22,6 +24,10 @@ lol_icons2, lol_upgrades' engine).
   membership card   lol_choice's shop fill: prices halved (rounded up)"""
 from lol_af import Asm, BANK, patch, place
 import lol_uptable as T
+BLUE_POLS_AT = 0x90                     # blue pols voice: HVE >= $90 (10 containers; hard mode 7)
+BLUE_POLS = 0x016E                      # RAM: 1 while pols voices are blue (their update sets it)
+PCHK = 0xADFA                           # bank 1 (run from WRAM $758A): 10 free bytes
+WRAM1 = 0x3870                          # bank 1's code runs from WRAM at its address - $3870
 HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 
 GHINI, FLY_GHINI, STALFOS, GIBDO, POLS = 0x21, 0x22, 0x2A, 0x30, 0x16
@@ -177,11 +183,19 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xA9, 0x02).abs(0x8D, 0x0601).abs(0x20, 0x7C54).abs(0x20, 0x800D)    # boss hit, damage, cry
         a.b(0x68, 0x68, 0x68, 0x68, 0x60)        # (out of the collision and its caller's shove: back to its caller)
         a.label("e_n").b(0xA5, 0x0F, 0xC9, 0x03, 0x60)
-        # holy fire: pols voice's every-frame mask without the fire bit
-        a.label("pols").b(0xA9, 0xFE, 0x48)
+        # holy fire: pols voice's every-frame mask without the fire bit. Blue pols voice (once enemies see 10
+        # containers, HVE): only bombs hurt it (mask $F7), drawn with sprite palette 1
+        a.label("pols").b(0xA9, 0x00).abs(0x8D, BLUE_POLS).abs(0xAD, HVE).b(0xC9, BLUE_POLS_AT).br(0x90, "pv_0")
+        a.abs(0xEE, BLUE_POLS)                                                 # (BLUE_POLS: the arrow check's)
+        a.abs(0xBD, 0x04BF).b(0x09, 0x08).abs(0x9D, 0x04BF)                    # (its draw takes $04 / $05's palette)
+        a.b(0xA9, 0xF7).br(0xD0, "pv_s")
+        a.label("pv_0").b(0xA9, 0xFE, 0x48)
         gate(a, "holy fire", "pv_n")
         a.b(0x68, 0x29, 0xDF, 0x48)
-        a.label("pv_n").b(0x68).abs(0x9D, 0x04B2).b(0x60)
+        a.label("pv_n").b(0x68)
+        a.label("pv_s").abs(0x9D, 0x04B2).b(0x60)
+        a.label("pdraw").b(0x48).abs(0xAD, HVE).b(0xC9, BLUE_POLS_AT).br(0x90, "pd_n").b(0xA9, 0x01, 0x85, 0x04, 0x85, 0x05)
+        a.label("pd_n").b(0x68).abs(0x4C, 0x77DB)
         # xp boost: the value (A, from XP_EXT; bit 7 a boss)
         a.label("xp").abs(0x20, XP_EXT).br(0xF0, "x_r").b(0x48)
         gate(a, "xp boost", "x_n")
@@ -211,6 +225,19 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 4, 0xA166, bytes([0xA9, 0xFB, 0x9D, 0xB2, 0x04]), j("gmask") + b"\xEA\xEA")
     patch(rom, 4, 0xA44E, bytes([0xA5, 0x0F, 0xC9, 0x03]), j("geye") + b"\xEA")
     patch(rom, 4, 0x9C31, bytes([0xA9, 0xFE, 0x9D, 0xB2, 0x04]), j("pols") + b"\xEA\xEA")
+    patch(rom, 4, 0x9C2E, bytes([0x20, 0xDB, 0x77]), j("pdraw"))          # pols voice's draw: blue at 10
+
+    # blue pols voice: arrows don't kill it. HandleMonsterArrowCollision's pols check (bank 1 $B604, run from WRAM
+    # $7D94: CMP #$16 / BNE normal / LDA #0 / STA ObjHP,X / JMP $7C54) calls PCHK (bank 1's free $ADFA, WRAM $758A):
+    # Z set (A = 0) only for a pols voice that isn't blue (BLUE_POLS, set by its update above): the kill; else the
+    # normal hit, which a blue one's mask turns away.
+    pchk = Asm(PCHK - WRAM1)
+    pchk.b(0xC9, 0x16).br(0xD0, "r").abs(0xAD, BLUE_POLS)
+    pchk.label("r").b(0x60)
+    place(rom, 1, PCHK, pchk.bytes())
+    w = PCHK - WRAM1
+    patch(rom, 1, 0xB604, bytes.fromhex("c916d008a9009d85044c547c"),
+          bytes([0x20, w & 0xFF, w >> 8, 0xD0, 0x07, 0x9D, 0x85, 0x04, 0x4C, 0x54, 0x7C, 0xEA]))
     import lol_build as LB                # the XP helper's JSR XP_EXT ("soft"; it was $B4A8)
     LB.build_helper(LB.FREE)
     patch(rom, 4, LB.build_helper.labels["soft"], bytes([0x20, XP_EXT & 0xFF, XP_EXT >> 8]), j("xp"))
