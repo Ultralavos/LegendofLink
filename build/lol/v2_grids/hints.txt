@@ -1,23 +1,26 @@
 Old man hint caves for LoL 2.01 (2026-11-21, from the user). Each hint cave picks one quote, all equally likely.
 More quotes to come.
 For now: 12 hint caves on the overworld.
+Per seed (2026-11-24): every quote is in, except a quote about an upgrade (tagged [about the upgrade X], or
+[only with the upgrade X]) whose upgrade isn't in the seed's pool (lol_uptable.POOL); quotes tagged [fun] are drawn at
+random to fill the seed's set up to 40 quotes (at least 3 fun ones).
 
 1. The book will teach you how to deal more damage with all weapons   (shown: THE BOOK TEACHES YOU TO DEAL MORE DAMAGE WITH ALL WEAPONS)
 2. Levels 1-8 all have an old man, seek them
 3. Shrines A-D will have a prize if you make it to the end
 4. There are three caves that sell powerful upgrades
 5. Watch out, some enemies level up just like you
-6. If you use up your fairy bottle, visit a fairy pond
-7. Good luck scrolling and clipping with rupee speed
-8. Have you ever taken down Gannon with a boomerang
-9. Every level is basically a cactus
-10. Randomize my mind into nothing...
+6. If you use up your fairy bottle, visit a fairy pond   [about the upgrade fairy bottle]
+7. Good luck scrolling and clipping with rupee speed   [about the upgrade rupee speed]
+8. Have you ever taken down Gannon with a boomerang   [about the upgrade ganon boomerang]
+9. Every level is basically a cactus   [fun]
+10. Randomize my mind into nothing...   [fun]
 11. Blue dodongos don't mind smoke
-12. Red Wallmasters are said to be severed hands of darkwraiths
+12. Red Wallmasters are said to be severed hands of darkwraiths   [fun]
 13. Shop wares and dungeon items can increase with your level
 14. Badges increase the item level of its type
 15. The blue candle can only burn brown bushes
-16. The blue like likes may drop bombs, but they eat them too!
+16. The blue like likes may drop bombs, but they eat them too!   [about the upgrade blue like likes]
 17. Don't forget the push block in west Death mountain
 18. Something is under the push block east of the waterfall
 19. I hear of a bombable wall one screen west of waterfall   (was: I hear there is a bombable wall... - 4 lines)

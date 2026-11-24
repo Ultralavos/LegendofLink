@@ -82,7 +82,37 @@ assert all(r[TIER] == (0 if r[PRICE] <= 50 else 1 if r[PRICE] <= 125 else 2) for
 # each tier's roll walks its upgrades in this order: test12's order first, new ones after
 ROLL_ORDER = [0, 3, 6, 9, 12, 4, 7, 1, 10, 13, 2, 5, 8, 11, 14] + list(range(15, N_UP))
 assert sorted(ROLL_ORDER) == list(range(N_UP))
-TIERS = [[k for k in ROLL_ORDER if ROWS[k][TIER] == t] for t in range(3)]
+
+# The seed's pool (owner, 2026-11-24): the shops offer only the upgrades this seed picked, up to PER_TIER of each
+# tier; first GUARANTEED of each tier's unconditional ones (always offerable: no conditions), then the rest of the
+# tier at random. The same seed (LOL_SET_SEED, else LOL_SEED) picks the same pool. Unpicked upgrades are never offered,
+# and their hint quotes are left out (lol_genload.hint_lines); the title still lists every upgrade (owner).
+PER_TIER = (10, 10, 10)
+GUARANTEED = 3
+
+
+def _pool():
+    import os
+    import random
+    seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
+    rng = random.Random(seed * 7919 + 0x7550)
+    out = set()
+    for t in range(3):
+        tier = [k for k in range(N_UP) if ROWS[k][TIER] == t]
+        free = [k for k in tier if not ROWS[k][COND]]
+        got = rng.sample(free, min(GUARANTEED, len(free)))
+        rest = [k for k in tier if k not in got]
+        got += rng.sample(rest, max(0, min(PER_TIER[t], len(tier)) - len(got)))
+        out |= set(got)
+    return out
+
+
+POOL = _pool()
+TIERS = [[k for k in ROLL_ORDER if ROWS[k][TIER] == t and k in POOL] for t in range(3)]
+
+
+def in_pool(name):
+    return index(name) in POOL
 
 
 def weights256(tier):

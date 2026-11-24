@@ -706,16 +706,42 @@ HINT_SHORT = {"THE BOOK WILL TEACH YOU HOW TO DEAL MORE DAMAGE WITH ALL WEAPONS"
               "LEVELS 1-8 HIDE AN OLD MAN AND A STAIRCASE ITEM, SEEK THEM"}
 
 
-def hint_quotes():
-    """The user's hint quotes, encoded (centred, up to 3 lines)."""
-    import re, textwrap
-    from zora.rom.serialize.text import _encode_quote
-    out = []
+HINT_TOTAL = 40                         # a seed's quotes: [fun] ones fill up to this many,
+HINT_MIN_FUN = 3                        # and at least this many are fun
+
+
+def hint_lines():
+    """The seed's quotes (the hints file's lines, its order): those about upgrades the seed's pool left out dropped,
+    [fun] ones drawn at random (the set seed) to fill up to HINT_TOTAL (at least HINT_MIN_FUN of them)."""
+    import os, re, random
+    import lol_uptable as T
+    if "hl" in _CACHE:
+        return _CACHE["hl"]
+    keep, fun = [], []
     for l in open(HINTS_FILE):
         m = re.match(r"(\d+)\. (.*)", l.strip())
         if not m:
             continue
-        t = m.group(2).split("   (shown:")[0].split("   (was:")[0].split("   [")[0].replace("Gannon", "Ganon").upper()
+        u = re.search(r"\[(?:only with|about) the upgrade (.*?)\]", m.group(2))
+        if u and not T.in_pool(u.group(1)):
+            continue
+        (fun if "[fun]" in m.group(2) else keep).append(m)
+    seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
+    rng = random.Random(seed * 7919 + 0x4E7)
+    pick = rng.sample(range(len(fun)), min(len(fun), max(HINT_MIN_FUN, HINT_TOTAL - len(keep))))
+    chosen = keep + [fun[i] for i in pick]
+    out = [m.group(2) for m in sorted(chosen, key=lambda m: int(m.group(1)))]
+    _CACHE["hl"] = out
+    return out
+
+
+def hint_quotes():
+    """The seed's hint quotes (hint_lines), encoded (centred, up to 3 lines)."""
+    import textwrap
+    from zora.rom.serialize.text import _encode_quote
+    out = []
+    for t in hint_lines():
+        t = t.split("   (shown:")[0].split("   (was:")[0].split("   [")[0].replace("Gannon", "Ganon").upper()
         t = HINT_SHORT.get(t, t)
         w = textwrap.wrap(t, 22)                 # the old man's box: 3 lines of 22
         assert len(w) <= 3, t
@@ -738,11 +764,8 @@ def hint_conds():
     import re
     import lol_uptable as T
     out = []
-    for l in open(HINTS_FILE):
-        m = re.match(r"(\d+)\. (.*)", l.strip())
-        if not m:
-            continue
-        c = re.search(r"\[only with (.*)\]", m.group(2))
+    for t in hint_lines():
+        c = re.search(r"\[only with (.*?)\]", t)
         if not c:
             out.append((0x0600, 0, 0))
         elif c.group(1).startswith("the upgrade "):

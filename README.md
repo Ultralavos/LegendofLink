@@ -15,6 +15,13 @@ data is stored in this repository.
   overworld group, `build/lol/lol_mixgroups.py`). Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and
   Keese stay in dungeons; Octoroks, Peahats, Leevers, boulders, Zoras, Ghinis and Armos stay outside.
 
+## Upgrades and hints per seed
+
+Each seed picks the upgrades its shops can offer (`build/lol/lol_uptable.py`: up to 10 per tier, 3 of them from the
+tier's upgrades with no conditions), and the old men's quotes to go with them (`build/lol/v2_grids/hints.txt`):
+quotes about upgrades the seed left out are dropped, and fun quotes fill the set up to 40 (at least 3 of them). The
+title's list still shows every upgrade.
+
 ## The end screen
 
 After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips them, Select goes on):
