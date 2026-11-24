@@ -22,6 +22,7 @@ lol_icons2, lol_upgrades' engine).
   membership card   lol_choice's shop fill: prices halved (rounded up)"""
 from lol_af import Asm, BANK, patch, place
 import lol_uptable as T
+HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 
 GHINI, FLY_GHINI, STALFOS, GIBDO, POLS = 0x21, 0x22, 0x2A, 0x30, 0x16
 UNDEAD = (STALFOS, GIBDO, GHINI, FLY_GHINI, POLS)
@@ -157,7 +158,7 @@ def apply(rom: bytearray, notes: list) -> None:
         # slow fireballs (X the fireball): not where a blue Aquamentus is (lol_enemies2's check: its shots are bombs)
         a.label("fire")
         gate(a, "slow fireballs", "f_n")
-        a.abs(0xAD, 0x066F).b(0xC9, BLUE_AQ_AT).br(0x90, "f_s").b(0xA0, 0x0B)
+        a.abs(0xAD, HVE).b(0xC9, BLUE_AQ_AT).br(0x90, "f_s").b(0xA0, 0x0B)
         a.label("f_lp").abs(0xB9, 0x034F).b(0xC9, 0x3D).br(0xF0, "f_n").b(0x88).br(0xD0, "f_lp")
         a.label("f_s").abs(0x5E, 0x041F).abs(0x5E, 0x0444)
         a.label("f_n").b(0xA9, 0x10, 0x95, 0xAC, 0x60)
@@ -210,7 +211,9 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 4, 0xA166, bytes([0xA9, 0xFB, 0x9D, 0xB2, 0x04]), j("gmask") + b"\xEA\xEA")
     patch(rom, 4, 0xA44E, bytes([0xA5, 0x0F, 0xC9, 0x03]), j("geye") + b"\xEA")
     patch(rom, 4, 0x9C31, bytes([0xA9, 0xFE, 0x9D, 0xB2, 0x04]), j("pols") + b"\xEA\xEA")
-    patch(rom, 4, 0xB4A8, bytes([0x20, XP_EXT & 0xFF, XP_EXT >> 8]), j("xp"))
+    import lol_build as LB                # the XP helper's JSR XP_EXT ("soft"; it was $B4A8)
+    LB.build_helper(LB.FREE)
+    patch(rom, 4, LB.build_helper.labels["soft"], bytes([0x20, XP_EXT & 0xFF, XP_EXT >> 8]), j("xp"))
     patch(rom, 4, 0xB0C3, bytes([0xA5, 0x50, 0xC9, 0x0A]), j("ghost") + b"\xEA")
     notes.append("second batch of upgrades: ganon visible, slow fireballs, key hoarder, unlimited candle, miser's bow, "
                  "refilling bag, map master, spider bomber, bow of greed, holy fire, xp boost, ghost hunter, healerang, "

@@ -9,6 +9,8 @@ Usage: python3 lol_build.py <PRG1 ROM> <out.ips> [out.nes]
 import sys
 
 XP = 0x0677                     # the XP (saved with the file)
+HUD_CPU = 0xBE60                # bank 5 (mapped when its hook runs): the status bar's XP code ($BE45-$BF4F free)
+HVE = 0x016F                    # the containers enemies level up by (HeartValues; hard mode + 3; build_hud)
 TMP = 0x0173                    # scratch (RAM: the stack page's unused bottom)
 XP_PER_HEART = 50
 HEART_CONTAINER_ITEM = 0x1A
@@ -67,9 +69,11 @@ def build_helper(cpu: int) -> bytes:
 
     b(0x98, 0x48)                          # TYA / PHA
     ab(0xBD, 0x034F)                       # LDA ObjType,X
-    b(0xC9, TABLE_SIZE); br(0xB0, "orig")  # CMP #$4B / BCS orig
+    b(0xC9, TABLE_SIZE); br(0x90, "known"); abl(0x4C, "orig")   # CMP #$4B / BCS orig (as BCC / JMP: too far)
+    L("known")
     b(0xA8)                                # TAY
-    ab(0xAD, 0x066F); b(0xC9, 0xF0); br(0xB0, "orig")   # sixteen containers: no more XP
+    ab(0xAD, 0x066F); b(0xC9, 0xF0); br(0x90, "lv"); abl(0x4C, "orig")   # sixteen containers: no more XP
+    L("lv"); ab(0xAD, HVE)                        # (the containers enemies level up by: hard mode + 3)
     b(0xC9, HARD_HEARTS); br(0x90, "soft") # 8+ containers: stalfos and ropes are worth more
     b(0xC0, 0x2A); br(0xD0, "nst"); b(0xA9, XP_HARD[0x2A]); br(0xD0, "calc")
     L("nst"); b(0xC0, 0x28); br(0xD0, "nrp"); b(0xA9, XP_HARD[0x28]); br(0xD0, "calc")
@@ -105,14 +109,14 @@ def build_helper(cpu: int) -> bytes:
     L("tst"); ab(0x8D, TMP); b(0x60)
     # Stalfos (beams) and ropes (HP, speed) are the second quest's once Link has 8 containers, in every dungeon:
     # the three LDY CurSaveSlot / LDA QuestNumbers,Y checks in bank 4 call this instead (Z clear = harder).
-    L("hard"); b(0xA4, 0x16); ab(0xAD, 0x066F); b(0xC9, HARD_HEARTS); br(0xB0, "h_yes")
+    L("hard"); b(0xA4, 0x16); ab(0xAD, HVE); b(0xC9, HARD_HEARTS); br(0xB0, "h_yes")
     b(0xA9, 0x00, 0x60)
     L("h_yes"); b(0xA9, 0x01, 0x60)
     L("table")
     code.extend(XP_VALUES.get(t, 0) for t in range(TABLE_SIZE))
     for at, name, kind in fix:
         if kind == "rel":
-            d = lab[name] - (at + 1); assert -128 <= d < 128, name; code[at] = d & 0xFF
+            d = lab[name] - (at + 1); assert -128 <= d < 128, (name, at, lab[name]); code[at] = d & 0xFF
         else:
             a = cpu + lab[name]; code[at], code[at + 1] = a & 0xFF, a >> 8
     build_helper.labels = {k: cpu + v for k, v in lab.items()}
@@ -124,7 +128,6 @@ HARD_CHECKS = (0x92C7, 0x9348, 0x9388)          # bank 4: rope HP, rope speed, s
 
 HUD_HOOK = 16 + 0x0654B                        # World_ChangeRupees' LDA FrameCounter / LSR (bank 1 code run from RAM)
 HUD_HOOK_BYTES = bytes.fromhex("a5154a")
-HUD_CODE = 0xBDC0                              # bank 5 (mapped there), free in PRG1
 BANK5 = 16 + 5 * 0x4000
 
 
@@ -152,8 +155,14 @@ def icon_bytes(rows) -> bytes:
 def build_hud(cpu: int) -> bytes:
     """'XP' and the two digits of the XP in the status bar's empty row under the rupees (PPU $208B), written to
     the dynamic tile buffer on the frames the game doesn't format the status bar (as the 3Q/4Q item counter)."""
+    # every frame: HVE = HeartValues, + 3 containers in hard mode (lol_modes' HARD), $FF at most: the containers
+    # the enemies level up by (their checks read HVE)
+    pre = bytes([0xAD, 0xF8, 0x7F, 0xF0, 0x02, 0xA9, 0x30,                   # LDA HARD / BEQ / LDA #$30
+                 0x18, 0x6D, 0x6F, 0x06, 0x90, 0x02, 0xA9, 0xFF,              # CLC / ADC HeartValues / BCC / LDA #$FF
+                 0x8D, HVE & 0xFF, HVE >> 8])                                 # STA HVE
+    cpu += len(pre)
     w = cpu + 10                                         # write: after the RTS
-    code = bytes([0xA5, 0x15, 0x4A, 0x90, 0x04,          # LDA FrameCounter / LSR / BCC ret
+    code = pre + bytes([0xA5, 0x15, 0x4A, 0x90, 0x04,    # LDA FrameCounter / LSR / BCC ret
                   0x20, w & 0xFF, w >> 8, 0x38])         # JSR write / SEC
     code += bytes([0x60])                                # ret: RTS
     w2 = bytes([0xA9, 0x20, 0x8D, 0x02, 0x03, 0xA9, 0x8B, 0x8D, 0x03, 0x03,   # PPU $208B: the icons' column
@@ -202,11 +211,12 @@ def main():
         assert rom[o:o + 5] == bytes([0xA4, 0x16, 0xB9, 0x2D, 0x06]), hex(cpu)
         rom[o:o + 5] = bytes([0x20, hard & 0xFF, hard >> 8, 0xEA, 0xEA])
     assert rom[HUD_HOOK:HUD_HOOK + 3] == HUD_HOOK_BYTES
-    hud = build_hud(HUD_CODE)
-    h_at = BANK5 + HUD_CODE - 0x8000
+    hud_cpu = HUD_CPU
+    hud = build_hud(hud_cpu)
+    h_at = BANK5 + hud_cpu - 0x8000
     assert all(x == 0xFF for x in rom[h_at:h_at + len(hud)])
     rom[h_at:h_at + len(hud)] = hud
-    rom[HUD_HOOK:HUD_HOOK + 3] = bytes([0x20, HUD_CODE & 0xFF, HUD_CODE >> 8])
+    rom[HUD_HOOK:HUD_HOOK + 3] = bytes([0x20, hud_cpu & 0xFF, hud_cpu >> 8])
     assert rom[XP_ICON_CHR:XP_ICON_CHR + 16] == bytes(16)
     rom[XP_ICON_CHR:XP_ICON_CHR + 16] = icon_bytes(XP_ICON)
     # The bosses' heart containers become blue potions (every dungeon, both quests' room tables)

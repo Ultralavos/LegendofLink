@@ -19,6 +19,7 @@ Hooks (bank 4, through lol_dodongo's trampoline into bank 2 with Y = 2 / 3 / 4):
 from lol_af import Asm, place, patch, BANK
 
 BROWN_AT, BLUE_AQ_AT = 0x80, 0x90       # HeartValues: 9 / 10 containers
+HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 BROWN_HP, BROWN_SPEED, BROWN_DMG, RED_DMG = 0xA0, 0x30, 2, 1
 BLUE_AQ_HP = 0x80
 DMG = 0x7A4A                            # WRAM: ObjTypeToDamagePoints
@@ -77,7 +78,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xC0, k).br(0xD0, f"dn{k}").abs(0x4C, name).label(f"dn{k}")
     a.abs(0x4C, "wizz")                                                  # (9)
     # is a blue Aquamentus here? (C set: yes)
-    a.label("blue").abs(0xAD, 0x066F).b(0xC9, BLUE_AQ_AT).br(0x90, "bl_r").b(0xA0, 0x0B)
+    a.label("blue").abs(0xAD, HVE).b(0xC9, BLUE_AQ_AT).br(0x90, "bl_r").b(0xA0, 0x0B)
     a.label("bl_lp").abs(0xB9, 0x034F).b(0xC9, 0x3D).br(0xF0, "bl_y").b(0x88).br(0xD0, "bl_lp")
     a.b(0x18)
     a.label("bl_r").b(0x60)
@@ -103,7 +104,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("init").b(0xA9, 0x20).abs(0x8D, SPD).b(0xA9, 0x28).abs(0x8D, SPD + 1)   # darknut speeds: red, blue
     a.b(0xA5, 0x00, 0xC9, 0x0B).br(0xD0, "i_aq")
     a.b(0xA9, RED_DMG).abs(0x8D, DMG + 0x0B)
-    a.abs(0xAD, 0x066F).b(0xC9, BROWN_AT).br(0x90, "i_r")
+    a.abs(0xAD, HVE).b(0xC9, BROWN_AT).br(0x90, "i_r")
     a.b(0xA9, BROWN_DMG).abs(0x8D, DMG + 0x0B)
     a.b(0xA9, BROWN_HP).abs(0x9D, 0x0485).b(0xA9, BROWN_SPEED).abs(0x8D, SPD)
     a.abs(0xBD, 0x04BF).b(0x09, 0x08).abs(0x9D, 0x04BF)
@@ -112,7 +113,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.abs(0x20, "queue")
     a.label("i_r").b(0x60)
     a.label("i_aq").b(0xC9, 0x3D).br(0xD0, "i_ot")
-    a.abs(0xAD, 0x066F).b(0xC9, BLUE_AQ_AT).br(0x90, "i_back")
+    a.abs(0xAD, HVE).b(0xC9, BLUE_AQ_AT).br(0x90, "i_back")
     a.b(0xA9, BLUE_AQ_HP).abs(0x9D, 0x0485)
     for k, t in enumerate((T1, T2, T3)):
         a.abs(0xAD, PAL1 + k).abs(0x8D, t)

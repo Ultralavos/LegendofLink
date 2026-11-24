@@ -11,6 +11,7 @@ switch back to bank 4."""
 from lol_af import Asm, place, patch, BANK
 
 HC_AT = 0x90                                   # HeartValues >= $90: 10 containers
+HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 BOMB_TYPE = 0x29
 TRAMP = 0xBD46                                 # banks 2 and 4: free
 MORE = 0xB940                                  # bank 2: lol_enemies2's handlers (Y 2+)
@@ -40,7 +41,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xC0, 0x01).br(0x90, "turn").br(0xF0, "bomb1").abs(0x4C, MORE)   # (Y 2+: lol_enemies2)
     a.label("bomb1").abs(0x4C, "bombupd")
     # a blue dodongo (X) turned: if no bomb of its own is out, drop one where it stands
-    a.label("turn").abs(0xAD, 0x066F).b(0xC9, HC_AT).br(0x90, "t_r")
+    a.label("turn").abs(0xAD, HVE).b(0xC9, HC_AT).br(0x90, "t_r")
     a.b(0xA0, 0x0B)
     a.label("t_lp").abs(0xB9, 0x034F).b(0xC9, BOMB_TYPE).br(0xD0, "t_nx").b(0x8A).abs(0xD9, 0x0098).br(0xF0, "t_r")
     a.label("t_nx").b(0x88).br(0xD0, "t_lp")
@@ -105,7 +106,7 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 4, 0x98A9, bytes([0x20, DODONGO_STATE & 0xFF, DODONGO_STATE >> 8]), bytes([0x20, WRAP4 & 0xFF, WRAP4 >> 8]))
     # its palette
     p = Asm(PAL4)
-    p.abs(0x20, LEVEL_PAL).abs(0xAD, 0x066F).b(0xC9, HC_AT).br(0x90, "p_r").b(0xA9, 0x01, 0x85, 0x04, 0x85, 0x05)
+    p.abs(0x20, LEVEL_PAL).abs(0xAD, HVE).b(0xC9, HC_AT).br(0x90, "p_r").b(0xA9, 0x01, 0x85, 0x04, 0x85, 0x05)
     p.label("p_r").b(0x60)
     pc = p.bytes(); assert PAL4 + len(pc) <= 0xBE00
     place(rom, 4, PAL4, pc)
@@ -113,7 +114,7 @@ def apply(rom: bytearray, notes: list) -> None:
         patch(rom, 4, site, bytes([0x20, LEVEL_PAL & 0xFF, LEVEL_PAL >> 8]), bytes([0x20, PAL4 & 0xFF, PAL4 >> 8]))
     # no stun from a blast
     s = Asm(STUN4)
-    s.abs(0xAD, 0x066F).b(0xC9, HC_AT).br(0xB0, "s_r").b(0xA9, 0x02, 0x95, 0xAC)
+    s.abs(0xAD, HVE).b(0xC9, HC_AT).br(0xB0, "s_r").b(0xA9, 0x02, 0x95, 0xAC)
     s.label("s_r").b(0x60)
     sc = s.bytes(); assert STUN4 + len(sc) <= 0xBF50
     place(rom, 4, STUN4, sc)

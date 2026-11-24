@@ -12,6 +12,7 @@ Hooks (bank 7, into code here in the common area, the same in banks 0-6):
   BeginUpdateWorld's LDA InvClock -> regen (each frame of play), then LDA InvClock
 Bank 1: InitCave's shop fill (JSR at $85F9) first writes the cave's wares for person $76; the cave take's JSR $BD2F
 (the item) for person $76 sets the bit instead."""
+HVE = 0x016F                            # lol_build: the containers enemies level up by (HeartValues; hard mode + 3)
 from lol_af import Asm, place, patch, BANK
 
 UPGRADES = 0x066B                       # saved inventory byte the game never uses
@@ -71,7 +72,6 @@ LEVEL_CHAR_PPU = 0x2048                 # "LEVEL-X" (bank 6's LevelNumberTransfe
 HAS_MAP = 0xB5EF                        # bank 5: Z set without the current level's map
 QUESTION = 0x2E                         # the '?' tile
 LABEL5 = 0xADB0                         # bank 5 free: the status bar level label
-HUD_END = 0xBDFC                        # bank 5: the XP status bar code's RTS (lol_build)
 FLAGS = (0x00, 0x00, 0xC0)              # as shop A's (pay; show the items and prices)
 QUOTE = 12                              # hint shop 2's second hint (unused now)
 QUOTE_TEXT = ["BUY A NEW UPGRADE!"]
@@ -298,16 +298,16 @@ def apply(rom: bytearray, notes: list) -> None:
     place(rom, 4, INIT4, ca)
     # (bank 4's $BCA4-$BCFF: free in every bank, past the common item code; used here by bank 4 alone)
     gb = Asm(INIT4B)
-    gb.b(0xC9, 0x30).br(0xD0, "j_v").abs(0xAD, 0x066F).b(0xC9, 0x70).br(0x90, "j_r")
+    gb.b(0xC9, 0x30).br(0xD0, "j_v").abs(0xAD, HVE).b(0xC9, 0x70).br(0x90, "j_r")
     gb.b(0xA9, 0x28).abs(0x9D, 0x03BC).b(0xA9, 0x90).abs(0x4C, ga.labels["i_set"])
     # a vire ($12) once Link has 12 containers: 6 HP, red
-    gb.label("j_v").b(0xC9, 0x12).br(0xD0, "j_w").abs(0xAD, 0x066F).b(0xC9, 0xB0).br(0x90, "j_r")
+    gb.label("j_v").b(0xC9, 0x12).br(0xD0, "j_w").abs(0xAD, HVE).b(0xC9, 0xB0).br(0x90, "j_r")
     gb.b(0xA9, 0x60).abs(0x4C, ga.labels["i_set"])
     gb.label("j_r").b(0x60)
     gb.label("j_w").abs(0x4C, WM4)
     # ... and splits (UpdateVire's LDA #$1C / STA $00 at $9D75, JSR Shoot at $9D79) into two blue wizzrobes ($23,
     # state 0) instead of red keese
-    gb.label("v_type").b(0xA9, 0x1C).abs(0xAC, 0x066F).b(0xC0, 0xB0).br(0x90, "v_st").b(0xA9, 0x23)
+    gb.label("v_type").b(0xA9, 0x1C).abs(0xAC, HVE).b(0xC0, 0xB0).br(0x90, "v_st").b(0xA9, 0x23)
     gb.label("v_st").b(0x85, 0x00, 0x60)
     gb.label("v_shoot").abs(0x20, 0xB195).b(0xA5, 0x00, 0xC9, 0x23).br(0xD0, "v_r")
     gb.b(0xA9, 0x00).abs(0x99, 0x00AC)
@@ -322,14 +322,14 @@ def apply(rom: bytearray, notes: list) -> None:
     # (vanilla half), and the trip back to the entrance also takes a heart container. (bank 4 $BD90-$BDFF: free
     # in every bank, past the common pre-load code; used here by bank 4 alone)
     gw = Asm(WM4)
-    gw.b(0xC9, 0x27).br(0xD0, "w_r").abs(0xAD, 0x066F).b(0xC9, 0xB0).br(0x90, "w_r")
+    gw.b(0xC9, 0x27).br(0xD0, "w_r").abs(0xAD, HVE).b(0xC9, 0xB0).br(0x90, "w_r")
     gw.b(0xA9, 0x50).abs(0x9D, 0x0485)
     gw.label("w_r").b(0x60)
-    gw.label("w_spd").abs(0xAD, 0x066F).b(0xC9, 0xB0, 0xA9, 0x18).br(0x90, "w_s").b(0xA9, 0x28)
+    gw.label("w_spd").abs(0xAD, HVE).b(0xC9, 0xB0, 0xA9, 0x18).br(0x90, "w_s").b(0xA9, 0x28)
     gw.label("w_s").abs(0x9D, 0x03BC).b(0x60)
-    gw.label("w_pal").b(0x29, 0xF0, 0x48).abs(0xAD, 0x066F).b(0xC9, 0xB0, 0x68, 0x09, 0x01).br(0x90, "w_p").b(0x49, 0x03)
+    gw.label("w_pal").b(0x29, 0xF0, 0x48).abs(0xAD, HVE).b(0xC9, 0xB0, 0x68, 0x09, 0x01).br(0x90, "w_p").b(0x49, 0x03)
     gw.label("w_p").b(0x60)
-    gw.label("w_steal").abs(0x20, 0x828A).abs(0xAD, 0x066F).b(0xC9, 0xB0).br(0x90, "w_x")
+    gw.label("w_steal").abs(0x20, 0x828A).abs(0xAD, HVE).b(0xC9, 0xB0).br(0x90, "w_x")
     gw.b(0x38, 0xE9, 0x10).abs(0x8D, 0x066F)                                  # containers - 1
     gw.b(0x4A, 0x4A, 0x4A, 0x4A, 0x85, 0x00).abs(0xAD, 0x066F).b(0x29, 0x0F, 0xC5, 0x00).br(0x90, "w_x")
     gw.abs(0xAD, 0x066F).b(0x29, 0xF0, 0x05, 0x00).abs(0x8D, 0x066F)          # full hearts no more than that
@@ -342,7 +342,7 @@ def apply(rom: bytearray, notes: list) -> None:
     # the damage (bank 1 HarmLink's LDA ObjTypeToDamagePoints,Y, run from WRAM $7B42): bank 7 $FFD4
     DMG7 = 0xFFD4
     gd = Asm(DMG7)
-    gd.abs(0xB9, 0x7A4A).b(0xC0, 0x27).br(0xD0, "d_r").b(0x48).abs(0xAD, 0x066F).b(0xC9, 0xB0, 0x68).br(0x90, "d_r")
+    gd.abs(0xB9, 0x7A4A).b(0xC0, 0x27).br(0xD0, "d_r").b(0x48).abs(0xAD, HVE).b(0xC9, 0xB0, 0x68).br(0x90, "d_r")
     gd.b(0xA9, 0x01)
     gd.label("d_r").b(0x60)
     cd = gd.bytes(); assert DMG7 + len(cd) <= 0xFFEA, hex(DMG7 + len(cd))
@@ -400,6 +400,8 @@ def apply(rom: bytearray, notes: list) -> None:
     f4.label("pn").b(0xA9, 0x40, 0x85, 0xAC, 0x60)
     place(rom, 4, POND_CODE, f4.bytes())
     patch(rom, 4, POND, bytes.fromhex("e6ada94085ac"), bytes([0xE6, 0xAD, 0x20, POND_CODE & 0xFF, POND_CODE >> 8, 0xEA]))
+    import lol_build                      # bank 5: the XP status bar code's RTS
+    HUD_END = lol_build.HUD_CPU + len(lol_build.build_hud(lol_build.HUD_CPU)) - 1
     hb = BANK(5) + HUD_END - 0x8000
     assert rom[hb:hb + 4] == bytes([0x60, 0xFF, 0xFF, 0xFF]), rom[hb:hb + 4].hex()
     rom[hb:hb + 3] = bytes([0x4C, L["hud"] & 0xFF, L["hud"] >> 8])

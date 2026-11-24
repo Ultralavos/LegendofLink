@@ -10,7 +10,8 @@ to 32); upgrades that need a sword (beams, sword mastery) need one in every mode
 
 Hard mode: Link dies 5 times without walking into any entrance, then walks into the wood sword cave: the old man says
 "OH, YOU WANT HARD MODE?", Link loses 2 heart containers (at least 1 is left) and still gets the sword; a heart level
-takes 100 XP instead of 50.
+takes 100 XP instead of 50, and enemies level up 3 heart containers sooner (their checks read lol_build's HVE,
+HeartValues + 3 containers in hard mode, kept every frame by the status bar's XP code).
 
 State (battery RAM, past lol_saveblock's version byte; cleared for a new file by lol_entrances' clear):
   SWL $7FF7 (1: swordless), HARD $7FF8 (1: hard), NCAVE $7FF9 (entrances walked into, up to 5), CROOMS $7FFA-$7FFE.
