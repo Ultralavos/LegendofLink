@@ -96,3 +96,19 @@ Designs on the two LoL grids that no shrine uses leave their grid, which frees t
 - Page sets' cellars: item cellars stay each design's own (grid 4's two room-memory areas reuse each other's
   squares), transport cellars are shared by a grid's designs (as LoL's own grids share them); a design reserves
   what its neediest level takes.
+
+### Quest level nicknames (owner, 2026-11-24)
+
+| Level | 1Q | 2Q (in-game number) | 3Q (proposed) | 4Q |
+|---|---|---|---|---|
+| 1 | The Eagle | The E | The Sword | The Bow and Arrow |
+| 2 | The Moon | The A | The Kite | The Rabbit |
+| 3 | The Manji | The L | The Islands | The Broken Boomerang |
+| 4 | The Snake | The D | The Candle | The Whirlwind |
+| 5 | The Lizard | The Z | The Chalice | The Hammer |
+| 6 | The Dragon | The Cap | The Jellyfish | The Scorpion |
+| 7 | The Demon | The Flail | The Twin Pines | The Armos |
+| 8 | The Lion | The Whip | The Trident | The Crown |
+| 9 | The Skull | The Pig | The Serpent | The Swiss Cheese (+ the Torch) |
+
+(`lol_quests.NICKNAMES`; 3Q's still the proposed names from q3/nicknames.json.)
