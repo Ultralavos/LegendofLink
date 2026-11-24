@@ -284,6 +284,8 @@ def main():
     lol_upgrades.apply_caves(rom, notes)
     import lol_newups
     lol_newups.apply(rom, notes)
+    import lol_rodsong
+    lol_rodsong.apply(rom, notes)
     import lol_ending
     lol_ending.apply(rom, notes)
     import lol_enemies2

@@ -66,3 +66,7 @@ Old men cards (2026-11-24; the badges: shop S brown box, dungeon D red, shrine X
 47. White border cards boost dungeon and shrine finds
 48. Brown border cards make shops sell better items
 49. Blue cards improve shrine prizes, red cards dungeon gifts
+
+Divining rod and song of chaos (2026-11-24):
+50. The divining rod points you to every compass   [only with the upgrade divining rod]
+51. Play the song of chaos and the wind takes you anywhere   [only with the upgrade song of chaos]

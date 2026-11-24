@@ -20,6 +20,7 @@ Kept at once (written straight to save RAM; cleared for a new file):
   working memory as saved on its first load.
   $600A  4   lol_stats: the clock (frames, seconds, minutes, hours), in file 2's name (the file is never registered;
              the menu's checks leave its name alone): zeroed with the saved copies for a new file
+  $600E  1   lol_uptable's UP6 (upgrade bits), the same way
 ($607E-$6091 and $7FF7-$7FFE, once free, are used: lol_uptable's UP4 / UP5 and RAM, lol_modes, lol_newups.)
 Moved for room: the hint text buffer to $6BFA (the overworld level info's palette cycles; test12 had it at $67F0, which is
 bank 6's data in RAM - the overworld column directory: fixed in test13), the
@@ -33,6 +34,7 @@ SEGMENTS = [(0x6392, 0x6412, 0x80),          # grid 2
             (0x630A, 0x7FEE, 0x08)]
 VERSION, VERSION_VALUE = 0x7FF6, 0x01
 CLOCK = 0x600A                          # lol_stats' clock (4 bytes: file 2's name, which nothing writes)
+UP6 = 0x600E                            # lol_uptable's UP6 (the next byte of that name)
 HINT_BUF = 0x6BFA                       # (the overworld level info's palette cycles: dark-room fades only, never
                                         #  used on the overworld; a level load rewrites them)
 assert sum(n for _, _, n in SEGMENTS[2:]) == 0x80
@@ -54,6 +56,7 @@ def emit_clear_saved(a: Asm) -> None:
         a.b(0xA0, n - 1).label(lb).abs(0x99, s).b(0x88).br(0x10, lb)
     for k in range(4):                                  # lol_stats' clock
         a.abs(0x8D, CLOCK + k)
+    a.abs(0x8D, UP6)                                    # lol_uptable's third upgrade byte
     a.b(0xA9, VERSION_VALUE).abs(0x8D, VERSION)
 
 

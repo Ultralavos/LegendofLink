@@ -212,7 +212,11 @@ def build_show(org, rom, names, items, L):
     a.label("p_sd").abs(0xAE, IDX).abs(0xAD, TMP2).b(0x49, 0xFF).abs(0x3D, ATTR).abs(0x0D, TMP).abs(0x9D, ATTR)
     a.b(0x60)
     # ipic: A = an item code at PR / PC
+    rod = T.bit("divining rod")
     a.label("ipic").b(0xAA).abs(0xBD, "ipal").abs(0x8D, PPAL).abs(0xBD, "ikind").abs(0x8D, PMODE)
+    a.b(0xE0, 0x10).br(0xD0, "ip_nr").abs(0xAD, rod[0]).b(0x29, rod[1]).br(0xF0, "ip_nr")   # the divining rod's stick
+    a.b(0xA9, 3).abs(0x8D, PPAL)
+    a.label("ip_nr")
     a.b(0xA9, 0x00).abs(0x8D, HLH).abs(0x8D, HRH)
     a.abs(0xBD, "itile").abs(0x8D, HLL).abs(0xAD, PMODE).b(0xC9, PAIR).br(0xD0, "ip_go")
     a.abs(0xBC, "itile").abs(0xB9, B.WLW).abs(0x8D, HLL).abs(0xB9, B.WRW).abs(0x8D, HRL)

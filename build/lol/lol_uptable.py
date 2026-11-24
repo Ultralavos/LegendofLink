@@ -34,13 +34,17 @@ HAS_SWORD = [("ge", 0x0657, 1)]             # (lol_modes: sword-only upgrades ne
 NO_SNUB = [("notowned", "heart snubber")]   # (sword upgrades leave the pool with the heart snubber)
 BOMB_UPGRADE = [("ge", MAX_BOMBS, 12)]  # at least one bomb upgrade (8 -> 12)
 WAND = 0x065F
+RECORDER = 0x065C
+UP6 = 0x600E                            # the third batch's bits (file 2's name, as lol_stats' clock; cleared for a
+                                        # new file by lol_saveblock)
 FOOD = 0x065D                           # the bait
 RARE = 3                                # relative weights: 13 a normal upgrade, 3 a super rare one
 # name, (address, bit), price, tier, relative weight, conditions (all must hold), picture, fixed halves {x: tile},
 # palette (the item drawn as: $1A red, $00 blue, $12 the blue ring's)
 ROWS = [
     ("beams",           (UPGRADES, 0x01),  50, 0, 13, HAS_SWORD + NO_SNUB, "_beam_sword", {}, 0x00),
-    ("boomstick",       (UPGRADES, 0x02), 100, 1, 13, [("ge", WAND, 1)], "_boomstick", {0: 0x4A}, 0x00),
+    ("boomstick",       (UPGRADES, 0x02), 100, 1, 13, [("ge", WAND, 1), ("notowned", "divining rod")], "_boomstick",
+     {0: 0x4A}, 0x00),
     ("regen",           (UPGRADES, 0x04), 200, 2, 13, [], "_regen", {}, 0x1A),
     ("skull ring",      (UPGRADES, 0x10),  50, 0, 13, [], "_skull_ring", {}, 0x12),
     ("sword mastery",   (UPGRADES, 0x08), 100, 1, 13, HAS_SWORD + NO_SNUB, "_sword_plus", {0: 0x20}, 0x00),
@@ -80,6 +84,13 @@ ROWS = [
     # the level, swords out of every pool). Its bit: UP3's $40.
     ("heart snubber",   (UP3, 0x40),      200, 2, 13, HAS_SWORD + [("lt", HEARTS, 0x30), ("rank1",)],
      "_heart_snubber", {}, 0x1A),
+    # owner 2026-11-24 (lol_rodsong): the wand becomes a stick (Link's colors), stabs only (no shot) for 1 less, and
+    # every level's and shrine's compass comes with it; never with the boomstick. Its bit: UP3's $80.
+    ("divining rod",    (UP3, 0x80),      100, 1, 13, [("ge", WAND, 1), ("notowned", "boomstick")], "_divining_rod",
+     {}, 0x0A),
+    # owner 2026-11-24 (lol_rodsong): the recorder's whirlwind (with or without triforces) drops Link on a random
+    # screen, one of those safe to land on (lol_entrances' SAFE_Y). Its bit: UP6's $01.
+    ("song of chaos",   (UP6, 0x01),       25, 0, 13, [("ge", RECORDER, 1)], "_song_of_chaos", {}, 0x05),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

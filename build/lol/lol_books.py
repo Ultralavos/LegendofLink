@@ -32,7 +32,11 @@ def apply(rom: bytearray, notes: list) -> None:
         return b
     BONUS0 = V.put0(rom, build).labels["bonus"]
     a = Asm(COMMON)
-    a.label("pal").b(0xE0, 0x0A).br(0xD0, "p_red")                             # the book's slot?
+    import lol_uptable as UT
+    rod = UT.bit("divining rod")
+    a.label("pal").b(0xE0, 0x08).br(0xD0, "p_bk").abs(0xAD, rod[0]).b(0x29, rod[1]).br(0xF0, "p_red")
+    a.b(0xA9, 0x00, 0x60)                                                       # the divining rod: Link's colors
+    a.label("p_bk").b(0xE0, 0x0A).br(0xD0, "p_red")                             # the book's slot?
     a.abs(0xAD, BOOK).b(0xC9, 0x02).br(0xF0, "p_blue")                          # Link's is blue
     a.abs(0xAD, FLAG).b(0x29, 0x02).br(0xF0, "p_red")                           # or item $25 is being drawn
     a.label("p_blue").b(0xA9, 0x01, 0x60)

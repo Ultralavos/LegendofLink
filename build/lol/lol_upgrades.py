@@ -120,7 +120,10 @@ def apply(rom: bytearray, notes: list) -> None:
     SNUB = T.bit("heart snubber")
     def b_sword(org):                                  # the heart snubber's level, sword +1, then the books' bonus
         a = Asm(org)
-        a.label("sword").b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")
+        ROD = T.bit("divining rod")                    # the divining rod's stab (weapon slot $12): 1 less, $10 at least
+        a.label("sword").b(0xA5, 0x00, 0xC9, 0x12).br(0xD0, "sw_s").abs(0xAD, ROD[0]).b(0x29, ROD[1]).br(0xF0, "sw_s")
+        a.b(0xA5, 0x07, 0xC9, 0x20).br(0x90, "sw_s").b(0xE9, 0x10, 0x85, 0x07)
+        a.label("sw_s").b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")
         # heart snubber: the attack is at least half the level (the containers' nibble + 1) from level 4: 2 .. 8
         a.abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "sw_m")
         a.abs(0xAD, 0x066F).b(0x4A, 0x4A, 0x4A, 0x4A, 0x18, 0x69, 0x01, 0x4A, 0xC9, 0x02).br(0x90, "sw_m")
@@ -606,7 +609,9 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("t_pp").b(0x68, 0xAA)
         b.b(0xE0, MAP_I).br(0xD0, "t_nm")                                         # map master: every map
         b.b(0xA9, 0xFF).abs(0x8D, 0x0668).abs(0x8D, AF_MAP).b(0xA9, 0x01).abs(0x8D, 0x066A)
-        b.label("t_nm").b(0xE0, POUCH_I).br(0x90, "t_np").b(0xE0, BAT_I + 1).br(0xB0, "t_np")
+        b.label("t_nm").b(0xE0, T.index("divining rod")).br(0xD0, "t_nr")          # the divining rod: every compass
+        b.b(0xA9, 0xFF).abs(0x8D, 0x0667).abs(0x8D, 0x0679).b(0xA9, 0x01).abs(0x8D, 0x0669)
+        b.label("t_nr").b(0xE0, POUCH_I).br(0x90, "t_np").b(0xE0, BAT_I + 1).br(0xB0, "t_np")
         b.b(0xA2, 0x01).abs(0x20, PIC.LOAD["load"])                               # the potion's pictures anew
         b.label("t_np").b(0xA9, 0x08).abs(0x8D, 0x0602).b(0x60)                   # the item tune
         # tables
