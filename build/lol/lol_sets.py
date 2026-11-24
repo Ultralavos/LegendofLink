@@ -392,14 +392,14 @@ EXTRA_NAMES = {5: {"G": "Green 5", "B": "Blue 5", "M": "Magenta 5", "Y": "Yellow
 EXTRA_CLASSES = {"Hero": ("L6", "L7", "L8", "L9"), "Hellhound": ("L7", "L8", "L9")}
 # grid 8's (no levels given: by size, as LoL's own designs; its 12 free squares hold the stairs this allows)
 _S = ("SA", "SB", "SC", "SD")
-EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(1, 9)), "Camel": tuple(f"L{n}" for n in range(1, 9)),
-                      "Guillotine": tuple(f"L{n}" for n in range(1, 7)) + _S,
-                      "Bird": tuple(f"L{n}" for n in range(1, 7)) + _S,
+EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(5, 9)), "Camel": tuple(f"L{n}" for n in range(4, 9)),   # (owner)
+                      "Guillotine": tuple(f"L{n}" for n in range(1, 6)) + _S,              # (owner)
+                      "Bird": tuple(f"L{n}" for n in range(1, 6)) + _S,                    # (owner)
                       "Corners": ("L1", "L2", "L3") + _S, "Ladle": ("L1", "L2", "L3") + _S,   # (Corners: four
                       # pieces, too few rooms for levels 4-6's boss rooms; tried in lol_gen)
                       # grid 9's (by size too; its 13 free squares hold their stairs)
-                      "Heart": tuple(f"L{n}" for n in range(1, 9)), "Pyramids": tuple(f"L{n}" for n in range(1, 9)),
-                      "Bull": tuple(f"L{n}" for n in range(1, 9)) + _S,
+                      "Heart": tuple(f"L{n}" for n in range(1, 7)), "Pyramids": tuple(f"L{n}" for n in range(4, 9)),
+                      "Bull": tuple(f"L{n}" for n in range(1, 6)) + _S,                    # (owner: Heart..Bull)
                       "Notes": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Periscope": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Question Mark": _S})                # (ten rooms in four pieces: only a shrine generates)
