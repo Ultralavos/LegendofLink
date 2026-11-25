@@ -419,3 +419,20 @@ def _bookworm():           # a book wearing glasses (red: red 1, tan 2, white 3;
                "..111111111111..",
                "................",
                "................"])
+
+
+BRACELET = ["........", "...121..", "..11121.", ".2221211", ".1112.11", "1111...2", "2211...1", "3321....",
+            "3321....", "2211....", "1111...1", ".111...2", ".1112.21", "..22112.", "...112..", "........"]
+
+
+def _heavy_bracelet():      # the power bracelet's sprite (tiles $4E / $4F), drawn blue (owner's pick)
+    return _g(["...." + r + "...." for r in BRACELET])
+
+
+def _thorn_bracelet():      # the blue bracelet with thorns around it; not an upgrade row: the Thorn Bracelet
+    rows = [list("...." + r + "....") for r in BRACELET]   # (lol_heavy) takes the Heavy Bracelet's place
+    for x, y in ((7, 0), (2, 2), (13, 2), (1, 7), (14, 7), (2, 12), (13, 12), (7, 15), (3, 1), (12, 1), (0, 7),
+                 (15, 7), (3, 13), (12, 13)):
+        if rows[y][x] == ".":
+            rows[y][x] = "3"
+    return _g(["".join(r) for r in rows])

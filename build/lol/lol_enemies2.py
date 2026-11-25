@@ -44,7 +44,9 @@ BOMB = 0x29
 # frame hook), and DELAY frames after that the goriya charges at him (2 px a frame, straight, until a wall,
 # the room's edge, 16 px past Link or MAX frames)
 CHARGER_AT, CHARGER_HP, CHARGER_DMG = 0xB0, 0x60, 4
-STUN, CHG, CSLOT, CTIME = 0x01B1, 0x01B2, 0x01B3, 0x01B4   # (stack page, unused): stun left, charge delay, the
+STUN, CHG, CSLOT, CTIME = 0x01B1, 0x01B2, 0x01B3, 0x01B4
+THD = 0x01B6                            # lol_heavy's: the Thorn Bracelet's hit
+from lol_uptable import THORN   # (stack page, unused): stun left, charge delay, the
 STUN_FRAMES, CHARGE_DELAY, CHARGE_MAX = 30, 20, 64         #  goriya's slot, charge frames left
 WM4 = 0xBD90                            # lol_upgrades: the red wallmaster init (the init chain's end)
 
@@ -146,14 +148,25 @@ def apply(rom: bytearray, notes: list) -> None:
         g.abs(0xBC, 0x042C)
         g.label("h_s").abs(0x8C, CSLOT).b(0xA9, CHARGE_DELAY).abs(0x8D, CHG).b(0xA9, 0x00).abs(0x8D, CTIME)
         g.label("h_k").b(0x38, 0x60)                                    # (C set: no harm)
-        g.label("h_o").b(0x18, 0x60)
+        # (owner 2026-11-25) the Thorn Bracelet: a monster's touch (not a shot) costs it what Link loses (rings
+        # halving), rounded up to whole hearts, $10 a heart (THD; the common stub makes the hit)
+        g.label("h_o").b(0xA9, 0x00).abs(0x8D, THD).abs(0xAD, THORN[0]).b(0x29, THORN[1]).br(0xF0, "t_x")
+        g.abs(0xBC, 0x034F).b(0xC0, 0x53).br(0xB0, "t_x").abs(0xB9, DMG).b(0x48, 0x29, 0x0F, 0x85, 0x0D)
+        g.b(0x68, 0x29, 0xF0, 0x85, 0x0E).abs(0xAC, 0x0662).br(0xF0, "t_n")
+        g.label("t_h").b(0x46, 0x0D, 0x66, 0x0E, 0x88).br(0xD0, "t_h")
+        g.label("t_n").b(0xA5, 0x0D, 0xA4, 0x0E).br(0xF0, "t_u").b(0x18, 0x69, 0x01)
+        g.label("t_u").b(0xC9, 0x10).br(0x90, "t_ok").b(0xA9, 0x0F)
+        g.label("t_ok").b(0x0A, 0x0A, 0x0A, 0x0A).abs(0x8D, THD)
+        g.label("t_x").b(0x18, 0x60)
         return g
     hat2 = free_in(rom, 2, len(harm(0x8000).bytes()))
     place(rom, 2, hat2, harm(hat2).bytes())
     # the common stub (banks 0-6: HarmLink runs from WRAM with any bank in): the far call, then harm or out
     HS = 0xBFC0
-    hs = Asm(HS).b(*V.far(2, hat2)).br(0x90, "n").b(0x68, 0x68, 0x60).label("n").abs(0x4C, 0x7E26)
-    assert HS + len(hs.bytes()) <= 0xBFE4
+    hs = Asm(HS).b(*V.far(2, hat2)).br(0x90, "n").b(0x68, 0x68, 0x60)
+    hs.label("n").abs(0xAD, THD).br(0xF0, "j").b(0x85, 0x07, 0xA9, 0x01, 0x85, 0x09, 0xA0, 0x0D).abs(0x20, 0x7C16)
+    hs.label("j").abs(0x4C, 0x7E26)                                   # (the thorns' hit first: a sword hit)
+    assert HS + len(hs.bytes()) <= 0xBFE4, hex(HS + len(hs.bytes()))
     for bank in range(7):
         place(rom, bank, HS, hs.bytes())
     hc = HS
@@ -328,7 +341,7 @@ def apply(rom: bytearray, notes: list) -> None:
     ch = charger(cat)
     place(rom, 2, cat, ch.bytes())
     # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
-    gs = 0xBFD0                                                         # (bank 4: past free_in's reach, free)
+    gs = free_in(rom, 4, 13, 0xBE00, 0xBFB0)                              # (bank 4's tail)
     st = Asm(gs).b(*V.far(2, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
     place(rom, 4, gs, st.bytes())
     ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05

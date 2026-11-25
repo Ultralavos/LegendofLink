@@ -62,6 +62,14 @@ offer fewer) and every shop's third ware is the red book for 25 rupees (`lol_cho
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
+**Heavy Bracelet** (75, tier 2, with the power bracelet; `build/lol/lol_heavy.py`): only on seeds whose upgrade pool
+has it. A10 gets the second quest's pushable rock and G6 the owner's 4Q one (the middle rock of column 10, stairs
+right of it), both pushable only with the Heavy Bracelet; with it, every pushable overworld rock shows grey. The seed
+decides each cave (out of 64, never the same option in both): 30 the Thorn Bracelet (free), 10 a secret shop (ring
+150, sword 150, book 100, each the next one Link can use), 20 100 rupees, 3 an old man's hint about a secret mode,
+1 a free ring, book or sword. **Thorn Bracelet** (UP6 $80): replaces the Heavy Bracelet's picture on the item screen;
+a monster that touches Link takes what Link loses (rings count), rounded up to whole hearts, $10 a heart.
+
 **Goriya Charger** (`build/lol/lol_enemies2.py`): at 12+ heart containers (as enemies see them) blue Goriyas wear
 Link's colors (sprite palette 0, so they follow his ring), have 6 health, deal 4 hearts on contact (with knockback)
 and give 15 XP. Their boomerang does no damage: it stuns Link for 30 frames (no input, no flashing; lol_upgrades'
@@ -107,7 +115,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.315 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.316 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
@@ -139,8 +147,8 @@ After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips 
 ## Planned
 
 - A spoiler log.
-- Upgrades from the owner's first list not built yet (what each does is still to be decided): Thorn Bracelet,
-  Heavy Bracelet, Song of Sleep, Song of Discovery, Destruction Expert, Bomb Blast Suit, Expert Arsonist,
+- Upgrades from the owner's first list not built yet (what each does is still to be decided): Song of Sleep,
+  Song of Discovery, Destruction Expert, Bomb Blast Suit, Expert Arsonist,
   Orbital Shield. (Glass Cannon became Zombie Link and Attack over Heart became the Heart Snubber.)
 
 ## Layout

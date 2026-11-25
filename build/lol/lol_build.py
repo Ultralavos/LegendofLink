@@ -300,6 +300,8 @@ def main():
     lol_zombie.apply(rom, notes)
     import lol_xray
     lol_xray.apply(rom, notes)
+    import lol_heavy
+    lol_heavy.apply(rom, notes)
     import lol_shrineui
     lol_shrineui.apply(rom, notes)
     import lol_v3core

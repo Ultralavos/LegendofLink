@@ -23,6 +23,7 @@ SWITCH = 0xFFAC
 LOAD_AT = 0xB330                       # bank 2 free ($B322-, 1502 bytes)
 INIT_HOOK = 0x8045                     # bank 2: LDA #$5A / STA $F5 (the common patterns loaded)
 U_MODE, U_SLOT, U_IT, U_K = 0x019D, 0x019E, 0x019F, 0x01A0   # (stack page, unused)
+U_ORG = 0x01B7                         # (stack page, unused): put's X
 CI = 0x0194                            # lol_upgrades: the upgrade cave's index (0-2)
 CAVE_WARES = 0x6A7E
 import lol_uptable
@@ -43,6 +44,13 @@ def apply(rom: bytearray, notes: list) -> None:
     assert len(ppairs) == 3 and B.FREE_PAIRS[0] == U.FAIRY_TILE
     # every upgrade's halves: data in bank 2, or a fixed sprite tile
     halves = [B.HALVES[k] for k in range(N_UP)]
+    # (owner 2026-11-25) one more picture past the rows: the Thorn Bracelet (lol_heavy), shown in the Heavy
+    # Bracelet's place once Link has it
+    import lol_icons2
+    tg = lol_icons2._thorn_bracelet()
+    halves.append([("data", b"".join(B.tile_bytes(["".join(".123"[tg[y0 + y][x0 + x]] for x in range(8))
+                                                    for y in range(8)]) for y0 in (0, 8))) for x0 in (0, 8)])
+    NP = N_UP + 1
     assert all(len(h) == 2 for h in halves)
     w = Asm(B.POT_W)
     w.abs(0xB9, 0x78DC).b(0xC9, 0x40).br(0xD0, "st")
@@ -69,7 +77,7 @@ def apply(rom: bytearray, notes: list) -> None:
     import lol_uptable as T
     BAT = T.index("bat potion")
     # every upgrade's halves: their data (bank 0, after the code), or a fixed sprite tile
-    order = [halves[k][0] for k in range(N_UP)] + [halves[k][1] for k in range(N_UP)]
+    order = [halves[k][0] for k in range(NP)] + [halves[k][1] for k in range(NP)]
     pp = [B.pair_bytes(B.potion_rows(l, bt)) for l, bt in (("blue", True), ("orange", True), ("white", True),
                                                              ("blue", True), ("blue", True), ("blue", True),
                                                              ("orange", False), ("white", False))]
@@ -132,11 +140,13 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("uget").abs(0xBD, "uahi").b(0x85, 0x01).abs(0xBD, "ualo").b(0x85, 0x00).b(0xA0, 0x00, 0xB1, 0x00)
         a.abs(0x3D, "ubits").b(0x60)
         # put: X = the upgrade, U_SLOT the slot: both halves loaded, the slot's tables pointed at them, its palette
-        a.label("put").abs(0x8E, U_IT).abs(0xAD, U_SLOT).b(0x0A).abs(0x8D, U_K)
+        a.label("put").abs(0x8E, U_ORG).b(0xE0, T.index("heavy bracelet")).br(0xD0, "pu_x").abs(0xAD, T.THORN[0]).b(0x29, T.THORN[1])
+        a.br(0xF0, "pu_x").b(0xA2, N_UP)                                     # (the Thorn Bracelet's picture)
+        a.label("pu_x").abs(0x8E, U_IT).abs(0xAD, U_SLOT).b(0x0A).abs(0x8D, U_K)
         a.abs(0x20, "half").abs(0xAC, U_SLOT).abs(0x99, B.WLW + 8)
-        a.abs(0xEE, U_K).abs(0xAE, U_IT).b(0x8A, 0x18, 0x69, N_UP, 0xAA).abs(0x20, "half")
+        a.abs(0xEE, U_K).abs(0xAE, U_IT).b(0x8A, 0x18, 0x69, NP, 0xAA).abs(0x20, "half")
         a.abs(0xAC, U_SLOT).abs(0x99, B.WRW + 8)
-        a.abs(0xAE, U_IT).abs(0xBD, "upal").abs(0x99, T.SCONV).b(0x60)
+        a.abs(0xAE, U_IT).abs(0xBD, "upal").abs(0x99, T.SCONV).abs(0xAE, U_ORG).b(0x60)   # (X kept)
         # half: X = the half (0 .. 2N-1); A = its tile byte
         a.label("half").abs(0xBD, "hhi").br(0xD0, "h_data").abs(0xBD, "hlo").b(0x60)
         a.label("h_data").b(0x85, 0x01).abs(0xBD, "hlo").b(0x85, 0x00)
@@ -149,7 +159,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("ualo").b(*[T.ROWS[k][T.SAVE][0] & 0xFF for k in range(N_UP)])
         a.label("uahi").b(*[T.ROWS[k][T.SAVE][0] >> 8 for k in range(N_UP)])
         a.label("ubits").b(*[T.ROWS[k][T.SAVE][1] for k in range(N_UP)])
-        a.label("upal").b(*[T.ROWS[k][T.PAL] for k in range(N_UP)])
+        a.label("upal").b(*[T.ROWS[k][T.PAL] for k in range(N_UP)], 0x00)   # (the thorns: blue)
         a.label("slotp").b(*pairs)
         a.label("ppk").b(0, 1, 2, 0, 0, 0, 1, 2, 0, 1, 2)
         a.label("ppair").b(*ppairs)

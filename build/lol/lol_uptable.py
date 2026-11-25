@@ -116,7 +116,12 @@ ROWS = [
     # (lol_books' bonus doubled); until Link has a book, one of each dungeon old man's choices is the red book and
     # every shop sells it for 25 (lol_odds.wrappers' book)
     ("bookworm",        (UP6, 0x20),      200, 2, 13, [("ge", HEARTS, 0x70)], "_bookworm", {}, 0x1A),
+    # owner 2026-11-25: heavy bracelet (75, tier 2; with the power bracelet): moves G6's and A10's new rocks
+    # (lol_heavy), whose caves roll once each: the Thorn Bracelet (UP6 $80, not a row: it takes this one's picture),
+    # a secret shop, 100 rupees, a secret-mode hint or a free ring / book / sword
+    ("heavy bracelet",  (UP6, 0x40),       75, 1, 13, [("ge", 0x0665, 1)], "_heavy_bracelet", {}, 0x00),
 ]
+THORN = (UP6, 0x80)                     # (owner 2026-11-25) the Thorn Bracelet (lol_heavy)
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)
 POWER_ON = 9                            # the first nine have pictures in the power-on tiles (the title's legend)

@@ -28,7 +28,9 @@ FAR = U_AT + 3                             # bank 7 $FBB4
 HERE = 0xFE                                # FAR's `back`: the bank that was in
 BANK_ID = 0xBFF9                           # in banks 0-6
 _free7 = []                                # bank 7's free runs [first, end) after apply_early
-_free0 = [[0x8000, 0x8D60], [0xA000, 0xBB80]]   # bank 0 (verified free runs; $BBA0- is the common area)
+_free0 = [[0x8000, 0x8D60], [0xA000, 0xBB80],   # bank 0 (verified free runs; $BBA0- is the common area)
+           [0xBC10, 0xBC80], [0xBD30, 0xBD8C]]   # (2026-11-25: free in every finished ROM, used by no other bank's
+                                                 #  copies at these addresses in bank 0)
 used0 = 0
 used7 = 0
 
