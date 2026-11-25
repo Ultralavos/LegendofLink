@@ -50,7 +50,7 @@ ROWS = [
     ("beams",           (UPGRADES, 0x01),  50, 0, 13, HAS_SWORD + NO_SNUB, "_beam_sword", {}, 0x00),
     ("boomstick",       (UPGRADES, 0x02), 100, 1, 13, [("ge", WAND, 1), ("notowned", "divining rod")], "_boomstick",
      {0: 0x4A}, 0x00),
-    ("regen",           (UPGRADES, 0x04), 200, 2, 13, [("notowned", "zombie link")], "_regen", {}, 0x1A),
+    ("regen",           (UPGRADES, 0x04), 125, 1, 13, [("notowned", "zombie link")], "_regen", {}, 0x1A),
     ("skull ring",      (UPGRADES, 0x10),  50, 0, 13, [], "_skull_ring", {}, 0x12),
     ("sword mastery",   (UPGRADES, 0x08), 100, 1, 13, HAS_SWORD + NO_SNUB, "_sword_plus", {0: 0x20}, 0x00),
     ("fairy bottle",    (UPGRADES, 0x40), 150, 2, 13, [], "_fairy_bottle", {0: 0x40, 8: 0x50}, 0x00),   # (owned: the
@@ -105,8 +105,9 @@ ROWS = [
     ("brain potion",    (UP6, 0x04),       50, 0, 13, [("owned", "zombie link"), ("ge", POTION, 1),
                                                        ("notowned", "bat potion")], "_brain", {}, 0x1A),
     # owner 2026-11-24 (lol_xray): a dungeon's secret walls show (bombable grey, walk-through orange); always in the
-    # pool of a set whose dungeons can have walk-through walls (WALK_SET)
-    ("x-ray glasses",   (UP6, 0x08),      125, 1, 13, [], "_xray_glasses", {}, 0x1A),
+    # pool of a set whose dungeons can have walk-through walls (WALK_SET); 2026-11-25: tier 3 / 200, regen's (regen
+    # took its tier 2 / 125)
+    ("x-ray glasses",   (UP6, 0x08),      200, 2, 13, [], "_xray_glasses", {}, 0x1A),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

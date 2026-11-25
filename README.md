@@ -46,7 +46,7 @@ list.
 **Brain Potion** (50, tier 1; with Zombie Link and a potion, never with the Bat Potion): every potion becomes a
 brain potion (its own picture at all four pouch levels) and refills Zombie Link fully, as a normal potion would.
 
-**X-ray Glasses** (125, tier 2; `build/lol/lol_xray.py`): in dungeons and shrines, a bombable wall not yet blown
+**X-ray Glasses** (200, tier 3; `build/lol/lol_xray.py`): in dungeons and shrines, a bombable wall not yet blown
 open shows grey and a walk-through wall orange (only the wall's palette changes; a blown wall gets its color back).
 Always in the pool when the seed's dungeons can have walk-through walls (2Q, 3Q, 4Q, and Random when it deals one of
 their grids); otherwise it's rolled like any other upgrade.

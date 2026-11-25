@@ -484,8 +484,7 @@ def apply(rom: bytearray, notes: list) -> None:
     bsb = bs.bytes(); assert len(bsb) <= 26
     place(rom, 5, BS, bsb)
     patch(rom, 7, 0xF99F, bytes([0x20, 0xF6, 0xA3]), bytes([0x20, BS & 0xFF, BS >> 8]))
-    notes.append(f"upgrade shops H1 (beams 50, boomstick 100, regen 200), B11 (bubble ring 50, sword +1 100, "
-                 f"fairy 150) and B2 (like-like bombs 50, rupee speed 100, Ganon boomerang 150) ({len(code)} common bytes at ${COMMON:04X})")
+    notes.append(f"upgrade shops: wares from the tier lines ({len(code)} common bytes at ${COMMON:04X})")
 
 
 apply_caves_later = []
