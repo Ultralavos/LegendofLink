@@ -41,7 +41,8 @@ def apply(rom: bytearray, notes: list) -> None:
     def build(org):
         a = Asm(org)
         # mark (ZR = the room, after the game's fill)
-        a.label("mark").abs(0x20, "owm").abs(0xAD, xr[0])                     # (lol_heavy: grey rocks).b(0x29, xr[1]).br(0xF0, "f_r")
+        a.label("mark").abs(0x20, "owm")                                         # (lol_heavy: grey rocks)
+        a.abs(0xAD, xr[0]).b(0x29, xr[1]).br(0xF0, "f_r")
         a.b(0xA5, 0x10).br(0xF0, "f_r").b(0xA5, 0x12, 0xC9, 0x09).br(0xF0, "f_r")       # a level, not a cellar
         a.b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
         a.abs(0xAD, WORLD_FLAGS).b(0x85, 0x00).abs(0xAD, WORLD_FLAGS + 1).b(0x85, 0x01)
