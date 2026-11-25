@@ -66,7 +66,8 @@ LOL_FIXED=0) keeps the old way: the game deals and makes these itself.
 **Item lines** (old men's choices, shrine prizes, shops; `lol_odds`): for each list and each level 1-16 the build
 shuffles that level's odds row into a line (items with odds above 0, likelier ones tending to come first). The game
 offers the first items of the line for Link's level that he can get (owned ones, ones he can't have yet and the bait
-while he holds one are skipped).
+while he holds one are skipped). A second tier he can't have yet gives its first tier instead: magical sword -> white
+sword, red candle -> blue candle, red ring -> blue ring, silver arrows -> wood arrows, blue book -> red book.
 
 **Upgrade caves** (always): the build shuffles each tier's pool into a line (rarer upgrades tend to come later). The
 first time Link enters an upgrade cave it takes, for each tier, the first upgrade in the line that no cave has taken

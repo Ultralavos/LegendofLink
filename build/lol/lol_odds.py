@@ -7,7 +7,8 @@ men, X rewards), at most 16.
 Owner 2026-11-24: lines instead of rolls. The build turns each list's row for each level into a line: the items with
 odds above 0, shuffled by their odds (lines()). A pick takes the first item of the level's line that Link can get
 (owned, or its first tier missing: the lists' two conditions; the heart snubber's swords, Zombie Link's rings) and
-isn't picked yet; when the line runs out, the vanilla fallback (the old man's hint, A-F's red potion, an empty place).
+isn't picked yet - or, for a second tier Link can't have yet, its first tier (LOWER: owner 2026-11-25); when the
+line runs out, the vanilla fallback (the old man's hint, A-F's red potion, an empty place).
 
   old men   two picks; the level is saved the first time Link enters the room, so the offer stays
   A-F       one pick; saved the same way
@@ -35,6 +36,9 @@ PER_FILE = 20
 SEED_AT = 17
 TRIES = 24
 NAMES = ("old_men", "rewards", "shops")
+# (owner 2026-11-25) a second tier picked while Link lacks the first gives the first: magical sword -> white sword,
+# red candle -> blue candle, red ring -> blue ring, silver arrows -> wood arrows, blue book -> red book
+LOWER = {0x03: 0x02, 0x07: 0x06, 0x13: 0x12, 0x09: 0x08, 0x25: 0x11}
 BADGE_SHIFT = (2, 4, 0)                 # D, X, S
 
 
@@ -169,7 +173,11 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("pk_lp").abs(0xAD, PK).abs(0xCD, NUM).br(0xB0, "done")
     a.b(0xA9, 0x00).abs(0x8D, RR)
     a.label("wl").abs(0xAD, RR).abs(0xDD, "nn").br(0xB0, "done").b(0xA8, 0xB1, 0x0E, 0xC9, 0xFF).br(0xF0, "done")
-    a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take").abs(0xEE, RR).abs(0x4C, "wl")
+    a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take")
+    # (owner 2026-11-25) a second tier Link can't have yet (no first tier): the first tier in its place
+    a.b(0x98, 0x18).abs(0x7D, "bases").b(0xA8).abs(0xB9, "down").b(0xC9, 0xFF).br(0xF0, "wl_nx")
+    a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take")
+    a.label("wl_nx").abs(0xEE, RR).abs(0x4C, "wl")
     a.label("pk_take").b(0x98).abs(0xAC, PK).abs(0x99, OUT).abs(0xEE, PK).abs(0xEE, NOK)
     a.abs(0x4C, "pk_lp")
     a.label("done").b(0x68, 0x85, 0x0F, 0x68, 0x85, 0x0E, 0x60)
@@ -212,6 +220,14 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("whi").b(0, 0, 0)
     a.label("isword").b(*[1 if c[1] in (0x02, 0x03) else 0 for c in allitems])
     a.label("isring").b(*[1 if c[1] in (0x12, 0x13) else 0 for c in allitems])
+    # down: per entry, the same list's entry of its first tier (sword, candle, ring, arrows, book), else $FF
+    down = []
+    for _, items in LISTS:
+        codes = [c[1] for c in items]
+        for c in items:
+            low = LOWER.get(c[1])
+            down.append(codes.index(low) if low in codes else 0xFF)
+    a.label("down").b(*down)
     for k in (0, 1):
         a.label(f"ca{k}").b(*[c[3 + k][0] & 0xFF for c in allitems])
         a.label(f"clo{k}").b(*[c[3 + k][1] for c in allitems])
