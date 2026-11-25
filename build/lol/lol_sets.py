@@ -384,10 +384,7 @@ def build_set(which, seed):
 
 # --- quest sets: the quest's two blocks as they are, and two LoL grids for the shrines (owner, 2026-11-24) ---
 
-# grids 5 and 6 are grids 9 and 8 (the same squares; first given as colors): the same names (owner 2026-11-25)
-EXTRA_NAMES = {5: {"G": "Question Mark", "B": "Pyramids", "M": "Heart", "Y": "Periscope", "C": "Bull", "R": "Notes"},
-               6: {"C": "Broken Reticle", "B": "Bomb", "M": "Candle", "G": "Bird", "R": "Guillotine", "Y": "Ladle"},
-               7: {"H": "Hero", "D": "Hellhound"},
+EXTRA_NAMES = {7: {"H": "Hero", "D": "Hellhound"},
                8: {"T": "Broken Reticle", "B": "Bomb", "P": "Candle", "R": "Guillotine", "G": "Bird", "Y": "Ladle"},
                9: {"R": "Notes", "G": "Question Mark", "B": "Pyramids", "P": "Heart", "T": "Bull", "Y": "Periscope"}}
 # grid 7's levels (owner, 2026-11-24): the Hero 6-9, the Hellhound 7-9
@@ -405,12 +402,11 @@ EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(5, 9)), "Candle": tup
                       "Notes": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Periscope": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Question Mark": _S})                # (ten rooms in four pieces: only a shrine generates)
-SHRINE_GRIDS = (1, 2, 3, 4, 5, 6)
-TWINS = {8: 6, 9: 5}                    # grid 8 is grid 6, grid 9 is grid 5 (the same designs)       # (a quest set's shrine grids: grid 7 has no shrine-sized design)
+SHRINE_GRIDS = (1, 2, 3, 4, 8, 9)       # (a quest set's shrine grids: grid 7 has no shrine-sized design)
 
 
 def lol_grids():
-    """LoL's grids 1-9, whole: {grid: {"rows", "des": {name: cells}, "hidden": {name: cells}}}."""
+    """LoL's grids 1-4 and 7-9, whole: {grid: {"rows", "des": {name: cells}, "hidden": {name: cells}}}."""
     import os
     import lol_genload as GL
     import lolpaths
@@ -425,7 +421,7 @@ def lol_grids():
         occ = {c: nm for nm, cs in out[gi]["des"].items() for c in cs}
         out[gi]["occ"] = occ
     txt = open(os.path.join(lolpaths.LOL, "v2_grids", "grids_extra.txt")).read().split("\n\n")[1:]
-    for gi, blk in zip((5, 6, 7, 8, 9), txt):
+    for gi, blk in zip((7, 8, 9), txt):
         rows = [l for l in blk.split("\n") if len(l) == COLS]
         g = {"des": {}, "hidden": {}, "occ": {}}
         for r in range(ROWS):
@@ -559,8 +555,6 @@ def random_grids_set(rng):
     lol = lol_grids()
     pool = []
     for gi in sorted(lol):
-        if gi in TWINS:                 # (grids 8 and 9 are 5 and 6: only one of each in the draw)
-            continue
         g = lol[gi]
         pool.append({"src": f"lol:{gi}", "des": g["des"], "hidden": g["hidden"], "rules": {},
                      "cls": {nm: tuple(EXTRA_CLASSES.get(nm) or (GL.classes_of(nm) if gi <= 4 else

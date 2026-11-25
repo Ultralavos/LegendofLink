@@ -1,26 +1,6 @@
 Legend of Link v2 extra grids (the owner's, 2026-11-24): more LoL grids for the page's dungeon sets (a quest set
-loads two LoL grids beside the quest's two). '.' = free. A lowercase letter is a square the owner marked in a
+loads two LoL grids beside the quest's two; grids 5 and 6, copies of 9 and 8 entered twice, removed 2026-11-25). '.' = free. A lowercase letter is a square the owner marked in a
 darker shade (part of that dungeon; read as a hidden room until the owner says otherwise).
-
-Grid 5 (grid 9's designs: G the Question Mark, B the Pyramids, M the Heart, Y the Periscope, C the Bull, R the Notes)
-.GGBBBBBMMYYMMYY
-G..GBBBMCMMMMCMY
-.RRGRB.MCCCCCCMY
-.RGGR..MMCCCCMMY
-.RGRR.BMMCCCCMMY
-.RGRRBBBMMCCMMYY
-RR..BBBBBMMMMYYY
-RRGBBBbBBBMMCCYY
-
-Grid 6 (grid 8's designs: C the Broken Reticle, B the Bomb, M the Candle, G the Bird, R the Guillotine, Y the Ladle)
-CC..BB.C.MGGGRGG
-C..BMMBCMMMGGRGG
-..BBBMMMMMMMGRGY
-.BBBBB.MMMMMGGGy
-BBBBBBBMMMMRRRRY
-BBBBBBBMMGMRR.RY
-CBBBBBCMMGMRRRYY
-CCBBBCCMMGMR.RYY
 
 Grid 7 (H teal = the Hero, D pink = the Hellhound; the owner's picture's dark blue left out, 2026-11-24)
 .H.HHH..D...DD.D
