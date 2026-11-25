@@ -37,6 +37,9 @@ WAND = 0x065F
 RECORDER = 0x065C
 TRIFORCE = 0x0671
 RING = 0x0662
+LINES = 0x6012                          # 8 (owner 2026-11-24): the upgrade caves' lines - 2 bits per place in a
+                                        # tier's line (tier_items: 0 not taken, 1-3 the cave), the caves' "bought
+                                        # here" bits 4-6 of the last byte (file 3's name; cleared for a new file)
 UP6 = 0x600E                            # the third batch's bits (file 2's name, as lol_stats' clock; cleared for a
                                         # new file by lol_saveblock)
 FOOD = 0x065D                           # the bait
@@ -149,7 +152,23 @@ def walk_set():
 
 
 POOL = _pool()
-TIERS = [[k for k in ROLL_ORDER if ROWS[k][TIER] == t and k in POOL] for t in range(3)]
+
+
+def _lines():
+    """Each tier's line (owner 2026-11-24): the seed's pool shuffled, weighted (a rare one tends to come later). The
+    upgrade caves take from the front (lol_upgrades); the first 3 of each are hinted from the start (lol_genload)."""
+    import os
+    import random
+    seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
+    rng = random.Random(seed * 1000003 + 0x11E5)
+    out = []
+    for t in range(3):
+        tier = [k for k in ROLL_ORDER if ROWS[k][TIER] == t and k in POOL]
+        out.append(sorted(tier, key=lambda k: -rng.random() ** (1 / ROWS[k][WEIGHT])))
+    return out
+
+
+TIERS = _lines()
 
 
 def in_pool(name):

@@ -378,6 +378,12 @@ def deal_code(a, info):
     N = len(cont)
     D_I, D_F, D_G = SCR, SCR + 1, SCR + 2
     ST, RNG = E.STORE, E.RNG
+    import lol_fixed
+    if lol_fixed.FIXED:                                 # (the build's deal: copied as it is)
+        a.label("deal").b(0xA2, N - 1).label("dl_c").abs(0xBD, "dct").abs(0x9D, ST).b(0xCA).br(0x10, "dl_c")
+        a.b(0x60)
+        a.label("dct").b(*lol_fixed.deal(info))
+        return
     import lol_modes                                    # (a fixed seed: no stirring with the frame count)
     fx = lol_modes.SEED_OPT is not None
     a.label("deal").abs(0xAD, RNG).b(*((0x49, 0x00) if fx else (0x45, 0x18))).abs(0x8D, RNG).abs(0xAD, RNG + 1)
@@ -764,9 +770,19 @@ def hint_conds():
     import re
     import lol_uptable as T
     out = []
+    flat = [k for tier in T.TIERS for k in tier]
+    first3 = {k for tier in T.TIERS for k in tier[:3]}
     for t in hint_lines():
         c = re.search(r"\[only with (.*?)\]", t)
-        if not c:
+        ab = re.search(r"\[(?:about|only with) the upgrade (.*?)\]", t)
+        if ab and T.index(ab.group(1)) in first3:     # (owner 2026-11-24) the first 3 of its line: from the start
+            out.append((0x0600, 0, 0))
+        elif ab:
+            # (owner 2026-11-24) an upgrade past the first 3 of its line: once a cave has taken it (its place's
+            # code in lol_uptable's LINES: offered or bought)
+            q = flat.index(T.index(ab.group(1)))
+            out.append((T.LINES + q // 4, 3 << 2 * (q % 4), 1))
+        elif not c:
             out.append((0x0600, 0, 0))
         elif c.group(1).startswith("the upgrade "):
             addr, bit = T.bit(c.group(1)[len("the upgrade "):])
@@ -994,7 +1010,17 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
     a.label("gn_x").b(0x60)
     a.label("gen_make").b(0xC9, 0x0E).br(0xB0, "gm_any").b(0xC9, 0x01).br(0xB0, "gm_go")
     a.label("gm_any").b(0x38, 0x60)                                                     # not a dungeon
-    a.label("gm_go").abs(0x8D, SCR + 11).b(0xA5, 0x0E, 0x48, 0xA5, 0x0F, 0x48)
+    import lol_fixed
+    if lol_fixed.FIXED:                 # the build's record, copied (Level 9: its stair item rolled now)
+        a.label("gm_go").b(0x48).abs(0x20, "gf_slotrec").b(0xA2, 0x00)
+        a.label("gx_c").abs(0xB9, "gx_tab").abs(0x99, REC).b(0xC8, 0xE8, 0xE0, 0x05).br(0xD0, "gx_c")
+        a.b(0x68, 0x48, 0xC9, 0x09).br(0xD0, "gx_r")
+        a.b(0x88, 0x88, 0x88, 0x88, 0x88).abs(0x20, "gf_up").abs(0x99, REC + 4)
+        a.label("gx_r").b(0x68, 0x38, 0x60)
+        a.label("gx_tab").b(*[x for r in lol_fixed.records() for x in r])
+    else:
+        a.label("gm_go")
+    a.label("gm_go_r").abs(0x8D, SCR + 11).b(0xA5, 0x0E, 0x48, 0xA5, 0x0F, 0x48)
     a.abs(0xAD, SCR + 11).b(0x85, 0x0E).abs(0x20, "gf_body")
     a.abs(0x8D, SCR + 15).b(0x08, 0x68).abs(0x8D, SCR + 11)
     a.b(0x68, 0x85, 0x0F, 0x68, 0x85, 0x0E).abs(0xAD, SCR + 11).b(0x48).abs(0xAD, SCR + 15).b(0x28, 0x60)

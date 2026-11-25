@@ -34,7 +34,9 @@ Conditional (only offered when Link has the item at the time he first enters tha
 25. You are a level grinding machine!   [only with 16 heart containers]
 26. I guess you did like more bombs!   [only with 20 max bombs]
 
-Upgrade quotes (v2.02 test 16, drafted by Claude for the user to edit; only offered once Link owns that upgrade):
+Upgrade quotes (v2.02 test 16, drafted by Claude for the user to edit). Owner 2026-11-24: a quote about an upgrade
+(either tag) is offered from the start if the upgrade is among the first 3 of its tier's line (lol_uptable.TIERS),
+else once an upgrade cave has offered it (or Link bought it):
 27. Critter crusher lets you stomp gels and keese   [only with the upgrade critter crusher]
 28. The skull ring keeps bubbles from cursing you   [only with the upgrade skull ring]
 29. Statue jammer keeps the statues from firing   [only with the upgrade statue jammer]

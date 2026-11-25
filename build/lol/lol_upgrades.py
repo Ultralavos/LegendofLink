@@ -504,6 +504,7 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     # takes the next rank (0, 1, 2; saved, rank + 1 in 2 bits per cave, in this file's odds byte 18); the picks
     # come from the file's seed (odds byte 17) by a fixed LCG, so they never change: rank 0 rolls each tier by
     # TIER_ODDS (out of 64), rank 1 rolls again until it differs from rank 0's, rank 2 gets the one left.
+    LINES = T.LINES                             # 8 bytes of save RAM: the lines' codes, then the caves' done bits
     CI, RANK, TT, TB, XS, P0, P1, IDX, TMP = 0x0194, 0x0195, 0x0196, 0x0197, 0x0198, 0x0199, 0x019A, 0x019B, 0x019C
     ESX, EK, EB = 0x608D, 0x608E, 0x608F        # elig's scratch (save RAM's spare bytes)
     from lol_odds import STORE, PER_FILE, SEED_AT
@@ -546,11 +547,12 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("w_got").abs(0x8E, CI)
         b.abs(0xAD, STORE + SEED_AT).br(0xD0, "w_sd").b(0xA5, 0x15, 0x45, 0x18, 0x09, 0x01)
         b.abs(0x8D, STORE + SEED_AT)
-        b.label("w_sd").abs(0x8D, P1)                                             # (P1: the seed)
+        b.label("w_sd").b(0xA9, 0x00).abs(0x8D, P0)                               # (P0: not a first entry)
         # this cave's rank (0-2: the order Link first entered the three; saved, rank + 1 in 2 bits per cave)
         b.abs(0xAD, STORE + RANKS_AT).abs(0xAE, CI).br(0xF0, "w_f0")
         b.label("w_fs").b(0x4A, 0x4A, 0xCA).br(0xD0, "w_fs")
         b.label("w_f0").b(0x29, 0x03).br(0xD0, "w_have")
+        b.b(0xA9, 0x01).abs(0x8D, P0)                                             # (first entry: P0)
         b.abs(0xAD, STORE + RANKS_AT).abs(0x8D, TMP).b(0xA2, 0x01)               # new: 1 + the caves ranked
         for _ in range(3):
             b.abs(0xAD, TMP).b(0x29, 0x03).br(0xF0, f"w_c{_}").b(0xE8)
@@ -561,25 +563,40 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.abs(0xAD, IDX)
         b.label("w_have").b(0x38, 0xE9, 0x01).abs(0x8D, RANK)
         b.b(0xA9, 0x00).abs(0x8D, TT)
-        b.label("w_tier").abs(0xAE, TT).abs(0xBD, "tstart").abs(0x8D, TB)
-        b.abs(0xAD, P1).abs(0x5D, "tconst").abs(0x8D, XS)                       # the LCG: seed ^ the tier's constant
-        b.abs(0x20, "roll").abs(0x8D, IDX)                                        # rank 0's pick
-        b.abs(0xAD, RANK).br(0xF0, "w_use")
-        b.abs(0xAD, IDX).abs(0x8D, TMP)
-        b.label("w_r1").abs(0x20, "roll").abs(0xCD, TMP).br(0xF0, "w_r1").abs(0x8D, IDX)   # rank 1's
-        b.abs(0xAD, RANK).b(0xC9, 0x01).br(0xF0, "w_use")
-        b.label("w_r2").abs(0x20, "roll").abs(0xCD, TMP).br(0xF0, "w_r2").abs(0xCD, IDX).br(0xF0, "w_r2")
-        b.abs(0x8D, IDX)                                                          # rank 2's: not the others
-        b.label("w_use").abs(0xAD, IDX).b(0x18).abs(0x6D, TB).b(0xAA).abs(0xBD, "tier_items").abs(0x8D, IDX)
-        b.abs(0xAC, CI).abs(0xB9, "cofs").b(0x18).abs(0x6D, TT).abs(0x8D, TMP)    # this ware's place
-        b.abs(0xAE, IDX).abs(0x20, "uget").br(0xD0, "w_owned")
+        b.abs(0xAE, CI).b(0xE8).abs(0x8E, P1)                                     # P1: this cave's code (1-3)
+        # each tier (owner 2026-11-24): the build's line (tier_items, shuffled), a code per place in LINES (0: not
+        # taken, 1-3: the cave that took it). This cave's: the one it took; a cave entered for the first time
+        # (P0) takes the first not taken that Link may have now; locked after
+        b.label("w_tier").abs(0xAE, TT).abs(0xBD, "tstart").b(0xAA)
+        b.label("w_s1").b(0x8A).abs(0xAC, TT).abs(0xD9, "tend").br(0xB0, "w_s2")
+        b.abs(0x20, "getc").abs(0xCD, P1).br(0xF0, "w_fd").b(0xE8).abs(0x4C, "w_s1")
+        b.label("w_s2").abs(0xAD, P0).br(0xF0, "w_none").abs(0xAE, TT).abs(0xBD, "tstart").b(0xAA)
+        b.label("w_s3").b(0x8A).abs(0xAC, TT).abs(0xD9, "tend").br(0xB0, "w_none")
+        b.abs(0x20, "getc").br(0xD0, "w_s4").abs(0xBC, "tier_items").abs(0x20, "elig").br(0xB0, "w_s4")
+        b.abs(0xAD, P1).abs(0x20, "setc").abs(0x4C, "w_fd")
+        b.label("w_s4").b(0xE8).abs(0x4C, "w_s3")
+        b.label("w_none").b(0xA9, 0xFF).abs(0x8D, IDX).br(0xD0, "w_pl")
+        b.label("w_fd").abs(0xBD, "tier_items").abs(0x8D, IDX)
+        b.label("w_pl").abs(0xAC, CI).abs(0xB9, "cofs").b(0x18).abs(0x6D, TT).abs(0x8D, TMP)    # this ware's place
+        b.abs(0xAE, IDX).b(0xE0, 0xFF).br(0xF0, "w_owned")
+        b.abs(0xAD, LINES + 7).abs(0xAC, CI).abs(0x39, "dmask").br(0xD0, "w_owned")   # bought here: all gone
+        b.abs(0x20, "uget").br(0xD0, "w_owned")
         b.abs(0xAE, TT).abs(0xAD, IDX).abs(0x9D, T.WIX)                          # ware slot TT: this upgrade
         b.abs(0xBD, "flags").b(0x09, T.WARE_CODES[0]).b(0x18).abs(0x6D, TT)      # its slot's item code
         b.abs(0xAC, TMP).abs(0x99, CAVE_WARES)
         b.abs(0xAE, IDX).abs(0xBD, "uprices").abs(0x99, CAVE_PRICES).abs(0x4C, "w_nx")
         b.label("w_owned").abs(0xAE, TT).b(0xA9, 0xFF).abs(0x9D, T.WIX)
         b.abs(0xBD, "flags").b(0x09, 0x3F).abs(0xAC, TMP).abs(0x99, CAVE_WARES)
-        b.b(0xA9, 0x00).abs(0x99, CAVE_PRICES)
+        b.b(0xA9, 0x00).abs(0x99, CAVE_PRICES).abs(0x4C, "w_nx")
+        # getc: X = a place; A = its code (X kept). setc: A = a code for place X (X kept)
+        b.label("getc").b(0x8A, 0x48, 0x4A, 0x4A, 0xA8).abs(0xB9, LINES).abs(0x8D, XS)
+        b.b(0x68, 0x48, 0x29, 0x03, 0xA8).abs(0xAD, XS)
+        b.label("gc_l").b(0x88).br(0x30, "gc_d").b(0x4A, 0x4A).abs(0x4C, "gc_l")
+        b.label("gc_d").b(0x29, 0x03).abs(0x8D, XS).b(0x68, 0xAA).abs(0xAD, XS).b(0x60)
+        b.label("setc").abs(0x8D, XS).b(0x8A, 0x48, 0x29, 0x03, 0xA8).abs(0xAD, XS)
+        b.label("sc_l").b(0x88).br(0x30, "sc_d").b(0x0A, 0x0A).abs(0x4C, "sc_l")
+        b.label("sc_d").abs(0x8D, XS).b(0x68, 0x48, 0x4A, 0x4A, 0xA8).abs(0xB9, LINES).abs(0x0D, XS)
+        b.abs(0x99, LINES).b(0x68, 0xAA, 0x60)
         b.label("w_nx").abs(0xEE, TT).abs(0xAD, TT).b(0xC9, 0x03).br(0xF0, "w_done").abs(0x4C, "w_tier")
         b.label("w_done").b(0xA2, 0x01).abs(0x20, PIC.LOAD["load"])                # the wares' (and owned) pictures
         b.b(0x18, 0x60)
@@ -619,7 +636,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("us_h").abs(0xB9, 0x6000).abs(0x1D, "utbits").abs(0x99, 0x6000).b(0x60)
         # uptake: X = the ware slot. Its upgrade (WIX) gets its bit, and moves to the next owned slot (the pictures
         # stay where they are: the slot's tables and palette are copied); the map master's maps; the item tune
-        b.label("uptake").abs(0x8E, TMP).abs(0xBD, T.WIX).b(0xAA)
+        b.label("uptake").abs(0xAC, CI).abs(0xB9, "dmask").abs(0x0D, LINES + 7).abs(0x8D, LINES + 7)   # (all 3 go)
+        b.abs(0x8E, TMP).abs(0xBD, T.WIX).b(0xAA)
         b.abs(0x20, "uset").b(0x8A, 0x48)
         b.abs(0xAC, T.OWN_N).b(0xC0, 0x03).br(0xB0, "t_pp").abs(0xAE, TMP)
         b.abs(0xBD, WLW + 11).abs(0x99, WLW + 8).abs(0xBD, WRW + 11).abs(0x99, WRW + 8)
@@ -642,6 +660,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("todds").b(*weights)
         b.label("tier_items").b(*[k for tier in T.TIERS for k in tier])
         b.label("tstart").b(*[sum(len(x) for x in T.TIERS[:i]) for i in range(3)])
+        b.label("tend").b(*[sum(len(x) for x in T.TIERS[:i + 1]) for i in range(3)])
+        b.label("dmask").b(0x10, 0x20, 0x40)
         b.label("ualo").b(*[T.ROWS[k][T.SAVE][0] & 0xFF for k in range(N_UP)])
         b.label("ubits").b(*[T.ROWS[k][T.SAVE][1] for k in range(N_UP)])
         b.label("utbits").b(*[T.ROWS[k][T.SAVE][1] | (FAIRY if T.ROWS[k][T.SAVE] == (UPGRADES, FAIRY_OWNED) else 0)

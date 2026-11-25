@@ -19,7 +19,8 @@ Bank 0 (lib, far-called or called from other bank 0 code): z_set0 z_sync z_drain
 z_buy z_item z_pond z_melee. RAM: LAST $600F / $6010, ALLOW $6011, ZT $6012-$6013 (file 2's and 3's names: unused)."""
 from lol_af import Asm, BANK, place, patch
 
-LAST_LO, LAST_HI, ALLOW, ZT = 0x600F, 0x6010, 0x6011, 0x6012
+LAST_LO, LAST_HI, ALLOW, ZT = 0x600F, 0x6010, 0x6011, 0x6340   # (ZT: file 2's spare flags; $6012 on:
+#  lol_upgrades' cave lines)
 PALT, START = 0x76DF, 0x7594             # WRAM: the frames' palettes; each type's first frame (by type + 1)
 WRAM_DELTA = 0x3870
 HUMANOIDS = (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x0B, 0x0C, 0x23, 0x24, 0x28)

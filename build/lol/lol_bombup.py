@@ -546,8 +546,10 @@ def apply(rom: bytearray, notes: list) -> None:
         t.b(0xE9, BADGE_S - 1, 0xAA)                                              # carry clear: A - $26
         t.abs(0xAD, BADGES).abs(0x3D, "mask").abs(0xDD, "mask").br(0xF0, "b_full")  # three of this kind already?
         t.abs(0xAD, BADGES).b(0x18).abs(0x7D, "inc").abs(0x8D, BADGES)
-        t.label("b_full").b(0x60)
-        t.label("xp").b(0xE9, XP_ORANGE, 0xAA).abs(0xAD, 0x066F).b(0xC9, 0xF0).br(0xB0, "x_done")   # 16 containers
+        t.b(0x60)
+        t.label("b_full").b(0x38, 0xA9, XP_ORANGE)                                # (three already: an orange XP bag,
+        t.label("xp")                                                             #  2026-11-24: was nothing)
+        t.b(0xE9, XP_ORANGE, 0xAA).abs(0xAD, 0x066F).b(0xC9, 0xF0).br(0xB0, "x_done")   # 16 containers
         t.b(0xA9, 50).abs(0xAC, 0x7FF8).br(0xF0, "x_t").b(0xA9, 100)              # (lol_modes' hard mode: 100)
         t.label("x_t").abs(0x8D, 0x0173)
         t.abs(0xAD, XP).b(0x18).abs(0x7D, "xpv").abs(0xCD, 0x0173).br(0x90, "x_st")

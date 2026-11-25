@@ -50,6 +50,20 @@ their grids); otherwise it's rolled like any other upgrade.
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
+## Race mode and the upgrade caves' lines
+
+**Race mode** (the page's option; `build/lol/lol_fixed.py`, LOL_FIXED=1): the build decides the entrance deal and
+every level's and shrine's record (design, variant, enemy group, palette, boss, the rooms' seed, the cellar items:
+old men cards and XP bags), so a seed is one fixed game for everyone; a blank seed gets one picked by the page. Level
+9's stair item, the old men's choices and the shrine prizes are still rolled in the game. A card Link already holds
+three of comes as an orange XP bag.
+
+**Upgrade caves** (always): the build shuffles each tier's pool into a line (rarer upgrades tend to come later). The
+first time Link enters an upgrade cave it takes, for each tier, the first upgrade in the line that no cave has taken
+and that he can have right now; a skipped one keeps its place. A cave's three are locked from then on, and after a
+purchase all three are gone. Hints about an upgrade are offered from the start if it is among the first 3 of its
+line, otherwise once a cave has offered it.
+
 ## Shrine touches
 
 `build/lol/lol_shrineui.py`: rooms next to Ganon's (Level 9) or a shrine guardian's room roar while that boss
