@@ -218,6 +218,8 @@ P(f'''<section class="page"><h1 class="band">THE OVERWORLD</h1>
 <p>Shops offer three items picked for Link's level. The offer changes as he gains hearts or shop cards. One shop is special: it sells as if Link were one level higher.</p>
 <h2>Hint Caves</h2>
 <p>Old men share hints: some about dungeons and enemies, some about the upgrades for sale in this seed, and some just for fun. Each hint cave has its own quote.</p>
+<h2>Burning Bushes</h2>
+<p>The <b>blue candle</b> can only burn <b>brown</b> bushes. The <b>red candle</b> burns both <b>green</b> and <b>brown</b> bushes.</p>
 <div class="hint"><b>HINT</b> Play some music in the forest two screens south of the big bridge.</div>
 </section>''')
 
