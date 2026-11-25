@@ -52,6 +52,7 @@ XP_BROWN, XP_BLUE_AQUA = 14, BOSS | 20         # brown darknut (blue's 12 + 2), 
 XP_BLUE_POLS = 7 + 3                           # blue pols voice (lol_newups): the pols voice's 7 + 3
 XP_BLUE_MOBLIN = 10                            # red moblins at 8+ containers (lol_enemies2): blue, charging
 XP_BOMB_OCTOROK = 12                           # red octoroks at 10+ containers (lol_enemies2): Zora-colored, red bombs
+XP_CHARGER = 15                                # Goriya Charger: blue goriyas at 12+ containers (lol_enemies2)
 
 HOOK = 0x1FCCD                                 # bank 7 $FCBD: LDA $034F,X / CMP #$11 / BEQ $FCC7 / INC RoomKillCount
 HOOK_BYTES = bytes.fromhex("bd4f03c911f003ee4f03")
@@ -209,7 +210,8 @@ def main():
     tbl = build_helper.labels["table"]
     # (HVE: the containers enemies level up by) the levelled-up enemies' values, else the table's
     ups = [(0x0B, 0x80, XP_BROWN), (0x3D, 0x90, XP_BLUE_AQUA), (0x16, 0x90, XP_BLUE_POLS),
-           (0x04, 0x70, XP_BLUE_MOBLIN), (0x07, 0x90, XP_BOMB_OCTOROK), (0x08, 0x90, XP_BOMB_OCTOROK)]
+           (0x04, 0x70, XP_BLUE_MOBLIN), (0x07, 0x90, XP_BOMB_OCTOROK), (0x08, 0x90, XP_BOMB_OCTOROK),
+           (0x05, 0xB0, XP_CHARGER)]
     tail = 3 + 11 * len(ups)
     x += bytes([0xAD, HVE & 0xFF, HVE >> 8])
     for k, (t, at, v) in enumerate(ups):                 # CPY #t / BNE next / CMP #at / BCC table / LDA #v / RTS

@@ -201,7 +201,7 @@ P(f'''<section class="page"><h1 class="band">ENEMIES THAT GROW WITH YOU</h1>
 <tr><td>8</td><td>Red Moblins, Gibdos</td></tr>
 <tr><td>9</td><td>Red Darknuts</td></tr>
 <tr><td>10</td><td>Red Octoroks, Aquamentus, Pols Voice</td></tr>
-<tr><td>12</td><td>Wallmasters, Vires, Gleeok</td></tr>
+<tr><td>12</td><td>Wallmasters, Vires, Gleeok, Blue Goriyas (the Goriya Charger)</td></tr>
 </table>
 {shot("img/gibdo.png", "Orange Gibdos.", "mid")}
 <div class="hint"><b>HINT</b> Listen to the old men. They know a thing or two about these.</div>

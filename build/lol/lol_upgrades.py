@@ -198,6 +198,9 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("f2").abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "f3").abs(0x20, B0["snub"])
         a.label("f3").abs(0xAD, ZB[0]).b(0x29, ZB[1]).br(0xF0, "f4").abs(0x20, ZL["z_frame"])
         a.label("f4")
+        import lol_enemies2 as E2                                          # a Goriya Charger's stun: no input
+        a.abs(0xAD, E2.STUN).br(0xF0, "f5").abs(0xCE, E2.STUN).b(0xA9, 0x00, 0x85, 0xF8, 0x85, 0xFA).abs(0x8D, 0x03F8)   # (+ $EC5B's copy)
+        a.label("f5")
         if gen_roar:
             a.abs(0x4C, ROAR)                                                  # (Level 9 / shrines: lol_shrineui)
         return a.b(0x60)

@@ -39,6 +39,13 @@ T1, T2, T3, FLAG = 0x01A1, 0x01A2, 0x01A3, 0x01A4   # (stack page, unused); FLAG
 SPD = 0x01A5                            # the darknuts' speeds ($0B, $0C), read by their first update
 STUB_A, STUB_B, STUB_I, STUB_D, STUB_W = 0xBC84, 0xBC84 + 15, 0xBCF6, None, 0xBD58    # bank 4 free (STUB_W: 2 too; after the trampoline)
 BOMB = 0x29
+# Goriya Charger: blue goriyas ($05) at 12+ (HVE $B0): Link's colors (sprite palette 0, so the ring's), 6 health,
+# 4 hearts on contact, 15 XP; its boomerang doesn't hurt Link but stuns him (STUN frames of no input: lol_upgrades'
+# frame hook), and DELAY frames after that the goriya charges at him (2 px a frame, straight, until a wall,
+# the room's edge, 16 px past Link or MAX frames)
+CHARGER_AT, CHARGER_HP, CHARGER_DMG = 0xB0, 0x60, 4
+STUN, CHG, CSLOT, CTIME = 0x01B1, 0x01B2, 0x01B3, 0x01B4   # (stack page, unused): stun left, charge delay, the
+STUN_FRAMES, CHARGE_DELAY, CHARGE_MAX = 30, 20, 64         #  goriya's slot, charge frames left
 WM4 = 0xBD90                            # lol_upgrades: the red wallmaster init (the init chain's end)
 
 
@@ -124,7 +131,60 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 4, 0x82F6, bytes.fromhex("20b86f"), J("rw"))
     patch(rom, 4, 0x82EE, bytes.fromhex("20faed"), J("rt"))
     patch(rom, 4, 0x82FE, bytes.fromhex("207183"), J("rl"))
+    import lol_v3core as V
+    # HarmLink's start (lol_upgrades' critter crusher, WRAM: its JMP $7E26 when it lets the harm through): a Goriya
+    # Charger's boomerang ($5C, its owner's slot in $042C) stuns Link instead (no harm, no flashing); the first one
+    # while no charge runs sets that goriya's charge going
+    def harm(o):
+        g = Asm(o)
+        g.abs(0xEC, CSLOT).br(0xD0, "h_0").abs(0xAD, CTIME).br(0xF0, "h_0").b(0xA9, 0x01).abs(0x8D, CTIME)
+        g.label("h_0")                                                  # (the charger touched Link: its charge ends)
+        g.abs(0xBD, 0x034F).b(0xC9, 0x5C).br(0xD0, "h_o").abs(0xBC, 0x042C).abs(0xB9, 0x034F).b(0xC9, 0x05)
+        g.br(0xD0, "h_o").abs(0xAD, HVE).b(0xC9, CHARGER_AT).br(0x90, "h_o")
+        g.abs(0xAD, STUN).br(0xD0, "h_k").b(0xA9, STUN_FRAMES).abs(0x8D, STUN)
+        g.abs(0xAD, CTIME).br(0xF0, "h_s").abs(0xAC, CSLOT).abs(0xB9, 0x034F).b(0xC9, 0x05).br(0xF0, "h_k")
+        g.abs(0xBC, 0x042C)
+        g.label("h_s").abs(0x8C, CSLOT).b(0xA9, CHARGE_DELAY).abs(0x8D, CHG).b(0xA9, 0x00).abs(0x8D, CTIME)
+        g.label("h_k").b(0x38, 0x60)                                    # (C set: no harm)
+        g.label("h_o").b(0x18, 0x60)
+        return g
+    hat2 = free_in(rom, 2, len(harm(0x8000).bytes()))
+    place(rom, 2, hat2, harm(hat2).bytes())
+    # the common stub (banks 0-6: HarmLink runs from WRAM with any bank in): the far call, then harm or out
+    HS = 0xBFC0
+    hs = Asm(HS).b(*V.far(2, hat2)).br(0x90, "n").b(0x68, 0x68, 0x60).label("n").abs(0x4C, 0x7E26)
+    assert HS + len(hs.bytes()) <= 0xBFE4
+    for bank in range(7):
+        place(rom, bank, HS, hs.bytes())
+    hc = HS
+    cw = BANK(1) + 0xB751 - 0x8000                                        # (lol_upgrades' CR_W)
+    k = rom.find(bytes([0x4C, 0x26, 0x7E]), cw, cw + 0x20)
+    assert k > 0
+    rom[k + 1:k + 3] = bytes([hc & 0xFF, hc >> 8])
 
+    w1 = lambda c: rom[BANK(1) + c + 0x3870 - 0x8000]
+    GF = w1(0x7594 + 6)                                                   # blue goriya's first frame (type + 1)
+    GPAL = [w1(PALT + GF + k) for k in range(4)]
+    DMG5 = w1(DMG + 0x05)
+    assert GF == 92 and w1(0x7594 + 7) == GF + 4 and DMG5 == 0x01, (GF, DMG5)
+    def gob(o):                                                      # (bank 2, beside: InitObject's part)
+        g = Asm(o)
+        # any object's init in the charging goriya's slot ends the charge
+        g.label("clr").abs(0xEC, CSLOT).br(0xD0, "c_r").b(0xA9, 0x00).abs(0x8D, CSLOT).abs(0x8D, CTIME).abs(0x8D, CHG)
+        g.label("c_r").b(0x60)
+    # the Goriya Charger: blue goriya ($05) at 12+ (frames GF-GF+3: palette 0, else theirs)
+        g.label("i_go").b(0xC9, 0x05).br(0xD0, "i_gb").abs(0xAD, HVE).b(0xC9, CHARGER_AT).br(0xB0, "go_u")
+        g.b(0xA9, DMG5).abs(0x8D, DMG + 0x05).b(0xA0, 0x03)
+        g.label("go_v").abs(0xB9, "gopv").abs(0x99, PALT + GF).b(0x88).br(0x10, "go_v")
+        g.label("i_gb").b(0x60)
+        g.label("go_u").b(0xA9, CHARGER_HP).abs(0x9D, 0x0485).b(0xA9, CHARGER_DMG).abs(0x8D, DMG + 0x05).b(0xA0, 0x03)
+        g.label("go_w").abs(0xB9, "gopu").abs(0x99, PALT + GF).b(0x88).br(0x10, "go_w").b(0x60)
+        g.label("gopv").b(*GPAL)
+        g.label("gopu").b(*[v & 0x80 for v in GPAL])
+        return g
+    gat = free_in(rom, 2, len(gob(0x8000).bytes()), 0xB940)
+    GO = gob(gat).labels
+    place(rom, 2, gat, gob(gat).bytes())
     # bank 2: Y = 2, 3, 4
     a = Asm(D.MORE)
     for k, name in ((2, "fb"), (3, "edge"), (4, "init"), (6, "dodo"), (8, "arrow"), (10, "rk"), (11, "ed_m")):
@@ -154,7 +214,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA9, 0xFF).abs(0x9D, 0x04B2).b(0x95, 0x98).b(0xA9, 0x10).abs(0x8D, 0x0603)
     a.abs(0xBD, 0x04BF).b(0x09, 0x20).abs(0x9D, 0x04BF).b(0x60)          # (no weapon checks: CheckMonsterCollisions)
     # Y 4: InitObject (X the object, [00] its type)
-    a.label("init").b(0xA9, 0x20).abs(0x8D, SPD).b(0xA9, 0x28).abs(0x8D, SPD + 1)   # darknut speeds: red, blue
+    a.label("init").abs(0x20, GO["clr"]).b(0xA9, 0x20).abs(0x8D, SPD).b(0xA9, 0x28).abs(0x8D, SPD + 1)   # darknut speeds: red, blue
     a.b(0xA5, 0x00, 0xC9, 0x0B).br(0xD0, "i_aq")
     a.b(0xA9, RED_DMG).abs(0x8D, DMG + 0x0B)
     a.abs(0xAD, HVE).b(0xC9, BROWN_AT).br(0x90, "i_r")
@@ -184,7 +244,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.abs(0x8D, PALT + MOBLIN_FRAMES + f)
     a.b(0x60)
     # red octoroks ($07 slow, $08 fast) at 10+ (HVE $90): 4 health, the Zora's sprite palette 3 (frames 27-32)
-    a.label("i_oc").b(0xC9, 0x07).br(0xF0, "oc").b(0xC9, 0x08).br(0xD0, "i_back")
+    a.label("i_oc").b(0xC9, 0x07).br(0xF0, "oc").b(0xC9, 0x08).br(0xF0, "oc").abs(0x4C, GO["i_go"])
     a.label("oc").abs(0xAD, HVE).b(0xC9, OCTOROK_AT).br(0xB0, "oc_u").b(0xA0, 0x05)
     a.label("oc_v").abs(0xB9, "ocpv").abs(0x99, PALT + OCTOROK_FRAMES).b(0x88).br(0x10, "oc_v").b(0x60)
     a.label("oc_u").b(0xA9, 0x40).abs(0x9D, 0x0485).b(0xA0, 0x05)
@@ -222,6 +282,56 @@ def apply(rom: bytearray, notes: list) -> None:
     code = a.bytes()
     assert D.MORE + len(code) <= 0xB900, hex(D.MORE + len(code))
     place(rom, 2, D.MORE, code)
+    def charger(at):
+        c = Asm(at)
+        # (bank 2, far-called from UpdateObject's entry for $05): the Goriya Charger's delay and charge
+        c.label("gor").abs(0xEC, CSLOT).br(0xD0, "g_n")
+        c.abs(0xAD, 0x066C).b(0x15, 0x3D).br(0xD0, "g_r")                       # (the clock / stunned: still)
+        c.abs(0xAD, CTIME).br(0xD0, "g_mv")
+        c.abs(0xAD, CHG).br(0xF0, "g_n").abs(0xCE, CHG).br(0xD0, "g_n")
+        # the charge begins: along the axis Link is nearer lined up on
+        c.b(0xA5, 0x70, 0x38, 0xF5, 0x70).br(0xB0, "g_a1").b(0x49, 0xFF, 0x69, 0x01)
+        c.label("g_a1").b(0x85, 0x00)
+        c.b(0xA5, 0x84, 0x38, 0xF5, 0x84).br(0xB0, "g_a2").b(0x49, 0xFF, 0x69, 0x01)
+        c.label("g_a2").b(0xC5, 0x00).br(0x90, "g_h")
+        c.label("g_v").b(0xA0, 0x04, 0xA5, 0x84, 0xD5, 0x84).br(0xB0, "g_s").b(0xA0, 0x08).br(0xD0, "g_s")
+        c.label("g_h").b(0xA0, 0x01, 0xA5, 0x70, 0xD5, 0x70).br(0xB0, "g_s").b(0xA0, 0x02)
+        c.label("g_s").b(0x94, 0x98, 0xA9, CHARGE_MAX).abs(0x8D, CTIME)
+        c.label("g_r").b(0x38, 0x60)
+        c.label("g_n").b(0x18, 0x60)                                         # (C clear: the goriya's own)
+        c.label("g_mv").abs(0x20, "g_st").abs(0xAD, CTIME).br(0xF0, "g_r").abs(0x20, "g_st")
+        c.abs(0xAD, CTIME).b(0xC9, 0x02).br(0x90, "g_r").abs(0xCE, CTIME).b(0x38, 0x60)
+        # one pixel; first: time up, the room's edge, 16 px past Link or a wall ahead end it (each pixel: goriyas
+        # stand anywhere, not only on squares)
+        c.label("g_st").abs(0xAD, CTIME).b(0xC9, 0x01).br(0xF0, "g_end")
+        c.b(0xB5, 0x98, 0x4A).br(0x90, "g_nr")                                          # right
+        c.b(0xB5, 0x70, 0xC9, 0xD0).br(0xB0, "g_end").b(0x38, 0xE5, 0x70).br(0x90, "g_t")
+        c.b(0xC9, 0x10).br(0xB0, "g_end").br(0x90, "g_t")
+        c.label("g_nr").b(0x4A).br(0x90, "g_nl")                                         # left
+        c.b(0xB5, 0x70, 0xC9, 0x21).br(0x90, "g_end").b(0xA5, 0x70, 0x38, 0xF5, 0x70).br(0x90, "g_t")
+        c.b(0xC9, 0x10).br(0xB0, "g_end").br(0x90, "g_t")
+        c.label("g_nl").b(0x4A).br(0x90, "g_nd")                                         # down
+        c.b(0xB5, 0x84, 0xC9, 0xBD).br(0xB0, "g_end").b(0x38, 0xE5, 0x84).br(0x90, "g_t")
+        c.b(0xC9, 0x10).br(0xB0, "g_end").br(0x90, "g_t")
+        c.label("g_nd").b(0xB5, 0x84, 0xC9, 0x5E).br(0x90, "g_end")                     # up
+        c.b(0xA5, 0x84, 0x38, 0xF5, 0x84).br(0x90, "g_t").b(0xC9, 0x10).br(0xB0, "g_end")
+        c.label("g_t").b(0xB5, 0x98, 0x85, 0x0F).abs(0x20, 0xEDFA).abs(0xCD, 0x034A).br(0xB0, "g_end")
+        c.label("g_go").b(0xB5, 0x98, 0x4A).br(0x90, "g_m1").b(0xF6, 0x70, 0x60)
+        c.label("g_m1").b(0x4A).br(0x90, "g_m2").b(0xD6, 0x70, 0x60)
+        c.label("g_m2").b(0x4A).br(0x90, "g_m3").b(0xF6, 0x84, 0x60)
+        c.label("g_m3").b(0xD6, 0x84, 0x60)
+        c.label("g_end").b(0xA9, 0x00).abs(0x8D, CTIME).abs(0x8D, CSLOT).b(0x60)
+        return c
+    cat = free_in(rom, 2, len(charger(0x8000).bytes()))
+    ch = charger(cat)
+    place(rom, 2, cat, ch.bytes())
+    # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
+    gs = 0xBF20                                                         # (bank 4: past free_in's reach, free)
+    st = Asm(gs).b(*V.far(2, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
+    place(rom, 4, gs, st.bytes())
+    ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05
+    assert rom[ut:ut + 4] == bytes([0x19, 0x81, 0x19, 0x81])
+    rom[ut:ut + 2] = bytes([gs & 0xFF, gs >> 8])
     s2 = Asm(STUB_W)
     s2.b(0xA0, 0x08).abs(0x4C, a.labels["arrow"])
     place(rom, 2, STUB_W, s2.bytes())

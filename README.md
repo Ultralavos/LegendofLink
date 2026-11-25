@@ -62,6 +62,14 @@ offer fewer) and every shop's third ware is the red book for 25 rupees (`lol_cho
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
+**Goriya Charger** (`build/lol/lol_enemies2.py`): at 12+ heart containers (as enemies see them) blue Goriyas wear
+Link's colors (sprite palette 0, so they follow his ring), have 6 health, deal 4 hearts on contact (with knockback)
+and give 15 XP. Their boomerang does no damage: it stuns Link for 30 frames (no input, no flashing; lol_upgrades'
+frame hook clears the buttons), and 20 frames after it hits, that Goriya charges straight at him (2 px a frame,
+until a wall, the room's edge, contact, 16 px past Link or 64 frames). The hit is caught at HarmLink's start (the
+critter crusher's hook, then a common stub at $BFC0 far-calling bank 2); the charge is UpdateObject's entry for $05
+(bank 4 $BF20, a far call into bank 2, else $8119).
+
 ## Seeded games, upgrade lines and item lines
 
 **Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
@@ -99,7 +107,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.310 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.311 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
