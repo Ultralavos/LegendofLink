@@ -11,7 +11,7 @@ const KNOWN = {   // SHA-1 of the ROM without its 16-byte header
 const SPRITE_BLOCKS = [[32895, 1792], [53595, 1824], [55419, 544], [55963, 544], [56507, 256], [56763, 544],
                        [57307, 1024], [58331, 1024], [59355, 1024]];
 const MASKED_PRG1 = "de692f18ce78c23645553f7399258b69c05afc0a";
-const VERSION = "0.319";   // (owner: Beta 0.319, bumped with every change set; lol_seedcode.VERSION shows it on the title)
+const VERSION = "0.320";   // (owner: Beta 0.320, bumped with every change set; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
 const NES_PALETTE = [   // (ZORA's page's)

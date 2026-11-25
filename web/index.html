@@ -96,12 +96,8 @@
       items. With a quest, its two grids stay as they are and two Legend of Link grids hold the shrines (Mixed: Legend of
       Link shrine maps or random shapes).</p>
 
-    <label for="start">Mode</label>
-    <select id="start">
-      <option value="normal">Normal (the secret modes can still be found)</option>
-      <option value="swordless">Swordless from the start</option>
-      <option value="hard">Hard mode from the start</option>
-    </select>
+    <!-- (owner 2026-11-25) no mode choice for now: always normal; the secret modes can still be found in the game -->
+    <input type="hidden" id="start" value="normal">
 
     <label class="check"><input id="unseeded" type="checkbox"> Unseeded (the old way)</label>
     <p class="hint">Normally the build decides everything dungeon-related from the seed - the entrances and every level
@@ -133,6 +129,6 @@
 
   <footer>Legend of Link is a fan project built on ZORA. You need your own copy of the game; no game data is hosted here.</footer>
 </main>
-<script src="app.js?v=0.319"></script>
+<script src="app.js?v=0.320"></script>
 </body>
 </html>
