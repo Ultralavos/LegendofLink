@@ -108,7 +108,14 @@ P(f'''<section class="page cover">
 <div class="cframe">
  <div class="ctop">INSTRUCTION BOOKLET</div>
  <div class="ctitle"><span class="the">THE</span>LEGEND<br>OF LINK</div>
- <div class="csub">A randomizer and rework for the NES adventure</div>
+ <div class="csub">A new randomized way to play a classic, world-renowned game.</div>
+ <ul class="cfeat">
+  <li>New dungeon designs</li>
+  <li>An experience point based leveling system</li>
+  <li>Enemies that get stronger as you level up</li>
+  <li>New upgrades: things you always wanted, or didn't know you wanted until you see them in action</li>
+ </ul>
+ <div class="ctag">This isn't your grandparents' Legend of Zelda (but they'll enjoy it too).</div>
  <div class="cicons">{cover_icons}</div>
  <div class="cver">BETA {VERSION}</div>
 </div>
