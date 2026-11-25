@@ -107,7 +107,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.314 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.315 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
@@ -138,10 +138,10 @@ After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips 
 
 ## Planned
 
-- Dungeon sets: 1Q, 2Q, 3Q, 4Q, Legend of Link's own maps, random shapes, random (one set) and mixed (per level).
-  Shrines always come from Legend of Link's maps or random shapes. Quest shapes are used shape-only: rooms, walls
-  and stairs; enemies and items follow Legend of Link's rules.
 - A spoiler log.
+- Upgrades from the owner's first list not built yet (what each does is still to be decided): Thorn Bracelet,
+  Heavy Bracelet, Song of Sleep, Song of Discovery, Destruction Expert, Bomb Blast Suit, Expert Arsonist,
+  Orbital Shield. (Glass Cannon became Zombie Link and Attack over Heart became the Heart Snubber.)
 
 ## Layout
 
