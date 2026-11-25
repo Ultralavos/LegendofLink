@@ -50,13 +50,18 @@ their grids); otherwise it's rolled like any other upgrade.
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
-## Race mode and the upgrade caves' lines
+## Seeded games, upgrade lines and item lines
 
-**Race mode** (the page's option; `build/lol/lol_fixed.py`, LOL_FIXED=1): the build decides the entrance deal and
-every level's and shrine's record (design, variant, enemy group, palette, boss, the rooms' seed, the cellar items:
-old men cards and XP bags), so a seed is one fixed game for everyone; a blank seed gets one picked by the page. Level
-9's stair item, the old men's choices and the shrine prizes are still rolled in the game. A card Link already holds
-three of comes as an orange XP bag.
+**Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
+record (design, variant, enemy group, palette, boss, the rooms' seed, the cellar items: old men cards and XP bags),
+so a seed is one fixed game for everyone; a blank seed gets one picked by the page. Level 9's stair item is still
+rolled in the game. A card Link already holds three of comes as an orange XP bag. **Unseeded** (the page's option,
+LOL_FIXED=0) keeps the old way: the game deals and makes these itself.
+
+**Item lines** (old men's choices, shrine prizes, shops; `lol_odds`): for each list and each level 1-16 the build
+shuffles that level's odds row into a line (items with odds above 0, likelier ones tending to come first). The game
+offers the first items of the line for Link's level that he can get (owned ones, ones he can't have yet and the bait
+while he holds one are skipped).
 
 **Upgrade caves** (always): the build shuffles each tier's pool into a line (rarer upgrades tend to come later). The
 first time Link enters an upgrade cave it takes, for each tier, the first upgrade in the line that no cave has taken

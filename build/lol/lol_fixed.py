@@ -1,4 +1,5 @@
-"""Legend of Link: race mode - dungeons decided by the build (the page's option; LOL_FIXED=1, owner 2026-11-24).
+"""Legend of Link: dungeons decided by the build (owner 2026-11-24: the norm; the page's "Unseeded" option, LOL_FIXED=0,
+keeps the old in-game rolls).
 
 Without it the game rolls these itself (lol_genload): the entrance deal on a new file (DEAL), and each level's and
 shrine's record the first time Link needs it (gen_make: its design, variant, enemy group, palette, boss, seed and
@@ -15,7 +16,7 @@ A card Link already holds three of comes as an orange XP bag (lol_bombup).
 import os
 import random
 
-FIXED = os.environ.get("LOL_FIXED") == "1"
+FIXED = os.environ.get("LOL_FIXED", "1") != "0"   # (the norm since 2026-11-24; LOL_FIXED=0: unseeded, the old way)
 _CACHE = {}
 
 

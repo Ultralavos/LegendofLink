@@ -58,10 +58,11 @@
     <h2>2. Settings</h2>
     <label for="seed">Seed</label>
     <div class="row">
-      <input id="seed" type="text" inputmode="numeric" placeholder="Blank: a different game every new file">
+      <input id="seed" type="text" inputmode="numeric" placeholder="Blank: one is picked for you">
       <button id="roll" type="button">Random</button>
     </div>
-    <p class="hint">With a seed, everyone who builds the same seed and settings gets the same overworld and dungeons.</p>
+    <p class="hint">Everyone who builds the same seed and settings gets the same game (the seed shows on the title
+      screen, and the file screen shows a four-icon code to compare).</p>
 
     <label for="dset">Dungeons</label>
     <select id="dset">
@@ -85,11 +86,11 @@
       <option value="hard">Hard mode from the start</option>
     </select>
 
-    <label class="check"><input id="fixed" type="checkbox"> Race mode</label>
-    <p class="hint">Everything dungeon-related is decided by the build: the build rolls the entrances and every level and shrine (layout, rooms, enemies, boss, cellar
-      items and old men cards) from the seed, so the game is one fixed run that anyone with the same seed and settings
-      gets too. Without a seed the page picks one. Level 9's stair item, the old men's choices and the shrine prizes
-      are still rolled in the game.</p>
+    <label class="check"><input id="unseeded" type="checkbox"> Unseeded (the old way)</label>
+    <p class="hint">Normally the build decides everything dungeon-related from the seed - the entrances and every level
+      and shrine (layout, rooms, enemies, boss, cellar items and old men cards) - so a seed is one fixed game anyone can
+      share; a blank seed gets one picked. Unseeded: the game rolls these itself when a file starts and as Link finds
+      them, as before (a blank seed: a different game on every new file).</p>
 
     <label class="check"><input id="mix" type="checkbox"> Mix enemy groups</label>
     <p class="hint">Deals the dungeon and overworld enemies into new groups (Moblins in dungeons, Stalfos outside...).

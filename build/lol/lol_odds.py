@@ -4,9 +4,10 @@ Each list has a table (odds/<list>.csv): a row per heart level 1-16, a column pe
 may add up to less: the rest is "roll again"). Link's level is his containers plus that list's badges (S shops, D old
 men, X rewards), at most 16.
 
-A pick rolls 0-127 and walks the row; an item Link can't get (owned, or its first tier missing: the lists' two
-conditions) or already picked this time is rolled again, up to 24 times, then the first item of the row he can get
-(with odds above 0) is taken; with none, the vanilla fallback (the old man's hint, A-F's red potion, an empty place).
+Owner 2026-11-24: lines instead of rolls. The build turns each list's row for each level into a line: the items with
+odds above 0, shuffled by their odds (lines()). A pick takes the first item of the level's line that Link can get
+(owned, or its first tier missing: the lists' two conditions; the heart snubber's swords, Zombie Link's rings) and
+isn't picked yet; when the line runs out, the vanilla fallback (the old man's hint, A-F's red potion, an empty place).
 
   old men   two picks; the level is saved the first time Link enters the room, so the offer stays
   A-F       one pick; saved the same way
@@ -108,6 +109,19 @@ def wrappers(a, list_id, items, p, ret_bank, store, n_pick):
     a.label(p + "t_item").b(*[c[1] for c in reversed(items)])
 
 
+def lines(li, rows):
+    """(owner 2026-11-24) The build's lines for a list: per level 1-16 its entries with odds above 0, in an order
+    shuffled by the odds (likelier ones tend to come first). The game offers the first ones Link may get."""
+    import random
+    seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
+    rng = random.Random(seed * 1000003 + 0x0DD5 + 7 * li)
+    out = []
+    for row in rows:
+        ent = [i for i, w in enumerate(row) if w > 0]
+        out.append(sorted(ent, key=lambda i: -rng.random() ** (1 / row[i])))
+    return out
+
+
 def apply(rom: bytearray, notes: list) -> None:
     from lol_af import Asm, place, BANK
     assert len(LISTS) == 3 and all(LISTS), LISTS
@@ -149,43 +163,16 @@ def apply(rom: bytearray, notes: list) -> None:
     a.br(0x90, "w_row").b(0xE6, 0x0F).br(0xB0, "w_row")
     a.label("w_done")
     a.b(0xA9, 0xFF).abs(0x8D, OUT).abs(0x8D, OUT + 1).abs(0x8D, OUT + 2)
-    a.b(0xA9, 0x00).abs(0x8D, NOK).abs(0x8D, ACC).abs(0x8D, PK)
-    # each pick
-    a.label("pk_lp").abs(0xAD, PK).abs(0xCD, NUM).br(0x90, "pk_go").abs(0x4C, "done")
-    a.label("pk_go")
-    a.b(0xA9, TRIES).abs(0x8D, TRY)
-    a.label("tr_lp")
-    a.abs(0xAD, ACC).b(0x18, 0x69, 37).abs(0x8D, ACC)
-    a.abs(0xAD, SEED).abs(0x4D, CTX).b(0x18).abs(0x6D, KEY).abs(0x20, "mix")
-    a.b(0x18).abs(0x6D, ACC).abs(0x20, "mix").abs(0x4D, CTX).abs(0x20, "mix").b(0x29, 0x3F).abs(0x8D, RR)
-    a.b(0xA9, 0x00).abs(0x8D, CUM).b(0xA0, 0x00)
-    a.label("wk_lp").abs(0xAD, CUM).b(0x18, 0x71, 0x0E).abs(0x8D, CUM)
-    a.abs(0xAD, RR).abs(0xCD, CUM).br(0x90, "wk_hit")
-    a.b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "wk_lp").br(0xB0, "tr_nx")         # past the row: roll again
-    a.label("wk_hit").abs(0x20, "snsw").br(0x90, "wk_ok").abs(0x4C, "even")              # (a sword: snubber)
-    a.label("wk_ok").abs(0x20, "ok").br(0xB0, "pk_take")
-    a.label("tr_nx").abs(0xCE, TRY).br(0xD0, "tr_lp")
-    # no luck: the first one he can get with odds above 0
-    a.b(0xA0, 0x00)
-    a.label("fb_lp").b(0xB1, 0x0E).br(0xF0, "fb_nx").abs(0x20, "ok").br(0xB0, "pk_take")
-    a.label("fb_nx").b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "fb_lp").br(0xB0, "done")
+    a.b(0xA9, 0x00).abs(0x8D, NOK).abs(0x8D, PK)
+    # (owner 2026-11-24) each pick: the first entry of this level's line (the build's order) that Link may get and
+    # isn't picked yet; the line runs out: fewer picks
+    a.label("pk_lp").abs(0xAD, PK).abs(0xCD, NUM).br(0xB0, "done")
+    a.b(0xA9, 0x00).abs(0x8D, RR)
+    a.label("wl").abs(0xAD, RR).abs(0xDD, "nn").br(0xB0, "done").b(0xA8, 0xB1, 0x0E, 0xC9, 0xFF).br(0xF0, "done")
+    a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take").abs(0xEE, RR).abs(0x4C, "wl")
     a.label("pk_take").b(0x98).abs(0xAC, PK).abs(0x99, OUT).abs(0xEE, PK).abs(0xEE, NOK)
     a.abs(0x4C, "pk_lp")
     a.label("done").b(0x68, 0x85, 0x0F, 0x68, 0x85, 0x0E, 0x60)
-    # even (lol_uptable's heart snubber took the swords out): a rolled sword's odds are spread evenly over the rest:
-    # one of the entries Link may get (odds above 0, not a sword), each as likely
-    a.label("even").b(0xA9, 0x00).abs(0x8D, EV).b(0xA0, 0x00)
-    a.label("ev_c").b(0xB1, 0x0E).br(0xF0, "ev_n").abs(0x20, "snsw").br(0xB0, "ev_n").abs(0x20, "ok").br(0x90, "ev_n")
-    a.abs(0xEE, EV)
-    a.label("ev_n").b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "ev_c")
-    a.abs(0xAD, EV).br(0xD0, "ev_r").abs(0x4C, "tr_nx")                          # none: roll again
-    a.label("ev_r").abs(0xAD, RR)
-    a.label("ev_m").abs(0xCD, EV).br(0x90, "ev_k").abs(0xED, EV).abs(0x4C, "ev_m")
-    a.label("ev_k").abs(0x8D, EV).b(0xA0, 0x00)
-    a.label("ev_2").b(0xB1, 0x0E).br(0xF0, "ev_2n").abs(0x20, "snsw").br(0xB0, "ev_2n").abs(0x20, "ok").br(0x90, "ev_2n")
-    a.abs(0xAD, EV).br(0xD0, "ev_d").abs(0x4C, "pk_take")
-    a.label("ev_d").abs(0xCE, EV)
-    a.label("ev_2n").b(0xC8, 0x98).abs(0xDD, "nn").br(0x90, "ev_2").abs(0x4C, "tr_nx")
     # snsw: Y = an entry (X the list): carry set if it's a sword and Link has the heart snubber (Y, X kept)
     import lol_uptable as UT
     sb = UT.bit("heart snubber")
@@ -218,9 +205,6 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("ok_all").b(0x68, 0xAA).abs(0xAC, CAND).b(0x38, 0x60)
     a.label("ok_no2").b(0x68, 0xAA)
     a.label("ok_no").abs(0xAC, CAND).b(0x18, 0x60)
-    # mix: x * 13 + $5B, then x ^ (x >> 3)
-    a.label("mix").abs(0x8D, TT).b(0x0A, 0x0A).abs(0x8D, UU).b(0x0A, 0x18).abs(0x6D, UU).b(0x18).abs(0x6D, TT)
-    a.b(0x18, 0x69, 0x5B).abs(0x8D, TT).b(0x4A, 0x4A, 0x4A).abs(0x4D, TT).b(0x60)
     a.label("bshift").b(*BADGE_SHIFT)
     a.label("nn").b(*[len(items) for _, items in LISTS])
     a.label("bases").b(*base)
@@ -232,11 +216,10 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label(f"ca{k}").b(*[c[3 + k][0] & 0xFF for c in allitems])
         a.label(f"clo{k}").b(*[c[3 + k][1] for c in allitems])
         a.label(f"chi{k}").b(*[c[3 + k][2] for c in allitems])
-    wat = {}
     for li, rows in enumerate(tables):
-        a.label(f"w{li}"); wat[li] = len(a.code)
-        for row in rows:
-            a.b(*row)
+        a.label(f"w{li}")
+        for line in lines(li, rows):
+            a.b(*(line + [0xFF] * (len(rows[0]) - len(line))))
     code = bytearray(a.bytes())
     lo_at, hi_at = a.labels["wlo"] - ENGINE, a.labels["whi"] - ENGINE
     for li in range(3):

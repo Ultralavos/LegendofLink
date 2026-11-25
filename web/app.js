@@ -66,7 +66,7 @@ $("build").addEventListener("click", () => {
     if (!/^\d+$/.test(raw) || Number(raw) > 4294967295) { status("The seed is a whole number from 0 to 4294967295.", true); return; }
     seed = Number(raw);
   }
-  if (seed === null && $("fixed").checked) {      // (race mode: one fixed game, so a seed)
+  if (seed === null && !$("unseeded").checked) {  // (the build decides the dungeons: one fixed game, so a seed)
     seed = crypto.getRandomValues(new Uint32Array(1))[0];
     $("seed").value = String(seed);
   }
@@ -75,7 +75,7 @@ $("build").addEventListener("click", () => {
   const setSeed = seed !== null ? seed : crypto.getRandomValues(new Uint32Array(1))[0];
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
                        start: $("start").value, dset: $("dset").value, setSeed,
-                       mix: $("mix").checked, fixed: $("fixed").checked });
+                       mix: $("mix").checked, fixed: !$("unseeded").checked });
 });
 
 worker.onmessage = (ev) => {
@@ -85,7 +85,7 @@ worker.onmessage = (ev) => {
   else if (m.type === "error") { status("Something went wrong: " + m.text, true); refresh(); }
   else if (m.type === "result") {
     const seed = $("seed").value.trim() || "free";
-    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}${$("mix").checked ? "-mix" : ""}${$("fixed").checked ? "-race" : ""}-${seed}`;
+    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}${$("mix").checked ? "-mix" : ""}${$("unseeded").checked ? "-unseeded" : ""}-${seed}`;
     const link = (id, data, ext) => {
       const a = $(id); a.href = URL.createObjectURL(new Blob([data], { type: "application/octet-stream" }));
       a.download = `${name}.${ext}`;
