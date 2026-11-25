@@ -92,7 +92,7 @@ def display_name(nm):
     m = re.match(r"^(\d)Q L(\d)$", nm)
     if m:
         s = lol_quests.nickname(m.group(1) + "q", int(m.group(2)))
-    elif re.match(r"^(Shape|Green|Blue|Magenta|Yellow|Cyan|Red) \d+$", nm):
+    elif re.match(r"^Shape \d+$", nm):
         s = nm
     else:
         s = "The " + nm

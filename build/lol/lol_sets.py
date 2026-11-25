@@ -175,9 +175,9 @@ LOL_SHRINES = {"Giraffe", "Cactus", "Bat", "Face", "Pompadour", "Piranha", "Sock
 LOL_LEVELS = {"Vice", "Anteater", "Elephant", "Robber", "Whale", "Poodle", "Unicorn", "Gecko", "Stallion", "Rook",
               "Bell"}
 LOL_NINES = {"Serpent", "Balloon", "Ghost", "Hero", "Hellhound"}
-LOL_LEVELS |= {"Hero", "Hellhound", "Bomb", "Camel", "Guillotine", "Bird", "Corners", "Ladle",   # (grids 7-9: their
+LOL_LEVELS |= {"Hero", "Hellhound", "Bomb", "Candle", "Guillotine", "Bird", "Broken Reticle", "Ladle",   # (grids 7-9: their
                "Notes", "Pyramids", "Heart", "Bull", "Periscope"}                                #  classes say which)
-LOL_SHRINES |= {"Guillotine", "Bird", "Corners", "Ladle", "Bull", "Notes", "Periscope", "Question Mark"}
+LOL_SHRINES |= {"Guillotine", "Bird", "Broken Reticle", "Ladle", "Bull", "Notes", "Periscope", "Question Mark"}
 SHRINES = ("SA", "SB", "SC", "SD")
 LEVEL_RANGE = {"L1": "L13", "L2": "L13", "L3": "L13", "L4": "L45", "L5": "L45", "L6": "L68", "L7": "L68",
                "L8": "L68", "L9": "L9"}
@@ -219,7 +219,7 @@ def _lol_pool():
 
 
 def lol_alt_set(swap2, swap3):
-    """The plain LoL set with grid 8 (Corners, Bomb, Camel, Guillotine, Bird, Ladle) or 9 (Notes, Question Mark,
+    """The plain LoL set with grid 8 (Broken Reticle, Bomb, Candle, Guillotine, Bird, Ladle) or 9 (Notes, Question Mark,
     Pyramids, Heart, Bull, Periscope) in grid 2's place (swap2: 8 or 9, or 0) and / or grid
     7 (the Hero and the Hellhound) in grid 3's (the Ghost, the Gecko and the Balloon); the other grids as they are,
     every design with LoL's own classes."""
@@ -384,19 +384,20 @@ def build_set(which, seed):
 
 # --- quest sets: the quest's two blocks as they are, and two LoL grids for the shrines (owner, 2026-11-24) ---
 
-EXTRA_NAMES = {5: {"G": "Green 5", "B": "Blue 5", "M": "Magenta 5", "Y": "Yellow 5", "C": "Cyan 5", "R": "Red 5"},
-               6: {"C": "Cyan 6", "B": "Blue 6", "M": "Magenta 6", "G": "Green 6", "R": "Red 6", "Y": "Yellow 6"},
+# grids 5 and 6 are grids 9 and 8 (the same squares; first given as colors): the same names (owner 2026-11-25)
+EXTRA_NAMES = {5: {"G": "Question Mark", "B": "Pyramids", "M": "Heart", "Y": "Periscope", "C": "Bull", "R": "Notes"},
+               6: {"C": "Broken Reticle", "B": "Bomb", "M": "Candle", "G": "Bird", "R": "Guillotine", "Y": "Ladle"},
                7: {"H": "Hero", "D": "Hellhound"},
-               8: {"T": "Corners", "B": "Bomb", "P": "Camel", "R": "Guillotine", "G": "Bird", "Y": "Ladle"},
+               8: {"T": "Broken Reticle", "B": "Bomb", "P": "Candle", "R": "Guillotine", "G": "Bird", "Y": "Ladle"},
                9: {"R": "Notes", "G": "Question Mark", "B": "Pyramids", "P": "Heart", "T": "Bull", "Y": "Periscope"}}
 # grid 7's levels (owner, 2026-11-24): the Hero 6-9, the Hellhound 7-9
 EXTRA_CLASSES = {"Hero": ("L6", "L7", "L8", "L9"), "Hellhound": ("L7", "L8", "L9")}
 # grid 8's (no levels given: by size, as LoL's own designs; its 12 free squares hold the stairs this allows)
 _S = ("SA", "SB", "SC", "SD")
-EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(5, 9)), "Camel": tuple(f"L{n}" for n in range(4, 9)),   # (owner)
+EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(5, 9)), "Candle": tuple(f"L{n}" for n in range(4, 9)),   # (owner)
                       "Guillotine": tuple(f"L{n}" for n in range(1, 6)) + _S,              # (owner)
                       "Bird": tuple(f"L{n}" for n in range(1, 6)) + _S,                    # (owner)
-                      "Corners": ("L1", "L2", "L3") + _S, "Ladle": ("L1", "L2", "L3") + _S,   # (Corners: four
+                      "Broken Reticle": ("L1", "L2", "L3") + _S, "Ladle": ("L1", "L2", "L3") + _S,   # (Broken Reticle: four
                       # pieces, too few rooms for levels 4-6's boss rooms; tried in lol_gen)
                       # grid 9's (by size too; its 13 free squares hold their stairs)
                       "Heart": tuple(f"L{n}" for n in range(1, 7)), "Pyramids": tuple(f"L{n}" for n in range(4, 9)),
@@ -404,7 +405,8 @@ EXTRA_CLASSES.update({"Bomb": tuple(f"L{n}" for n in range(5, 9)), "Camel": tupl
                       "Notes": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Periscope": tuple(f"L{n}" for n in range(1, 7)) + _S,
                       "Question Mark": _S})                # (ten rooms in four pieces: only a shrine generates)
-SHRINE_GRIDS = (1, 2, 3, 4, 5, 6)       # (a quest set's shrine grids: grid 7 has no shrine-sized design)
+SHRINE_GRIDS = (1, 2, 3, 4, 5, 6)
+TWINS = {8: 6, 9: 5}                    # grid 8 is grid 6, grid 9 is grid 5 (the same designs)       # (a quest set's shrine grids: grid 7 has no shrine-sized design)
 
 
 def lol_grids():
@@ -557,6 +559,8 @@ def random_grids_set(rng):
     lol = lol_grids()
     pool = []
     for gi in sorted(lol):
+        if gi in TWINS:                 # (grids 8 and 9 are 5 and 6: only one of each in the draw)
+            continue
         g = lol[gi]
         pool.append({"src": f"lol:{gi}", "des": g["des"], "hidden": g["hidden"], "rules": {},
                      "cls": {nm: tuple(EXTRA_CLASSES.get(nm) or (GL.classes_of(nm) if gi <= 4 else

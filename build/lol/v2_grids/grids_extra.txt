@@ -2,7 +2,7 @@ Legend of Link v2 extra grids (the owner's, 2026-11-24): more LoL grids for the 
 loads two LoL grids beside the quest's two). '.' = free. A lowercase letter is a square the owner marked in a
 darker shade (part of that dungeon; read as a hidden room until the owner says otherwise).
 
-Grid 5 (G green, B blue, M magenta, Y yellow, C cyan, R red)
+Grid 5 (grid 9's designs: G the Question Mark, B the Pyramids, M the Heart, Y the Periscope, C the Bull, R the Notes)
 .GGBBBBBMMYYMMYY
 G..GBBBMCMMMMCMY
 .RRGRB.MCCCCCCMY
@@ -12,7 +12,7 @@ G..GBBBMCMMMMCMY
 RR..BBBBBMMMMYYY
 RRGBBBbBBBMMCCYY
 
-Grid 6 (C cyan, B blue, M magenta, G green, R red, Y yellow)
+Grid 6 (grid 8's designs: C the Broken Reticle, B the Bomb, M the Candle, G the Bird, R the Guillotine, Y the Ladle)
 CC..BB.C.MGGGRGG
 C..BMMBCMMMGGRGG
 ..BBBMMMMMMMGRGY
@@ -32,7 +32,7 @@ HHHHHHHHDDDDDDDD
 ...H.H..DD.DD.DD
 ...H.H...DDD.DDD
 
-Grid 8 (T teal = the Corners, B blue = the Bomb, P pink = the Camel, R red = the Guillotine, G green = the Bird,
+Grid 8 (T teal = the Broken Reticle, B blue = the Bomb, P pink = the Candle, R red = the Guillotine, G green = the Bird,
 Y yellow = the Ladle; owner 2026-11-24: swapped in for grid 2 at random)
 TT..BB.T.PGGGRGG
 T..BPPBTPPPGGRGG
