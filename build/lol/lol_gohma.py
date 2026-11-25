@@ -1,8 +1,8 @@
 """Legend of Link: the Hydra Gohma (owner, 2026-11-25): any Gohma ($33 / $34) at 14+ heart containers (as enemies
 see them: HVE $D0) that the room puts in slot 1 (a boss room's).
 
-  - purple (sprite palette 3 sent as COLORS), with two of Gleeok's heads on necks from its sides; the necks
-    ride along as it moves and the heads sway, bite and spit fireballs as Gleeok's; Gohma spits its own as before;
+  - purple (sprite palette 3 sent as COLORS), with two of Gleeok's heads on necks from the north wall; the heads
+    sway, bite and spit fireballs as Gleeok's; Gohma spits its own as before;
   - a head cut off flies about as Gleeok's do; while any head is on, Gohma's eye stays shut, and once both are gone
     it opens for good (arrows from below, as ever), with the blue Gohma's health.
 
@@ -10,7 +10,7 @@ How: at the Gohma's init (slot 1) the slot becomes a two-headed Gleeok ($43: its
 owns slots 1-6 and puts cut heads in 7-8), and the Gohma is made in slot GS (11: none of the fields Gleeok borrows),
 with its own init. HYB (stack page) says so; any slot 1 init clears it first. Each frame:
   Gleeok's update (lol_gleeok's JSR at $A4DE) -> with HYB: no body drawn, no red Gleeok; the two necks' roots
-      (their first segment, in Gleeok's WRAM neck tables) set to Gohma's sides
+      (their first segment, in Gleeok's WRAM neck tables) set on the north wall
   UpdateObject's $33 / $34 -> with HYB, slot GS: the eye's timer held shut ($78) while a Gleeok is in slot 1, else
       open ($40), then $A316
   Gohma's palette ($A419: type - $32) -> 3 for it"""
@@ -25,7 +25,8 @@ GLEEOK = 0x43
 HP = 0x60                       # the blue Gohma's ($33)
 COLORS = (0x04, 0x14, 0x30)                  # (owner: purple; green vanished in green levels)
 NECK_X, NECK_Y = (0x0438, 0x0452), (0x0445, 0x045F)     # Gleeok's neck tables (bank 4 $A4C6...): x, y; segment 0
-ROOT_DX, ROOT_DY = (0xF4, 0x14), 0x02                    # the roots: Gohma's x - 12 / + 20, its y + 2
+ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x5E                      # the roots: the north wall, halfway from the middle to
+                                                         #  each side (owner 2026-11-25: less flicker)
 GOHMA_INIT = 0xA161
 
 
@@ -61,9 +62,8 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("frame").b(0xA9, 0x00).abs(0x8D, 0x015F)                    # (lol_gleeok's PEND)
         a.abs(0xAD, 0x034F + GS).b(0xC9, 0x33).br(0xF0, "f_ok").b(0xC9, 0x34).br(0xD0, "f_r")
         a.label("f_ok")
-        for n in range(2):
-            a.abs(0xAD, 0x0070 + GS).b(0x18, 0x69, ROOT_DX[n]).abs(0x8D, NECK_X[n])
-            a.abs(0xAD, 0x0084 + GS).b(0x18, 0x69, ROOT_DY).abs(0x8D, NECK_Y[n])
+        for n in range(2):                                                 # (owner: on the north wall)
+            a.b(0xA9, ROOT_X[n]).abs(0x8D, NECK_X[n]).b(0xA9, ROOT_Y).abs(0x8D, NECK_Y[n])
         a.label("f_r").b(0x60)
         # the Gohma, in slot GS (Gleeok's first frame: the room's own objects are made by now); its init follows
         a.label("prep").abs(0xAD, KIND).abs(0x8D, 0x034F + GS).b(0xC9, 0x33).br(0xD0, "p_4").b(0xA9, ATTR(0x33))
