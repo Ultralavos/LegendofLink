@@ -92,10 +92,16 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.301 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.302 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
+
+## Instruction booklet and version
+
+`manual/gen.py` builds the booklet as a web page, `web/manual/index.html` (its pictures in `web/manual/img`); the
+randomizer page links to it. `node manual/pdf.js web/manual/index.html out.pdf` prints it as a PDF. The version
+(`lol_seedcode.VERSION`, `web/app.js` VERSION, the booklet's cover) goes up by 0.001 with every change set.
 
 ## The end screen
 

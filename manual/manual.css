@@ -1,0 +1,86 @@
+@page { size: 5.5in 8.5in; margin: 0; }
+:root { --paper: #f4ecd6; --ink: #1c1814; --red: #b02a1e; --gold: #d4a52a; --navy: #1b1d3a; --rule: #c9b98f; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); }
+body { font-family: "TeX Gyre Heros", "Liberation Sans", sans-serif; color: var(--ink); font-size: 9.6pt; line-height: 1.38; }
+.page { width: 5.5in; height: 8.5in; padding: 0.42in 0.42in 0.55in; position: relative; overflow: hidden;
+  page-break-after: always; break-after: page; background: var(--paper); }
+.page::before { content: ""; position: absolute; inset: 0.18in; border: 1.5pt solid var(--ink); pointer-events: none; }
+.page::after { content: ""; position: absolute; inset: 0.23in; border: 0.6pt solid var(--ink); pointer-events: none; }
+.pg { position: absolute; bottom: 0.3in; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper);
+  font: bold 8.5pt "TeX Gyre Heros Cn", sans-serif; padding: 1pt 7pt; z-index: 2; }
+h1.band { margin: 0 0 10pt; background: var(--red); color: #fff; font: bold 15pt/1 "TeX Gyre Heros Cn", sans-serif;
+  letter-spacing: 1.2pt; padding: 7pt 10pt 6pt; border: 1.5pt solid var(--ink); box-shadow: 3pt 3pt 0 var(--ink); }
+h2 { font: bold 11.5pt "TeX Gyre Heros Cn", sans-serif; color: var(--red); margin: 9pt 0 3pt; letter-spacing: .4pt;
+  text-transform: uppercase; border-bottom: 1pt solid var(--rule); padding-bottom: 1pt; }
+p { margin: 0 0 6pt; }
+p.lead { font-size: 10.6pt; font-style: italic; }
+ul { margin: 0 0 6pt; padding-left: 14pt; }
+li { margin-bottom: 2.5pt; }
+b { font-weight: bold; }
+.hint { margin-top: 9pt; border: 1.2pt solid var(--ink); background: #fffaf0; padding: 6pt 8pt; font-size: 9pt; position: relative; }
+.hint b:first-child { display: inline-block; background: var(--ink); color: var(--gold); padding: 0 5pt; margin-right: 5pt;
+  font-family: "TeX Gyre Heros Cn"; letter-spacing: .6pt; }
+.note { margin-top: 14pt; font-size: 8.6pt; font-style: italic; border-top: 1pt solid var(--rule); padding-top: 6pt; }
+.small { font-size: 7.6pt; color: #5a5040; margin-top: 10pt; }
+dl { margin: 0 0 6pt; } dt { font-weight: bold; margin-top: 4pt; } dd { margin: 0 0 2pt 12pt; }
+table { border-collapse: collapse; width: 100%; margin: 4pt 0 8pt; font-size: 8.8pt; }
+table.grid th, table.grid td { border: 0.8pt solid var(--ink); padding: 2.5pt 5pt; text-align: left; vertical-align: top; }
+table.grid th { background: var(--ink); color: var(--paper); font-family: "TeX Gyre Heros Cn"; letter-spacing: .4pt; }
+table.grid tr:nth-child(even) td { background: #ece2c6; }
+table.lvl td:first-child { font: bold 14pt "TeX Gyre Heros Cn"; text-align: center; color: var(--red); width: 0.5in; vertical-align: middle; }
+table.ctl th { text-align: left; width: 1.3in; padding: 3pt 6pt; background: var(--navy); color: #fff; border: 0.8pt solid var(--ink);
+  font-family: "TeX Gyre Heros Cn"; }
+table.ctl td { padding: 3pt 6pt; border: 0.8pt solid var(--ink); }
+figure.shot { margin: 6pt auto 8pt; text-align: center; }
+figure.shot img { image-rendering: pixelated; border: 3pt solid var(--ink); display: block; margin: 0 auto; width: 100%; }
+figure.shot figcaption { font-size: 7.8pt; font-style: italic; margin-top: 3pt; }
+figure.shot.mid { width: 2.9in; }
+figure.shot.wide { width: 3.6in; }
+figure.shot.small { width: 2.35in; }
+.two { display: flex; gap: 10pt; }
+.two figure.shot { flex: 1; margin: 4pt 0 6pt; }
+ul.new li { margin-bottom: 3pt; }
+/* toc */
+.toc { margin-top: 8pt; font-size: 10.2pt; }
+.tr { display: flex; align-items: baseline; margin: 4.2pt 0; }
+.tr .dots { flex: 1; border-bottom: 1.4pt dotted var(--ink); margin: 0 5pt; transform: translateY(-3pt); }
+/* upgrades */
+.ups { display: flex; flex-direction: column; gap: 5.5pt; }
+.up { display: flex; gap: 8pt; align-items: flex-start; border-bottom: 0.8pt solid var(--rule); padding-bottom: 5pt; }
+.up .ic { flex: 0 0 40pt; height: 40pt; background: #000; border: 2pt solid var(--ink); display: flex; align-items: center; justify-content: center; }
+.up .ic img { width: 32pt; height: 32pt; image-rendering: pixelated; }
+.un { font: bold 10.6pt "TeX Gyre Heros Cn", sans-serif; letter-spacing: .3pt; text-transform: uppercase; }
+.pr { float: right; font: bold 10pt "TeX Gyre Heros Cn"; color: var(--red); }
+h2 .pr { float: none; margin-left: 6pt; }
+.rp { display: inline-block; width: 5pt; height: 9pt; margin-left: 2pt; background: var(--red); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); vertical-align: -1pt; }
+.ut { flex: 1; min-width: 0; }
+.ue { font-size: 9pt; }
+.req { font-size: 7.8pt; color: #6a3a10; font-style: italic; margin-top: 1pt; }
+.feat { display: flex; gap: 9pt; margin-bottom: 8pt; }
+.feat > img { width: 46pt; height: 46pt; image-rendering: pixelated; background: #000; border: 2pt solid var(--ink); padding: 5pt; flex: 0 0 auto; }
+.feat h2 { margin-top: 0; }
+p.list { font-weight: bold; border-left: 3pt solid var(--red); padding-left: 7pt; }
+ul.tips li { margin-bottom: 5pt; font-style: italic; }
+ul.tips li::marker { content: "\25C6  "; color: var(--red); font-style: normal; }
+.end { margin-top: 14pt; text-align: center; font: bold 20pt "TeX Gyre Heros Cn"; letter-spacing: 2pt; color: var(--red); }
+/* cover */
+.cover { background: var(--navy); padding: 0.35in; }
+.cover::before, .cover::after { display: none; }
+.cframe { height: 100%; border: 3pt solid var(--gold); outline: 1.2pt solid var(--gold); outline-offset: 4pt; display: flex; flex-direction: column;
+  align-items: center; padding: 0.35in 0.25in 0.3in; color: #fff; text-align: center; background:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 6pt, transparent 6pt 12pt); }
+.ctop { font: bold 10pt "TeX Gyre Heros Cn"; letter-spacing: 4pt; color: var(--gold); border-top: 1pt solid var(--gold); border-bottom: 1pt solid var(--gold); padding: 3pt 10pt; }
+.ctitle { margin-top: 0.35in; font: bold 44pt/0.95 "TeX Gyre Heros Cn", sans-serif; letter-spacing: 2pt; color: #fff;
+  text-shadow: 3pt 3pt 0 var(--red), 5pt 5pt 0 #000; }
+.ctitle .the { display: block; font-size: 16pt; letter-spacing: 8pt; color: var(--gold); text-shadow: none; margin-bottom: 6pt; }
+.csub { margin-top: 14pt; font-size: 10pt; font-style: italic; color: #e8dcc0; }
+.cicons { margin-top: auto; display: grid; grid-template-columns: repeat(9, 1fr); gap: 4pt; background: #000; padding: 7pt; border: 2pt solid var(--gold); }
+.cicons img { width: 28pt; height: 28pt; image-rendering: pixelated; }
+.cver { margin-top: 14pt; font: bold 12pt "TeX Gyre Heros Cn"; letter-spacing: 3pt; color: var(--gold); }
+
+@media screen {
+  html, body { background: #2a2622; }
+  .book { padding: 12px 0; }
+  .page { margin: 0 auto 14px; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+}
