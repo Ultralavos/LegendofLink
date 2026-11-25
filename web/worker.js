@@ -1,6 +1,6 @@
 // Legend of Link randomizer: the build, run in the browser (Pyodide in a web worker).
 // In:  {type: "build", rom: ArrayBuffer (a clean PRG1 ROM), original: ArrayBuffer (the player's ROM), seed, start}
-// Out: {type: "status", text} while loading; {type: "ready"}; {type: "result", rom, ips, log} or {type: "error", text}
+// Out: {type: "status", text} while loading; {type: "ready"}; {type: "result", rom, ips, log, icons} or {type: "error", text}
 "use strict";
 
 const PYODIDE = "0.28.3";
@@ -39,7 +39,8 @@ def run_build(rom_bytes, original_bytes, seed, start, dset, set_seed, mix=False,
         lol_build.main()
     out = open("/tmp/out.nes", "rb").read()
     ips = lol_build.make_ips(_b(original_bytes), out)
-    return out, ips, log.getvalue()
+    import json, lol_seedcode
+    return out, ips, log.getvalue(), json.dumps(lol_seedcode.ICONS)
 `;
 
 async function init() {
@@ -64,11 +65,12 @@ onmessage = async (ev) => {
     const run = pyodide.globals.get("run_build");
     const res = run(new Uint8Array(msg.rom), new Uint8Array(msg.original), msg.seed, msg.start, msg.dset,
                     msg.setSeed, !!msg.mix, !!msg.fixed);
-    const [rom, ips, log] = res.toJs();
+    const [rom, ips, log, icons] = res.toJs();
     res.destroy();
     const romBytes = new Uint8Array(rom);           // (Python bytes arrive as Uint8Array)
     const ipsBytes = new Uint8Array(ips);
-    postMessage({ type: "result", rom: romBytes, ips: ipsBytes, log }, [romBytes.buffer, ipsBytes.buffer]);
+    postMessage({ type: "result", rom: romBytes, ips: ipsBytes, log, icons: JSON.parse(icons) },
+                [romBytes.buffer, ipsBytes.buffer]);
   } catch (e) {
     postMessage({ type: "error", text: String(e) });
   }

@@ -85,7 +85,8 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 The title screen reads LEGEND OF LINK / BETA 0.301 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
-players whose four icons match have the same game (same seed and settings).
+players whose four icons match have the same game (same seed and settings). The page shows the same four icons
+with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
 
 ## The end screen
 

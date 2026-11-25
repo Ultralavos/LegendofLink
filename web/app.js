@@ -14,6 +14,35 @@ const MASKED_PRG1 = "de692f18ce78c23645553f7399258b69c05afc0a";
 const VERSION = "0.301";   // (owner: Beta 0.301; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
+const NES_PALETTE = [   // (ZORA's page's)
+  "#545454", "#001e74", "#081090", "#300088", "#440064", "#5c0030", "#540400", "#3c1800",
+  "#202a00", "#083a00", "#004000", "#003c00", "#00323c", "#000000", "#000000", "#000000",
+  "#989698", "#084cc4", "#3032ec", "#5c1ee4", "#8814b0", "#a01464", "#982220", "#783c00",
+  "#545a00", "#287200", "#087c00", "#007628", "#006678", "#000000", "#000000", "#000000",
+  "#eceeec", "#4c9aec", "#787cec", "#b062ec", "#e454ec", "#ec58b4", "#ec6a64", "#d48820",
+  "#a0aa00", "#74c400", "#4cd020", "#38cc6c", "#38b4cc", "#3c3c3c", "#000000", "#000000",
+  "#eceeec", "#a8ccec", "#bcbcec", "#d4b2ec", "#ecaeec", "#ecaed4", "#ecb4b0", "#e4c490",
+  "#ccd278", "#b4de78", "#a8e290", "#98e2b4", "#a0d6e4", "#a0a2a0", "#000000", "#000000",
+];
+
+// The seed code (the file-select screen's four icons), drawn from the built ROM's own tiles and palette.
+function showCode(icons) {
+  const box = $("code-items");
+  box.replaceChildren();
+  for (const [name, pixels] of icons || []) {
+    const item = document.createElement("div"); item.className = "code-item";
+    const c = document.createElement("canvas"); c.width = c.height = 16; c.setAttribute("aria-hidden", "true");
+    const img = new ImageData(16, 16);
+    pixels.flat().forEach((color, i) => {
+      const rgb = NES_PALETTE[color & 0x3F];
+      img.data.set([1, 3, 5].map((k) => parseInt(rgb.slice(k, k + 2), 16)).concat(255), i * 4);
+    });
+    c.getContext("2d").putImageData(img, 0, 0);
+    const label = document.createElement("span"); label.textContent = name;
+    item.append(c, label); box.append(item);
+  }
+  $("code").style.display = icons && icons.length ? "block" : "none";
+}
 let rom = null, original = null, version = null, ready = false;
 const worker = new Worker("worker.js");
 
@@ -91,7 +120,7 @@ $("build").addEventListener("click", () => {
     seed = crypto.getRandomValues(new Uint32Array(1))[0];
     $("seed").value = String(seed);
   }
-  $("build").disabled = true; $("downloads").style.display = "none";
+  $("build").disabled = true; $("downloads").style.display = "none"; $("code").style.display = "none";
   // the dungeon set's own seed: the game's seed, or (no seed) a fresh one for this build
   const setSeed = seed !== null ? seed : crypto.getRandomValues(new Uint32Array(1))[0];
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
@@ -114,6 +143,7 @@ worker.onmessage = (ev) => {
     link("dl-rom", m.rom, "nes");
     link("dl-ips", m.ips, `${version}.ips`);
     $("downloads").style.display = "flex";
+    showCode(m.icons);
     status("Done. Your game is ready.");
     refresh();
   }

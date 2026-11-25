@@ -31,6 +31,7 @@ DOMAIN = b"Legend of Link seed code\x00"
 # same list): Link and the items, the overworld's and the dungeons' enemies, the bosses
 SPRITE_BLOCKS = tuple((16 + o, n) for o, n in ((32895, 1792), (53595, 1824), (55419, 544), (55963, 544), (56507, 256),
                                                (56763, 544), (57307, 1024), (58331, 1024), (59355, 1024)))
+ICONS = []                            # after apply_code: [(name, 16 rows of 16 NES colors)] for the page
 CODE_AT = None                        # (bank 2: the four icons' slot and value bytes)
 
 
@@ -112,3 +113,9 @@ def apply_code(rom: bytearray, notes: list) -> None:
         rom[s_at + k] = rom[tbl + it]
         rom[v_at + k] = (0xFF if desc == 0x30 else desc) & 0x0F
     notes.append("seed code: " + " ".join(f"${x:02X}" for x in items))
+    # the page shows them under its downloads: drawn as the file-select screen draws them, from this ROM's own
+    # tiles, frame tables and menu palette (ZORA's seed_code_icons: custom sprites show as in the game)
+    global ICONS
+    from zora.rom.code_patches import SEED_CODE_NAMES
+    from zora.rom.seed_code_icons import draw_item
+    ICONS = [(SEED_CODE_NAMES[it], [list(r) for r in draw_item(bytes(rom), it)]) for it in items]
