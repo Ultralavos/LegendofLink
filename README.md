@@ -75,6 +75,14 @@ and that he can have right now; a skipped one keeps its place. A cave's three ar
 purchase all three are gone. Hints about an upgrade are offered from the start if it is among the first 3 of its
 line, otherwise once a cave has offered it.
 
+## The triforce caves
+
+The 4-triforce cave (the white sword cave) offers the first item Link lacks from its list (white sword, bow, arrows,
+wand, ladder, ...). The 8-triforce cave offers, once he has all 8, the first he can still use of: silver arrows,
+magic key, book (red, then blue), sword (white, then magical), ring (blue, then red), bow, ladder, recorder, power
+bracelet, raft, wand; with all of them, a red potion (`lol_upgrades.MS_LIST`). No swords with the Heart Snubber (a bomb
+upgrade instead when swordless), no rings with Zombie Link.
+
 ## Shrine touches
 
 `build/lol/lol_shrineui.py`: rooms next to Ganon's (Level 9) or a shrine guardian's room roar while that boss

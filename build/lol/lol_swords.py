@@ -1,5 +1,6 @@
 """Legend of Link: the sword caves. A11's (cave 2) gives the white sword once Link has 4 triforces; C2's (cave 3)
-gives the silver arrows once he has all 8. The caves' heart check (bank 1 $88FC: LDY #$40 or #$B0 / CPY HeartValues)
+gives the silver arrows once he has all 8 (2026-11-25: the first item he can use of lol_upgrades.MS_LIST - silver
+arrows, magic key, book, sword, ring, bow, ladder, recorder, bracelet, raft, wand - else a red potion). The caves' heart check (bank 1 $88FC: LDY #$40 or #$B0 / CPY HeartValues)
 counts the triforce pieces instead. Their old men get their own texts (quotes 5 and 15: the door repair's and the
 expensive shop's, both unused now that those caves are shops)."""
 import sys
@@ -48,4 +49,4 @@ def apply(rom: bytearray, notes: list) -> None:
     w = CAVE_WARES + 3 * MAGIC_CAVE + 1
     assert rom[w] & 0x3F == 0x03 and rom[CAVE_WARES + 3 * WHITE_CAVE + 1] & 0x3F == 0x02
     rom[w] = (rom[w] & 0xC0) | SILVER_ARROWS
-    notes.append(f"sword caves: white sword at 4 triforces, silver arrows at 8 ({len(code)} + {len(tcode)} bytes)")
+    notes.append(f"sword caves: white sword cave at 4 triforces, the 8-triforce cave's list at 8 ({len(code)} + {len(tcode)} bytes)")

@@ -52,6 +52,23 @@ WS_LIST = [(0x02, 0x0657, 2),   # white sword (Link has no better sword)
            (0x20, 0x065E, 2),   # red potion (no red potion)
            (0x1C, 0x0676, 1),   # magical shield
            (0x04, 0x065D, 1)]   # bait
+# (owner 2026-11-25) the 8-triforce cave (cave 3, person $6D: lol_swords' silver arrows cave) offers, each time
+# Link walks in with all 8, the first of these he can still use (a red potion when none): (item, byte, while below)
+MS_LIST = [(0x09, 0x0659, 2),   # silver arrows
+           (0x0B, 0x0664, 1),   # magic key
+           (0x11, 0x0661, 1),   # red book (no book)
+           (0x25, 0x0661, 2),   # blue book (the red one)
+           (0x02, 0x0657, 2),   # white sword (no better sword)
+           (0x03, 0x0657, 3),   # magical sword
+           (0x12, 0x0662, 1),   # blue ring (no ring)
+           (0x13, 0x0662, 2),   # red ring
+           (0x0A, 0x065A, 1),   # bow
+           (0x0D, 0x0663, 1),   # ladder
+           (0x05, 0x065C, 1),   # recorder
+           (0x14, 0x0665, 1),   # power bracelet
+           (0x0C, 0x0660, 1),   # raft
+           (0x10, 0x065F, 1)]   # wand
+MS_PERSON, MS_MIDDLE = 0x6D, 3 * 3 + 1
 FAIRY_OWNED = 0x40                      # set with the first bottle: a fairy fountain then fills it again
 POND = 0x8DA7                           # bank 4 UpdatePondFairy: INC ObjState+1 / LDA #$40 / STA ObjState / STA $63
 POND_CODE = 0x9B04                      # bank 4 free (vanilla padding $9B01-$9B1F, before InitDarknut)
@@ -711,7 +728,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     # (a key when he has them all), in its middle place; taking it still empties the cave for good.
     def ws_build(org):
       w = Asm(org)
-      w.b(0xC9, 0x6C).br(0xF0, "ws").abs(0x4C, fill)
+      w.b(0xC9, 0x6C).br(0xF0, "ws").b(0xC9, MS_PERSON).br(0xD0, "ms_no").abs(0x4C, "ms")
+      w.label("ms_no").abs(0x4C, fill)
       w.label("ws").b(0xA2, 0x00)
       w.label("ws_lp").abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
       w.abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
@@ -724,6 +742,25 @@ def apply_caves(rom: bytearray, notes: list) -> None:
       w.label("ws_put").abs(0xBD, WS_TABLE)
       w.label("ws_st").abs(0x8D, 0x019C).abs(0xAD, CAVE_WARES + 7).b(0x29, 0xC0).abs(0x0D, 0x019C).abs(0x8D, CAVE_WARES + 7)
       w.abs(0xAD, 0x0350).abs(0x4C, fill)
+      # the 8-triforce cave: MS_LIST (swords: none with the heart snubber, a bomb upgrade below 32 bombs when
+      # swordless; rings: none with Zombie Link)
+      w.label("ms").b(0xA2, 0x00)
+      w.label("ms_lp").abs(0xBC, "msa").abs(0xB9, 0x0600).abs(0xDD, "msm").br(0xB0, "ms_nx")
+      w.abs(0xBD, "msi").b(0xC9, 0x02).br(0xF0, "ms_sw").b(0xC9, 0x03).br(0xF0, "ms_sw")
+      w.b(0xC9, 0x12).br(0xF0, "ms_rg").b(0xC9, 0x13).br(0xD0, "ms_put")
+      w.label("ms_rg").abs(0xAD, T.bit("zombie link")[0]).b(0x29, T.bit("zombie link")[1]).br(0xD0, "ms_nx")
+      w.br(0xF0, "ms_put")
+      w.label("ms_sw").abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, "ms_nx")
+      w.abs(0xAD, 0x7FF7).br(0xF0, "ms_put")
+      w.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, "ms_nx").b(0xA9, 0x24).br(0xD0, "ms_st")
+      w.label("ms_nx").b(0xE8, 0xE0, len(MS_LIST)).br(0xD0, "ms_lp")
+      w.b(0xA9, 0x20).br(0xD0, "ms_st")                                       # everything: a red potion
+      w.label("ms_put").abs(0xBD, "msi")
+      w.label("ms_st").abs(0x8D, 0x019C).abs(0xAD, CAVE_WARES + MS_MIDDLE).b(0x29, 0xC0).abs(0x0D, 0x019C)
+      w.abs(0x8D, CAVE_WARES + MS_MIDDLE)
+      w.abs(0xAD, 0x0350).abs(0x4C, fill)
+      w.label("msi").b(*[c[0] for c in MS_LIST]).label("msa").b(*[c[1] & 0xFF for c in MS_LIST])
+      w.label("msm").b(*[c[2] for c in MS_LIST])
       return w
     nws = len(ws_build(0x8000).bytes())
     ws_at[0] = free_in(rom, 1, nws, 0xB000)
