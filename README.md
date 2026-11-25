@@ -131,6 +131,10 @@ does. Test build: `LOL_DEBUG_GANON=1` (never the page's) starts a file with 16 h
 ring, the bow, silver arrows, 30 rupees and the triforce, sends the wood sword cave into Level 9 and moves Ganon's
 room north of the way in.
 
+**-ROAR-** (`build/lol/lol_shrineui.py`): while a room roars (next to Ganon's room or a living shrine guardian's),
+the status bar's -LIFE- reads -ROAR-, for players who can't hear it; back to -LIFE- when the roar stops or Link
+leaves the level.
+
 ## Seeded games, upgrade lines and item lines
 
 **Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
@@ -168,7 +172,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.336 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.337 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

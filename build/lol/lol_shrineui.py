@@ -10,10 +10,16 @@ Shrine letters: the overworld item screen's TRIFORCE gets A B to its left and C 
 letter once its reward is taken (lol_bombup's rec: the odds' saved byte 11 + shrine, bit 7). The submenu's row
 cue (bank 5 Submenu_CueTransferRowOW's LDA SubmenuTransferBufSelectorsOW,Y) for the triforce frame's bottom row
 (selector $5A, bank 6 $A235) writes that row and the letters' row into the dynamic buffer instead (selector 0).
-Scratch: $01BD (the room last seen), $01BE (the roar's timer)."""
+Scratch: $01BD (the room last seen), $01BE (the roar's timer).
+
+(owner 2026-11-25) While a room roars, the status bar's -LIFE- reads -ROAR- (for players who can't hear it): set
+at each check (coming in, then every 192 frames), back to -LIFE- when it stops or Link leaves the level."""
 from lol_af import Asm, BANK, patch
 
 LASTR, RT = 0x01BD, 0x01BE
+ROARF, ROARN = 0x0164, 0x0165           # (stack page, untouched) -ROAR- up; this check's answer
+HUD_AT = 0x2078                         # the status bar's LIFE (between its dashes at $2077 / $207C)
+WORD_LIFE, WORD_ROAR = bytes([0x15, 0x12, 0x0F, 0x0E]), bytes([0x1B, 0x18, 0x0A, 0x1B])
 ATTR_C, ATTR_D = 0x697E, 0x69FE
 WORLD_FLAGS = 0x6BAF
 LEVEL_NO = 0x6BB1
@@ -35,13 +41,16 @@ def roar(rom: bytearray) -> int:
 
     def build(org):
         a = Asm(org)
-        a.label("roar").b(0xA5, 0x10).br(0xF0, "r_r").b(0xA5, 0x12, 0xC9, 0x05).br(0xD0, "r_r")
+        # (owner 2026-11-25) out of the levels with -ROAR- still up: -LIFE- back (in play)
+        a.label("roar").b(0xA5, 0x10).br(0xD0, "r_lv").abs(0xAD, ROARF).br(0xF0, "r_r").b(0xA5, 0x12, 0xC9, 0x05)
+        a.br(0xD0, "r_r").b(0xA9, 0x00).abs(0x4C, "hud")
+        a.label("r_lv").b(0xA5, 0x12, 0xC9, 0x05).br(0xD0, "r_r")
         a.abs(0xAD, LEVEL_NO).b(0xC9, 0x09).br(0x90, "r_r")                     # Level 9 and the shrines
         a.b(0xA5, 0xEB).abs(0xCD, LASTR).br(0xF0, "r_t")
         a.abs(0x8D, LASTR).abs(0x4C, "r_go")                                    # a new room: now
         a.label("r_t").abs(0xCE, RT).br(0xF0, "r_go")                           # else every EVERY frames
         a.label("r_r").b(0x60)
-        a.label("r_go").b(0xA9, EVERY).abs(0x8D, RT)
+        a.label("r_go").b(0xA9, EVERY).abs(0x8D, RT).b(0xA9, 0x00).abs(0x8D, ROARN)
         for z in (0, 1, 2, 3):
             a.b(0xA5, z, 0x48)
         a.abs(0xAD, WORLD_FLAGS).b(0x85, 0x00).abs(0xAD, WORLD_FLAGS + 1).b(0x85, 0x01)
@@ -58,12 +67,18 @@ def roar(rom: bytearray) -> int:
         a.label("n_sh").b(0x38, 0xE9, lo).br(0x90, "n_nx").b(0xC9, hi - lo + 1).br(0xB0, "n_nx")
         a.b(0xAA).abs(0xBD, "smp").br(0xF0, "n_nx")                               # a shrine: a guardian
         a.label("n_alive").b(0x85, 0x03, 0xB1, 0x00, 0x29, 0xC0, 0xC9, 0xC0).br(0xF0, "n_nx")   # dead: no
-        a.b(0xA5, 0x03).abs(0x8D, SAMPLE).abs(0x4C, "n_end")
+        a.b(0xA5, 0x03).abs(0x8D, SAMPLE).b(0xA9, 0x01).abs(0x8D, ROARN).abs(0x4C, "n_end")
         a.label("n_nx").b(0xC6, 0x02).br(0x10, "n_lp")
         a.label("n_end")
         for z in (3, 2, 1, 0):
             a.b(0x68, 0x85, z)
-        a.b(0x60)
+        # the status bar's -LIFE- reads -ROAR- while a roar is on here (for those who can't hear it)
+        a.abs(0xAD, ROARN).abs(0xCD, ROARF).br(0xD0, "hud").b(0x60)
+        a.label("hud").abs(0x8D, ROARF).b(0x0A, 0x0A, 0xA8).abs(0xAE, 0x0301)
+        a.b(0xA9, HUD_AT >> 8).abs(0x9D, 0x0302).b(0xA9, HUD_AT & 0xFF).abs(0x9D, 0x0303).b(0xA9, 0x04).abs(0x9D, 0x0304)
+        a.label("h_l").abs(0xB9, "words").abs(0x9D, 0x0305).b(0xE8, 0xC8, 0x98, 0x29, 0x03).br(0xD0, "h_l")
+        a.b(0xA9, 0xFF).abs(0x9D, 0x0305).b(0x8A, 0x18, 0x69, 0x03).abs(0x8D, 0x0301).b(0x60)
+        a.label("words").b(*WORD_LIFE, *WORD_ROAR)
         a.label("dofs").b(0x01, 0xFF, 0x10, 0xF0)                                 # E W S N
         a.label("smp").b(*tbl)
         return a
