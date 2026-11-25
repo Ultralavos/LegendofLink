@@ -4,14 +4,22 @@
   routine ($A998) types from the address loaded by LDA #lo / LDA #hi at $A9B4 / $A9B8; a character's $80 bit ends
   line 1, $40 line 2, $C0 the text; $25 is a skipped blank (centring).
 - The credits' last lines ("ANOTHER QUEST WILL START / FROM HERE. / PRESS THE START BUTTON.", records of
-  [length][column][text] at bank 2 $AD33, each through a pointer) say a new legend begins instead: beating the game starts the file over.
+  [length][column][text] at bank 2 $AD33, each through a pointer) say the stats come next (lol_stats' end screen);
+  the music stops once they show (FINAL_WAIT).
 - Beating the game (bank 2 $AF5A: room flags and inventory cleared, which also clears lol_af's MARKER, so the next
   load clears the file's other memory - the A-F rooms, the odds bytes and upgrades, the dealt entrances and
   dungeons - as a new file's) no longer sets the second quest; it zeroes the file's death count instead."""
-from lol_af import BANK, patch
+from lol_af import Asm, BANK, patch
 
 ENDING_LINES = ["RANDOMIZE MY MIND INTO", "NOTHING. YOU KNOW I", "USED TO KNOW THIS PLACE."]   # the 3Q build's
-CREDIT_LINES = [(4, "A NEW LEGEND WILL BEGIN"), (10, "RIGHT HERE."), (5, "PRESS THE START BUTTON.")]
+# (owner 2026-11-25: say the stats come next; padded with blanks to the old lines' 57 characters, each centred)
+_CL = ["YOUR LEGEND IS COMPLETE.", "PRESS START TO SEE", "YOUR STATS."]
+_pad = 57 - sum(map(len, _CL))
+_CL[2] = " " * (_pad // 2) + _CL[2] + " " * (_pad - _pad // 2)
+CREDIT_LINES = [((32 - len(t)) // 2, t) for t in _CL]
+FINAL_WAIT = 0xAB7F                      # bank 2: the credits' last step (the lines shown, waiting for Start):
+                                         # JSR $E5F7 first; there the music stops (owner 2026-11-25)
+SONG, SONG_NOW = 0x0600, 0x0609
 FONT = {**{str(d): d for d in range(10)}, **{chr(65 + i): 10 + i for i in range(26)},
         " ": 0x24, ",": 0x28, "!": 0x29, "'": 0x2A, "&": 0x2B, ".": 0x2C, '"': 0x2D, "?": 0x2E, "-": 0x2F}
 CLOSING_LINES = ["LATELY,", "EVERYTHING IS JUST", "A LITTLE BIT OUT OF PHASE"]   # the 3Q build's (52 chars max)
@@ -61,6 +69,18 @@ def apply(rom: bytearray, notes: list) -> None:
     assert len(text) <= 52, len(text)
     rom[pos_at:pos_at + len(pos)] = pos
     rom[txt_at:txt_at + len(text) + 1] = text + b"\xFF"
+    # the music stops once PRESS START shows (the end screen after it runs silent): the last step's first call
+    # (JSR $E5F7) goes through hush - the song request and the playing song cleared, the channels cut ($4015)
+    from lol_newups import put
+
+    def b_hush(org):
+        a = Asm(org)
+        a.label("hush").abs(0xAD, SONG_NOW).br(0xF0, "h_go")
+        a.b(0xA9, 0x00).abs(0x8D, SONG).abs(0x8D, SONG_NOW).abs(0x8D, 0x4015).b(0xA9, 0x0F).abs(0x8D, 0x4015)
+        a.label("h_go").abs(0x4C, 0xE5F7)
+        return a
+    h = put(rom, 2, b_hush).labels["hush"]
+    patch(rom, 2, FINAL_WAIT, bytes([0x20, 0xF7, 0xE5]), bytes([0x20, h & 0xFF, h >> 8]))
     # the end: no second quest; deaths back to 0 (LDY $16 / LDA #1 / STA QuestNumbers,Y)
     patch(rom, 2, 0xAF88, bytes.fromhex("a416a901992d06"), bytes.fromhex("a416a900993006"))
     notes.append("ending: Zelda says " + " / ".join(ENDING_LINES) + "; then " + " / ".join(CLOSING_LINES) + "; credits: " +
