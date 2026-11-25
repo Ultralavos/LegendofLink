@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legend of Link Tracker</title>
+<link rel="stylesheet" href="tracker.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>LEGEND OF LINK</h1><span>TRACKER</span></div>
+  <div class="timer">
+    <span id="clock">0:00:00</span>
+    <button id="t-go" type="button">Start</button>
+    <button id="t-reset" type="button" class="quiet">Reset</button>
+  </div>
+  <div class="spots"><b id="spots">71</b><span>entrances left</span></div>
+  <div class="actions">
+    <button id="reset-all" type="button" class="quiet">New run</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel items">
+    <h2>Items</h2>
+    <div id="items" class="itemgrid"></div>
+    <div class="counters">
+      <div id="hearts" class="counter"></div>
+      <div id="bombups" class="counter"></div>
+    </div>
+    <p class="help">Click to advance, right-click (or long-press) to go back.</p>
+  </section>
+
+  <section class="panel tripanel">
+    <h2>Triforce and Shrines</h2>
+    <div id="triforce" class="trirow"></div>
+    <div id="shrines" class="shrinerow"></div>
+    <h2>Old Men Cards</h2>
+    <div id="cards" class="cardrow"></div>
+  </section>
+
+  <section class="panel ups">
+    <h2>Upgrades <span class="legend"><i class="seen"></i>seen <i class="own"></i>bought</span></h2>
+    <div id="upgrades" class="upgrid"></div>
+    <div id="up-name" class="upname">&nbsp;</div>
+  </section>
+
+  <section class="panel map">
+    <h2>Overworld <span class="sub">Click an entrance to mark what's behind it. Dashed circles are unmarked.</span></h2>
+    <div class="mapwrap"><div id="map" class="owmap"><img src="img/overworld.png" alt="The overworld" draggable="false"></div></div>
+    <div id="picker" class="picker" hidden></div>
+  </section>
+
+  <section class="panel dun">
+    <h2>Dungeons</h2>
+    <div id="dtabs" class="dtabs"></div>
+    <div class="dhead">
+      <input id="dname" list="nicknames" placeholder="Nickname (e.g. The Robber)" autocomplete="off">
+      <label class="done"><input id="ddone" type="checkbox"> Done</label>
+      <button id="dclear" type="button" class="quiet">Clear map</button>
+    </div>
+    <div id="brushes" class="brushes"></div>
+    <div id="dgrid" class="dgrid"></div>
+    <datalist id="nicknames"></datalist>
+  </section>
+
+  <section class="panel notes">
+    <h2>Notes</h2>
+    <textarea id="notes" placeholder="Hints, prices, where you saw things..."></textarea>
+  </section>
+</main>
+
+<div id="confirm" class="confirm" hidden>
+  <div class="box"><p>Clear everything and start a new run?</p>
+    <button id="c-yes" type="button">Clear</button> <button id="c-no" type="button" class="quiet">Keep</button></div>
+</div>
+
+<footer>Saved in this browser as you go. Layout inspired by
+  <a href="https://github.com/TheGobOne/ZoraTracker" target="_blank" rel="noopener">ZORATracker</a> by TheGobOne,
+  itself based on brianmcn's Z1R tracker. <a href="../">Back to the randomizer</a></footer>
+<script src="tracker.js"></script>
+</body>
+</html>
