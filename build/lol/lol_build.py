@@ -211,6 +211,13 @@ def main():
         assert len(tun) == 3
         for o in lol_seedcode.TUNIC_COPIES:
             rom[o:o + 3] = tun
+    # (owner 2026-11-25) the page's "Reduce flashing" (LOL_NOFLASH=1): ZORA's four flashes off (cosmetic: the seed and
+    # its code don't change; lol_seedcode masks these bytes)
+    if os.environ.get("LOL_NOFLASH") == "1":
+        import lol_seedcode
+        for (o, n), (old, new) in zip(lol_seedcode.FLASH_BYTES, lol_seedcode.FLASH_PATCH):
+            assert rom[o:o + n] == old, (hex(o), rom[o:o + n].hex())
+            rom[o:o + n] = new
     assert rom[HOOK:HOOK + 10] == HOOK_BYTES, rom[HOOK:HOOK + 10].hex()
     at = BANK4 + (FREE - 0x8000)
     code = build_helper(FREE)

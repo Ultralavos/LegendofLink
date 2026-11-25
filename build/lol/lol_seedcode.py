@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.335"
+VERSION = "0.336"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -38,6 +38,11 @@ TUNIC_COPIES = (41623, 27557)
 LINK_COLOR_BYTES = tuple((o, 3) for o in TUNIC_COPIES) + tuple(
     (o, 2) for o in (103205, 103457, 103709, 103961, 104213, 104465, 104717, 104969, 105221, 105473, 38260,
                      105725, 105729, 105733))
+# (owner 2026-11-25) the page's "Reduce flashing" (ZORA's FP-FIX-02 setting, PRG1 offsets): the bomb's grayscale
+# (STA $FE), the Triforce of Power's flash (STY $14), the ending's flash colors, the level-end flash (STY $14)
+FLASH_BYTES = ((0x06A5B, 2), (0x061A3, 2), (0x0AA2F, 4), (0x16895, 2))
+FLASH_PATCH = ((bytes.fromhex("85fe"), bytes.fromhex("eaea")), (bytes.fromhex("8414"), bytes.fromhex("eaea")),
+               (bytes.fromhex("0f12162a"), bytes.fromhex("0f0f0f0f")), (bytes.fromhex("8414"), bytes.fromhex("eaea")))
 LINK_COLOR_VANILLA = bytes.fromhex("293216293216" + "2717" * 3 + "3717" + "2717" * 6 + "3717" + "2707" * 3)   # (PRG1's)
 
 
@@ -122,7 +127,8 @@ def apply_code(rom: bytearray, notes: list) -> None:
     assert not any(rom[s_at:s_at + 8])
     import lol_bombup
     plain = bytearray(rom)              # (custom sprites don't change the code: the same game, other pictures)
-    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES:      # (and Link's colors)
+    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES + FLASH_BYTES:  # (and Link's
+        # colors, and the flashes)
         plain[at:at + n] = bytes(n)
     digest = hashlib.sha256(DOMAIN + bytes(plain)).digest()
     items = [ITEMS[b % len(ITEMS)] for b in digest[:4]]
