@@ -195,7 +195,15 @@ const MARK = Object.fromEntries(MARKS.map((m) => [m[0], m]));
 let picking = null;
 function renderMap() {
   const map = $("map");
-  map.querySelectorAll(".cell").forEach((c) => c.remove());
+  map.querySelectorAll(".cell, .dim").forEach((c) => c.remove());
+  // screens with nothing to find: greyed out
+  const has = new Set([...ENTRANCES, ...Object.keys(FIXED).map(Number)]);
+  for (let s = 0; s < 128; s++) {
+    if (has.has(s)) continue;
+    const d = el("div", { className: "dim" });
+    d.style.left = `${(s & 15) * 6.25}%`; d.style.top = `${(s >> 4) * 12.5}%`;
+    map.append(d);
+  }
   const all = [...ENTRANCES, ...Object.keys(FIXED).map(Number)];
   for (const s of all) {
     const row = s >> 4, col = s & 15;
