@@ -25,9 +25,10 @@ GLEEOK = 0x43
 HP = 0x60                       # the blue Gohma's ($33)
 COLORS = (0x04, 0x14, 0x30)                  # (owner: purple; green vanished in green levels)
 NECK_X, NECK_Y = (0x0438, 0x0452), (0x0445, 0x045F)     # Gleeok's neck tables (bank 4 $A4C6...): x, y; segment 0
-ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x5E                      # the roots: the north wall, halfway from the middle to
+ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x4E                      # the roots: the north wall, halfway from the middle to
                                                          #  each side (owner 2026-11-25: less flicker)
 GOHMA_INIT = 0xA161
+TOP_Y, BOT_Y = 0x90, 0xB0      # (its own band is $70-$90: two squares lower)
 
 
 def apply(rom: bytearray, notes: list) -> None:
@@ -74,6 +75,10 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("hp").b(0xA9, HP).abs(0x8D, 0x0485 + GS).b(0x60)
         # Gohma's frame (X): with HYB in slot GS, the eye shut while a Gleeok is in slot 1, else open for good
         a.label("eye").abs(0xAD, HYB).br(0xF0, "e_r").b(0xE0, GS).br(0xD0, "e_r")
+        # (owner 2026-11-25) its band two squares lower (TOP_Y-BOT_Y): at the top up turns down, at the bottom down up
+        a.b(0xB5, 0x84, 0xC9, TOP_Y).br(0xB0, "e_t").b(0xA9, TOP_Y, 0x95, 0x84, 0xA9, 0x04, 0x95, 0x98).br(0xD0, "e_u")
+        a.label("e_t").b(0xC9, BOT_Y + 1).br(0x90, "e_u").b(0xA9, BOT_Y, 0x95, 0x84, 0xA9, 0x08, 0x95, 0x98)
+        a.label("e_u")
         a.abs(0xAD, 0x0350).b(0x38, 0xE9, 0x42, 0xC9, 0x04, 0xA9, 0x40).br(0xB0, "e_s")
         a.b(0xA9, HP).abs(0x9D, 0x0485).b(0xA9, 0x78)                      # (heads on: the health held at HP)
         a.label("e_s").abs(0x9D, 0x0444)
