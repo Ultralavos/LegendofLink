@@ -15,7 +15,10 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, system-ui, sans-serif; }
   main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
   h1 { font: 18px/1.4 "Press Start 2P", monospace; color: var(--accent); margin: 0 0 6px; letter-spacing: .5px; }
-  .sub { color: var(--muted); margin: 0 0 28px; }
+  .sub { color: var(--muted); margin: 0 0 10px; }
+  .manual { display: inline-block; margin: 0 0 24px; color: var(--accent); font-weight: 600; text-decoration: none;
+    border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; }
+  .manual:hover { background: rgba(255,255,255,.06); }
   section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 12px; }
   label { display: block; font-weight: 600; margin: 12px 0 6px; }
@@ -53,6 +56,7 @@
 <main>
   <h1>LEGEND OF LINK</h1>
   <p class="sub">Randomizer. Your ROM stays on your device: everything is built here, in your browser.</p>
+  <a class="manual" href="manual.pdf" target="_blank" rel="noopener">Read the instruction booklet (PDF)</a>
 
   <section>
     <h2>1. Your ROM</h2>
