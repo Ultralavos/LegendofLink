@@ -248,14 +248,18 @@ function renderDTabs() {
     const d = S.dun[k];
     const b = el("button", { type: "button", className: "dtab" + (k === S.cur ? " cur" : "") + (d && d.done ? " done" : ""),
       textContent: k, title: (/\d/.test(k) ? `Level ${k}` : `Shrine ${k}`) + (d && d.name ? `: ${d.name}` : "") });
-    b.onclick = () => { S.cur = k; save(); renderDun(); };
+    b.onclick = () => { S.cur = k; save(); if (brush === "O" && isShrine(k)) brush = "room"; renderBrushes(); renderDun(); };
     t.append(b);
   }
 }
+// old men: none in the shrines, one per level 1-8 (drawing another moves it); level 9 is free
+const isShrine = (k) => /[A-D]/.test(k);
 function renderBrushes() {
   const b = $("brushes"); b.replaceChildren();
   for (const [id, label, title] of BRUSHES) {
-    const btn = el("button", { type: "button", className: "brush" + (id === brush ? " cur" : ""), title });
+    const off = id === "O" && isShrine(S.cur);
+    const btn = el("button", { type: "button", className: "brush" + (id === brush ? " cur" : ""), disabled: off,
+      title: off ? "Shrines have no old man" : id === "O" && S.cur !== "9" ? "Old man (one per level)" : title });
     btn.append(id === "room" ? el("i", { className: "sw" }) : el("span", { textContent: label }),
       el("small", { textContent: id === "room" ? "Room" : title.split(" ")[0] }));
     btn.onclick = () => { brush = id; renderBrushes(); };
@@ -274,7 +278,12 @@ function renderDun() {
     cell.onclick = () => {
       const cur = d.cells[i] || {};
       if (brush === "room") cur.r = ((cur.r || 0) + 1) % 3;
-      else { cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1; }
+      else {
+        if (brush === "O" && isShrine(S.cur)) return;
+        cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
+        if (cur.m === "O" && S.cur !== "9")             // one old man per level 1-8: drawing another moves him
+          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === "O") { delete c.m; if (!c.r) delete d.cells[j]; }
+      }
       if (!cur.r && !cur.m) delete d.cells[i]; else d.cells[i] = cur;
       save(); renderDun(); renderOM();
     };
@@ -305,6 +314,15 @@ $("notes").addEventListener("input", (e) => { S.notes = e.target.value; save(); 
 $("reset-all").onclick = () => { $("confirm").hidden = false; };
 $("c-no").onclick = () => { $("confirm").hidden = true; };
 $("c-yes").onclick = () => { S = fresh(); save(); $("confirm").hidden = true; $("notes").value = ""; renderAll(); };
+
+// (saves from before 0.306: no old man in the shrines, one per level 1-8)
+for (const [k, d] of Object.entries(S.dun)) {
+  let seen = false;
+  for (const [i, c] of Object.entries(d.cells || {})) {
+    if (c.m !== "O") continue;
+    if (/[A-D]/.test(k) || (k !== "9" && seen)) { delete c.m; if (!c.r) delete d.cells[i]; } else seen = true;
+  }
+}
 
 function renderAll() {
   renderItems();
