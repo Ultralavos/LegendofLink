@@ -17,7 +17,7 @@ PTR_LO, PTR_HI = 0x96B8, 0x96BD     # LDA $94AD,X / LDA $94AE,X
 START = 0x95F7                      # LDA #$29 / STA $041D / LDA #$00 / STA $041C: the first row's address
 END_HI, END_LO = 0x9630, 0x9637     # CMP #$05 / CMP #$80: the scroll's length
 
-HEADING, HEAD_ROW = "UPGRADES", 2
+HEADING, HEAD_ROW = "UPGRADES TO BUY WITH RUPEES", 2   # (owner 2026-11-25; was UPGRADES)
 PAGE_FIRST, PITCH = 5, 2            # the page's first name row; a name every other row (odd rows)
 HOOK = 0x95EC                       # subphase 1 (the pause): INC $041A
 CODE = 0xB060                       # bank 2 free (lol_legend's old room)
