@@ -168,7 +168,9 @@ def apply(rom: bytearray, notes: list) -> None:
     CHK1 = 0xBB40
     c1 = Asm(CHK1)
     c1.b(0xA9, 0x00).abs(0x8D, 0x0634).abs(0x8D, 0x0635)
-    c1.b(0xA2, 0x07, 0xA9, 0x24).label("nm").abs(0x9D, 0x0640).b(0xCA).br(0x10, "nm")   # file 2's name: blank
+    # files 2 and 3's names on screen (RAM $0640-$064F, not the save): blank (the save's bytes are LoL's: the clock,
+    # UP6, Zombie Link's, the upgrade lines; the register and erase screens showed them as codes)
+    c1.b(0xA2, 0x0F, 0xA9, 0x24).label("nm").abs(0x9D, 0x0640).b(0xCA).br(0x10, "nm")
     c1.b(0xA5, SLOT, 0xC9, 0x01, 0x60)
     place(rom, 2, CHK1, c1.bytes())
     patch(rom, 2, 0xA2FE, bytes([0xA5, SLOT, 0xC9, 0x03]), bytes([0x20, CHK1 & 0xFF, CHK1 >> 8, 0xEA]))

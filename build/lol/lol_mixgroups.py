@@ -69,8 +69,8 @@ def mixed():
             if gv is not None and Enemy.BLUE_WIZZROBE not in d.members(gv):
                 continue
             assert not result.staged.red_wizzrobe_overworld
-            _shuffle_overworld(gw, rng)
             apply_groups(gw, result)
+            _shuffle_overworld(gw, rng)         # (after the redraw is written: its picks go by screen number)
             patch = serialize_game_world(gw, original_bins_from_rom(canvas))
             image = bytearray(canvas)
             patch.apply(image)

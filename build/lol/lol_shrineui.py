@@ -8,8 +8,8 @@ roar(rom) gives bank 0's routine, called from lol_upgrades' frame hook (every fr
 
 Shrine letters: the overworld item screen's TRIFORCE gets A B to its left and C D to its right, each shrine's
 letter once its reward is taken (lol_bombup's rec: the odds' saved byte 11 + shrine, bit 7). The submenu's row
-cue (bank 5 Submenu_CueTransferRowOW's LDA SubmenuTransferBufSelectorsOW,Y) for TRIFORCE's row (selector $5A)
-writes that row into the dynamic buffer instead (selector 0).
+cue (bank 5 Submenu_CueTransferRowOW's LDA SubmenuTransferBufSelectorsOW,Y) for the triforce frame's bottom row
+(selector $5A, bank 6 $A235) writes that row and the letters' row into the dynamic buffer instead (selector 0).
 Scratch: $01BD (the room last seen), $01BE (the roar's timer)."""
 from lol_af import Asm, BANK, patch
 
@@ -83,8 +83,12 @@ def apply(rom: bytearray, notes: list) -> None:
     from lol_newups import put
     from lol_odds import STORE
     enc = lambda c: 0x24 if c == " " else ord(c) - 55
-    text = [0x2B, 0xA9, 0x0E] + [enc(c) for c in "AB TRIFORCE CD"] + [0xFF]
-    spots = (3, 4, 15, 16)                                  # A B ... C D in the record
+    # selector $5A is the triforce frame's bottom row (bank 6 $A235: 2B6A, 12 tiles): kept, then the letters' row
+    b6 = BANK(6) - 0x8000
+    bottom = bytes(rom[b6 + 0xA235:b6 + 0xA235 + 15])
+    assert bottom[:3] == bytes([0x2B, 0x6A, 0x0C]) and rom[b6 + 0xA235 + 15] == 0xFF, bottom.hex()
+    text = list(bottom) + [0x2B, 0xA9, 0x0E] + [enc(c) for c in "AB TRIFORCE CD"] + [0xFF]
+    spots = tuple(15 + x for x in (3, 4, 15, 16))           # A B ... C D in the record
     b5 = BANK(5) - 0x8000
     assert rom[b5 + ROW_SITE:b5 + ROW_SITE + 5] == bytes([0xB9, 0x25, 0xB2, 0x85, 0x14])
 
