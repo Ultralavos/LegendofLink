@@ -540,8 +540,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     # shutters need a room trigger that opens them
     for c in cells:
         r = rooms[c]
-        if SHUT in walls[c] and r["trigger"] == T_NONE:
-            r["trigger"] = T_ALL_DEAD
+        if SHUT in walls[c] and r["trigger"] == T_NONE and roles.get(c) != "check":   # (the check old man
+            r["trigger"] = T_ALL_DEAD                                                    #  opens his own)
             if r["eclass"] == 0:
                 for s in range(4):
                     if walls[c][s] == SHUT:

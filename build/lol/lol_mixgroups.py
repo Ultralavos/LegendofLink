@@ -4,7 +4,7 @@ fully mixed, on the player's clean ROM.
 The fifteen grouped enemies (Zol, Goriya, Darknut, Vire, Pols Voice, Like Like, Wizzrobe, Wallmaster, Rope, Stalfos,
 Gibdo, Lanmola; Tektite, Lynel, Moblin; each with its color partner) are dealt into three new dungeon groups and a new
 overworld group, at most 34 tiles of graphics each. ZORA's rules keep Wallmasters, Vires, Like Likes, Zols and
-Lanmolas out of the overworld, and so do Wizzrobes here (ZORA's overworld-Wizzrobe code hooks where LoL's does); Gels and Keese (the dungeon's common graphics) and Octoroks, Peahats, Leevers,
+Lanmolas out of the overworld, Vires always share the Wizzrobes' group (their split), and so do Wizzrobes here (ZORA's overworld-Wizzrobe code hooks where LoL's does); Gels and Keese (the dungeon's common graphics) and Octoroks, Peahats, Leevers,
 boulders, Zoras, Ghinis and Armos (the overworld's own) never move.
 
 mixed() computes it once per build (the seed's): the clean ROM with the new graphics, animation frames, mixed monster
@@ -46,26 +46,36 @@ def mixed():
     from zora.model.enums import Enemy
     clean = bytes(lolpaths.source_rom())
     player = player_rom_of(clean)
-    with using_player_rom(player):
-        canvas = player.canvas
-        gw = parse_game_world(load_bin_files_from_rom(canvas), rom_bytes=canvas)
-        zol_hp = EnemyHpResult.unchanged(gw.enemies).hp[Enemy.ZOL]
-        result = GroupShuffleResult(staged=Staged())
-        rng = Rng(_seed() * 7919 + 0x4D1)
-        import zora.generate.steps.shuffle_enemy_groups as SEG
-        barred = SEG.OVERWORLD_BARRED
-        SEG.OVERWORLD_BARRED = barred | {Enemy.BLUE_WIZZROBE}       # (its partner, the red, follows it)
-        try:
-            result.enemy_deal, result.goriya_tile, result.rooms_redrawn = shuffle_enemy_groups(
-                gw.blocks, gw, 0, rng, gw.overworld, zol_hp, result.staged, overworld_group=True)
-        finally:
-            SEG.OVERWORLD_BARRED = barred
-        assert not result.staged.red_wizzrobe_overworld
-        apply_groups(gw, result)
-        patch = serialize_game_world(gw, original_bins_from_rom(canvas))
-        image = bytearray(canvas)
-        patch.apply(image)
-        out = player.finished(bytes(image))
+    # (owner, 2026-11-24) Vires stay in Wizzrobes' group: past 12 containers a vire splits into blue Wizzrobes
+    # (lol_upgrades), whose graphics must be loaded. A deal that parts them is dealt again (the next stream).
+    for attempt in range(64):
+        with using_player_rom(player):
+            canvas = player.canvas
+            gw = parse_game_world(load_bin_files_from_rom(canvas), rom_bytes=canvas)
+            zol_hp = EnemyHpResult.unchanged(gw.enemies).hp[Enemy.ZOL]
+            result = GroupShuffleResult(staged=Staged())
+            rng = Rng(_seed() * 7919 + 0x4D1 + 0x10001 * attempt)
+            import zora.generate.steps.shuffle_enemy_groups as SEG
+            barred = SEG.OVERWORLD_BARRED
+            SEG.OVERWORLD_BARRED = barred | {Enemy.BLUE_WIZZROBE}       # (its partner, the red, follows it)
+            try:
+                result.enemy_deal, result.goriya_tile, result.rooms_redrawn = shuffle_enemy_groups(
+                    gw.blocks, gw, 0, rng, gw.overworld, zol_hp, result.staged, overworld_group=True)
+            finally:
+                SEG.OVERWORLD_BARRED = barred
+            d = result.enemy_deal
+            gv = next((g for g in d.groups if Enemy.VIRE in d.members(g)), None)
+            if gv is not None and Enemy.BLUE_WIZZROBE not in d.members(gv):
+                continue
+            assert not result.staged.red_wizzrobe_overworld
+            apply_groups(gw, result)
+            patch = serialize_game_world(gw, original_bins_from_rom(canvas))
+            image = bytearray(canvas)
+            patch.apply(image)
+            out = player.finished(bytes(image))
+            break
+    else:
+        raise AssertionError("Mix enemy groups: no deal keeps the vires with the wizzrobes")
     _CACHE["m"] = (clean, out, result.enemy_deal)
     return _CACHE["m"]
 

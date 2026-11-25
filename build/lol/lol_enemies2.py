@@ -225,4 +225,13 @@ def apply(rom: bytearray, notes: list) -> None:
     s2 = Asm(STUB_W)
     s2.b(0xA0, 0x08).abs(0x4C, a.labels["arrow"])
     place(rom, 2, STUB_W, s2.bytes())
+    # (2026-11-24) the arrow check runs from WRAM with whatever bank the object's update has in: the persons' (bank
+    # 1: the old men in levels) ran into bank 1's empty $BD58 and on into lol_pictures' STUB, loading the pictures
+    # (picture off: a black screen) and scribbling RAM (Link hurt) every frame. Bank 1 (the persons' updates; banks
+    # 2 and 4 have theirs): a far call.
+    import lol_v3core as V
+    for bank in (1,):
+        sf = Asm(STUB_W)
+        sf.b(*V.far(2, a.labels["arrow"])).b(0x60)
+        place(rom, bank, STUB_W, sf.bytes())
     notes.append(f"brown darknuts at 9 containers, blue Aquamentus at 10 ({len(code)} bytes in bank 2 at ${D.MORE:04X})")

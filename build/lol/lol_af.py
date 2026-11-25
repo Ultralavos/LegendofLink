@@ -154,14 +154,15 @@ def apply(rom: bytearray, notes: list) -> None:
     # The menu's check of every file (bank 2 $A2A0: a file whose checksum fits is copied over its second copy, else
     # restored or erased) would wipe the third file's room flags, A-F's memory: it checks the first two only.
     # keep3 (the menu's erase of every unregistered file, Y = its slot): files 2 and 3 are kept - no deaths,
-    # a blank name, their room flags (SRAM the generated levels use) untouched. Y kept (the caller loops on it).
+    # their names and room flags (SRAM the generated levels use) untouched. Y kept (the caller loops on it).
     k3 = Asm(KEEP3)
     k3.b(0xB1, 0x06).abs(0x99, 0x0633).br(0xD0, "k_ret")                    # LDA (active),Y / STA / BNE
     k3.b(0xC0, 0x01).br(0xF0, "k_yes").b(0xC0, 0x02).br(0xF0, "k_yes").b(0xA9, 0x00)   # the first: Z set (erase)
     k3.label("k_ret").b(0x60)
-    k3.label("k_yes").b(0xA9, 0x00, 0x91, 0x0A, 0x98, 0x48, 0x0A, 0x0A, 0x0A, 0x18, 0x69, 0x07, 0xA8)
-    k3.b(0xA2, 0x08, 0xA9, 0x24).label("k_nm").b(0x91, 0x04, 0x88, 0xCA).br(0xD0, "k_nm")
-    k3.b(0x68, 0xA8, 0xA9, 0x01, 0x60)                                      # Z clear: kept
+    # (2026-11-24: no longer blanks their names: file 2's name holds lol_stats' clock, lol_uptable's UP6 and Zombie
+    # Link's bytes, file 3's Zombie Link's scratch; the blank tile $24 there gave the brain potion and took X-ray)
+    k3.label("k_yes").b(0xA9, 0x00, 0x91, 0x0A)
+    k3.b(0xA9, 0x01, 0x60)                                                  # Z clear: kept
     place(rom, 2, KEEP3, k3.bytes())
     # one file now: the menu's file check stops after file 1, and files 2 and 3 never count as active
     CHK1 = 0xBB40
