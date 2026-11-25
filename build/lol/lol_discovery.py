@@ -133,7 +133,7 @@ def apply(rom: bytearray, notes: list) -> None:
     f = OW + 0x280
     # E4: out of the cave above the pond (no layout change: FRAME draws the stairs)
     assert rom[f + E4] == 0x00 and rom[OW + 0x80 + E4] >> 2 == 0
-    rom[f + E4] = 2                                             # (owner: out above the fairy's pond, column 7 row 2)
+    rom[f + E4] = 1                                             # (owner: out above the fairy's pond, a row clear of it)
     rom[OW + E4] = (7 << 4) | (rom[OW + E4] & 0x0F)
     # H16: out of the cave on the sand
     assert rom[OW + 0x80 + H16] >> 2 == 0
