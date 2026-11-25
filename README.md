@@ -103,6 +103,13 @@ blue candle 4 per hit, the red candle kills). Four frames before one starts to f
 stands (lol_dodongo's type $29: lit $30 frames, then a blast that only hurts Link, 4 hearts), so the blast comes
 shortly after it's gone, and it leaves one when it dies. At most 3 red bombs on the floor, never two within 16 px.
 
+**Hydra Gohma** (`build/lol/lol_gohma.py`): at 14+ heart containers (as enemies see them) a Gohma (either kind) in a
+room's first slot turns purple and grows two of Gleeok's heads on necks from its sides. The necks ride along as it
+moves; the heads sway and spit fireballs as Gleeok's, and Gohma spits its own. A head cut off flies about as
+Gleeok's do. While any head is on, Gohma's eye stays shut (and its health held); once both are gone the eye opens for
+good, with the blue Gohma's health (arrows from below, as ever). The slot becomes a two-headed Gleeok (Gleeok's code
+owns slots 1-6, cut heads 7-8) and the Gohma moves to slot 11; flags at $6531-$6532 (battery RAM, unused).
+
 ## Seeded games, upgrade lines and item lines
 
 **Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
@@ -140,7 +147,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.326 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.327 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

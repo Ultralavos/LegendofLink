@@ -47,11 +47,12 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("up").abs(0xBD, 0x034F).b(0xC9, TYPE).br(0xD0, "u_n").abs(0xAD, HVE).b(0xC9, AT).b(0x60)
         a.label("u_n").b(0x18, 0x60)
         # init (X the object, A its type): palettes both ways, the health
-        a.label("init").b(0xC9, TYPE).br(0xD0, "i_r").abs(0xAD, HVE).b(0xC9, AT).br(0xB0, "i_u").b(0xA0, 0x03)
+        a.label("init").b(0xC9, TYPE).br(0xD0, "i_nx").abs(0xAD, HVE).b(0xC9, AT).br(0xB0, "i_u").b(0xA0, 0x03)
         a.label("i_v").abs(0xB9, "pv").abs(0x99, PALT + RF).b(0x88).br(0x10, "i_v")
         a.label("i_r").b(0x60)
         a.label("i_u").b(0xA9, HP).abs(0x9D, 0x0485).b(0xA0, 0x03)
         a.label("i_w").abs(0xB9, "pu").abs(0x99, PALT + RF).b(0x88).br(0x10, "i_w").b(0x60)
+        a.label("i_nx").b(0x60, 0xEA, 0xEA)                       # (lol_gohma: JMP its init)
         a.label("pv").b(*PV)
         a.label("pu").b(*[(v & 0x80) | 3 for v in PV])
         # the bomb / fire checks (X): vanilla, or the fire only (candle damage)
@@ -89,6 +90,8 @@ def apply(rom: bytearray, notes: list) -> None:
     c = code(at)
     place(rom, 2, at, c.bytes())
     L = c.labels
+    global LABELS
+    LABELS = L
 
     # bank 4 stubs
     def stubs(o):

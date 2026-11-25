@@ -213,7 +213,7 @@ P(f'''<section class="page"><h1 class="band">ENEMIES THAT GROW WITH YOU</h1>
 <tr><td>9</td><td>Red Darknuts</td></tr>
 <tr><td>10</td><td>Red Octoroks, Pols Voice, Dodongos, Aquamentus</td></tr>
 <tr><td>12</td><td>Blue Goriyas, Wallmasters, Vires, Gleeok</td></tr>
-<tr><td>14</td><td>Red Wizzrobes</td></tr>
+<tr><td>14</td><td>Red Wizzrobes, Gohma</td></tr>
 </table>
 {shot("img/gibdo.png", "Orange Gibdos.", "mid")}
 <div class="hint"><b>HINT</b> Listen to the old men. They know a thing or two about these.</div>
