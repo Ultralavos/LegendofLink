@@ -15,6 +15,10 @@ leaves the sprite tiles out, so players with different sprites and the same sett
 
 - **Seed**: blank gives a different game on every new file (as the IPS releases do). A number fixes the game: the
   same seed and settings give everyone the same overworld and dungeons.
+- **Link's colors**: his tunic with no ring, the blue ring and the red ring, each "From your ROM" or an NES color
+  (LOL_TUNIC="29,32,16"). A ROM whose only changes are Link's colors (the tunic colors' two copies, his colors 2
+  and 3 in the palettes; lol_seedcode.LINK_COLOR_BYTES) and custom sprites is taken, its colors kept; the seed's
+  icon code ignores them.
 - **Mode**: (hidden for now: always normal; the secret modes can still be found in the game. The build still takes
   LOL_START=swordless|hard.)
 - **Mix enemy groups**: the dungeon and overworld enemies dealt into new groups (ZORA's Shuffle Enemy Groups with its
@@ -128,7 +132,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.321 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.322 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

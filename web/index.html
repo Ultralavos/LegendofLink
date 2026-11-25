@@ -52,6 +52,10 @@
   .code-item canvas { width: 48px; height: 48px; image-rendering: pixelated; background: #000; border-radius: 6px;
     padding: 4px; box-sizing: content-box; }
   footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+  .tunics { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .tunics span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tunics select { width: auto; min-width: 130px; }
+  .tunics .sw { width: 14px; height: 14px; border: 1px solid #888; display: inline-block; }
 </style>
 </head>
 <body>
@@ -67,7 +71,7 @@
     <input id="rom" type="file" accept=".nes">
     <p id="romstatus" class="hint">Not chosen yet.</p>
     <p class="hint">Custom sprites are fine: a ROM whose only changes are the sprites of Link, the items and the
-      enemies (bosses too). Nothing else may be changed, not even colors.</p>
+      enemies (bosses too), and Link's colors. Nothing else may be changed.</p>
   </section>
 
   <section>
@@ -105,6 +109,14 @@
       share; a blank seed gets one picked. Unseeded: the game rolls these itself when a file starts and as Link finds
       them, as before (a blank seed: a different game on every new file).</p>
 
+    <label>Link's colors</label>
+    <div class="tunics">
+      <span><i id="tunic0-sw" class="sw"></i>No ring <select id="tunic0"></select></span>
+      <span><i id="tunic1-sw" class="sw"></i>Blue ring <select id="tunic1"></select></span>
+      <span><i id="tunic2-sw" class="sw"></i>Red ring <select id="tunic2"></select></span>
+    </div>
+    <p class="hint">His tunic for each ring. "From your ROM" keeps your ROM's (a ROM with custom colors keeps them).</p>
+
     <label class="check"><input id="mix" type="checkbox"> Mix enemy groups</label>
     <p class="hint">Deals the dungeon and overworld enemies into new groups (Moblins in dungeons, Stalfos outside...).
       Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and Keese stay in dungeons; Octoroks, Peahats, Leevers,
@@ -129,6 +141,6 @@
 
   <footer>Legend of Link is a fan project built on ZORA. You need your own copy of the game; no game data is hosted here.</footer>
 </main>
-<script src="app.js?v=0.321"></script>
+<script src="app.js?v=0.322"></script>
 </body>
 </html>

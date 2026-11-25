@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.321"
+VERSION = "0.322"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -31,6 +31,25 @@ DOMAIN = b"Legend of Link seed code\x00"
 # same list): Link and the items, the overworld's and the dungeons' enemies, the bosses
 SPRITE_BLOCKS = tuple((16 + o, n) for o, n in ((32895, 1792), (53595, 1824), (55419, 544), (55963, 544), (56507, 256),
                                                (56763, 544), (57307, 1024), (58331, 1024), (59355, 1024)))
+# (owner 2026-11-25) Link's colors a player's ROM may change too (file offsets): the two copies of the three tunic
+# colors (no ring, blue ring, red ring: LinkColors, LinkColors_CommonCode) and his colors 2 and 3 in the ten level
+# palettes, the title story's and the file-select screen's three (ZORA's player_settings offsets)
+TUNIC_COPIES = (41623, 27557)
+LINK_COLOR_BYTES = tuple((o, 3) for o in TUNIC_COPIES) + tuple(
+    (o, 2) for o in (103205, 103457, 103709, 103961, 104213, 104465, 104717, 104969, 105221, 105473, 38260,
+                     105725, 105729, 105733))
+LINK_COLOR_VANILLA = bytes.fromhex("293216293216" + "2717" * 3 + "3717" + "2717" * 6 + "3717" + "2707" * 3)   # (PRG1's)
+
+
+def vanilla_colors(rom: bytes) -> bytes:
+    """The ROM with Link's colors as PRG1 has them (for the tools that identify the player's ROM)."""
+    out, k = bytearray(rom), 0
+    for o, n in LINK_COLOR_BYTES:
+        out[o:o + n] = LINK_COLOR_VANILLA[k:k + n]
+        k += n
+    return bytes(out)
+
+
 ICONS = []                            # after apply_code: [(name, 16 rows of 16 NES colors)] for the page
 CODE_AT = None                        # (bank 2: the four icons' slot and value bytes)
 
@@ -103,7 +122,7 @@ def apply_code(rom: bytearray, notes: list) -> None:
     assert not any(rom[s_at:s_at + 8])
     import lol_bombup
     plain = bytearray(rom)              # (custom sprites don't change the code: the same game, other pictures)
-    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES):
+    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES:      # (and Link's colors)
         plain[at:at + n] = bytes(n)
     digest = hashlib.sha256(DOMAIN + bytes(plain)).digest()
     items = [ITEMS[b % len(ITEMS)] for b in digest[:4]]

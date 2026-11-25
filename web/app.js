@@ -10,8 +10,18 @@ const KNOWN = {   // SHA-1 of the ROM without its 16-byte header
 // prg0-to-prg1.ips for a PRG0, which touches none of them) it must match clean PRG1's.
 const SPRITE_BLOCKS = [[32895, 1792], [53595, 1824], [55419, 544], [55963, 544], [56507, 256], [56763, 544],
                        [57307, 1024], [58331, 1024], [59355, 1024]];
-const MASKED_PRG1 = "de692f18ce78c23645553f7399258b69c05afc0a";
-const VERSION = "0.321";   // (owner: Beta 0.321, bumped with every change set; lol_seedcode.VERSION shows it on the title)
+// (2026-11-25) and Link's colors (lol_seedcode.LINK_COLOR_BYTES: the tunic colors' two copies, his colors 2 and 3
+// in every palette that has them): a palette hack is taken too, its colors kept.
+const LINK_COLOR_BYTES = [[41607, 3], [27541, 3], [103189, 2], [103441, 2], [103693, 2], [103945, 2], [104197, 2],
+                          [104449, 2], [104701, 2], [104953, 2], [105205, 2], [105457, 2], [38244, 2], [105709, 2],
+                          [105713, 2], [105717, 2]];
+const MASKED_PRG1 = "b4e3536988095f75cd221aa25587ef17c3558e0c";
+// the page's tunic colors (NES colors), "" = the ROM's own
+const TUNIC_CHOICES = [["", "From your ROM"], ["29", "Green"], ["1A", "Dark green"], ["2A", "Lime"], ["2C", "Teal"],
+  ["21", "Sky blue"], ["32", "Light blue"], ["12", "Blue"], ["02", "Navy"], ["13", "Purple"], ["24", "Violet"],
+  ["25", "Pink"], ["14", "Magenta"], ["16", "Red"], ["06", "Dark red"], ["27", "Orange"], ["17", "Brown"],
+  ["28", "Gold"], ["38", "Yellow"], ["30", "White"], ["10", "Grey"], ["00", "Dark grey"], ["0F", "Black"]];
+const VERSION = "0.322";   // (owner: Beta 0.322, bumped with every change set; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
 const NES_PALETTE = [   // (ZORA's page's)
@@ -85,17 +95,17 @@ $("rom").addEventListener("change", async () => {
     // custom sprites? (PRG1, or PRG0 made PRG1; with the sprite blocks zeroed it must be clean PRG1)
     for (const [cand, name] of [[bytes, "PRG1"], [await toPrg1(bytes), "PRG0"]]) {
       const m = cand.slice(16);
-      for (const [o, n] of SPRITE_BLOCKS) m.fill(0, o, o + n);
+      for (const [o, n] of [...SPRITE_BLOCKS, ...LINK_COLOR_BYTES]) m.fill(0, o, o + n);
       if (await sha1(m) === MASKED_PRG1) { v = name; rom = cand; custom = true; break; }
     }
     if (!v) {
-      bad("That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM. Custom sprites are fine, but only the " +
-          "sprites of Link, the items and the enemies may be changed (nothing else, not even colors).");
+      bad("That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM. Custom sprites and Link's colors are fine, " +
+          "but only the sprites of Link, the items and the enemies and Link's colors may be changed.");
       return;
     }
   }
   original = bytes; version = v;
-  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}${custom ? " with custom sprites" : ""}.`;
+  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}${custom ? " with custom sprites or colors" : ""}.`;
   $("romstatus").className = "hint ok";
   refresh();
 });
@@ -125,7 +135,7 @@ $("build").addEventListener("click", () => {
   const setSeed = seed !== null ? seed : crypto.getRandomValues(new Uint32Array(1))[0];
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
                        start: $("start").value, dset: $("dset").value, setSeed,
-                       mix: $("mix").checked, fixed: !$("unseeded").checked });
+                       mix: $("mix").checked, fixed: !$("unseeded").checked, tunic: tunicSetting() });
 });
 
 worker.onmessage = (ev) => {
@@ -148,3 +158,27 @@ worker.onmessage = (ev) => {
     refresh();
   }
 };
+
+// Link's colors: three pickers (no ring, blue ring, red ring), each "From your ROM" or an NES color; with any picked,
+// the build gets all three (the unpicked ones as the ROM has them)
+const romTunic = () => (rom ? [...rom.slice(16 + 41607, 16 + 41610)] : [0x29, 0x32, 0x16]);
+function tunicSetting() {
+  const picks = ["tunic0", "tunic1", "tunic2"].map((id) => $(id).value);
+  if (picks.every((v) => !v)) return null;
+  const own = romTunic();
+  return picks.map((v, k) => v || own[k].toString(16).padStart(2, "0")).join(",");
+}
+function swatch(id) {
+  const sel = $(id), v = sel.value, sw = $(id + "-sw");
+  const c = v ? parseInt(v, 16) : romTunic()[Number(id.slice(-1))];
+  sw.style.background = NES_PALETTE[c & 0x3F];
+}
+for (const id of ["tunic0", "tunic1", "tunic2"]) {
+  const sel = $(id);
+  for (const [v, name] of TUNIC_CHOICES) {
+    const o = document.createElement("option"); o.value = v; o.textContent = name; sel.appendChild(o);
+  }
+  sel.addEventListener("change", () => swatch(id));
+  swatch(id);
+}
+$("rom").addEventListener("change", () => setTimeout(() => ["tunic0", "tunic1", "tunic2"].forEach(swatch), 300));

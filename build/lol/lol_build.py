@@ -198,8 +198,18 @@ def make_ips(src: bytes, dst: bytes) -> bytes:
 def main():
     src = open(sys.argv[1], "rb").read()
     import lolpaths
-    lolpaths.SOURCE_ROM = bytes(src)
+    import lol_seedcode as _sc                            # (a ROM with Link's own colors: identified as PRG1's)
+    lolpaths.SOURCE_ROM = _sc.vanilla_colors(bytes(src))
     rom = bytearray(src)
+    # (owner 2026-11-25) the page's tunic colors (no ring, blue ring, red ring; LOL_TUNIC "29,32,16" in hex): both
+    # copies; unset, the ROM's own (a palette hack's are kept)
+    import os
+    if os.environ.get("LOL_TUNIC"):
+        import lol_seedcode
+        tun = bytes(int(v, 16) & 0x3F for v in os.environ["LOL_TUNIC"].split(","))
+        assert len(tun) == 3
+        for o in lol_seedcode.TUNIC_COPIES:
+            rom[o:o + 3] = tun
     assert rom[HOOK:HOOK + 10] == HOOK_BYTES, rom[HOOK:HOOK + 10].hex()
     at = BANK4 + (FREE - 0x8000)
     code = build_helper(FREE)
