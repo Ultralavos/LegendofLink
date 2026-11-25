@@ -93,7 +93,10 @@ def register(list_id, name, items):
     LISTS[list_id] = (name, items)
 
 
-def wrappers(a, list_id, items, p, ret_bank, store, n_pick):
+BOOK_K = 0x01B0                         # (stack page, free) the pick the bookworm's red book takes ($FF: none)
+
+
+def wrappers(a, list_id, items, p, ret_bank, store, n_pick, book=False):
     """In the caller's code: {p}count (CNT = how many picks) and {p}nth (K -> A = item, Y = its entry in the reversed
     tables, or A = $3F), with {p}t_item (reversed, as lol_choice's picker). store: code that leaves the save index in
     A ($FF: none), with the hash context in CTX (A also)."""
@@ -103,8 +106,16 @@ def wrappers(a, list_id, items, p, ret_bank, store, n_pick):
     store(a)                                                                    # A = store index, CTX set
     a.abs(0x8D, STO).b(0xA9, list_id).abs(0x8D, LST).b(0xA9, n_pick).abs(0x8D, NUM)
     a.b(0xA9, ret_bank).abs(0x8D, RET).abs(0x20, TRAMP)
-    a.abs(0xAD, NOK).b(0x85, CNT, 0x60)
-    a.label(p + "nth").b(0xA4, K).abs(0xB9, OUT).b(0xC9, 0xFF).br(0xD0, p + "n_ok").b(0xA9, 0x3F, 0x60)
+    a.abs(0xAD, NOK).b(0x85, CNT)
+    if book:                            # (owner 2026-11-25) the bookworm's red book: lol_choice's BOOK_RT
+        import lol_choice as C
+        a.b(0xA0, n_pick).abs(0x20, C.BOOK_RT["bkc"])
+    a.b(0x60)
+    a.label(p + "nth")
+    if book:
+        a.abs(0x20, C.BOOK_RT["bkn"]).br(0x90, p + "n_nb").b(0xA0, n, 0x60)   # (Y = n: the extra entry)
+        a.label(p + "n_nb")
+    a.b(0xA4, K).abs(0xB9, OUT).b(0xC9, 0xFF).br(0xD0, p + "n_ok").b(0xA9, 0x3F, 0x60)
     a.label(p + "n_ok").b(0x49, 0xFF, 0x18, 0x69, n, 0xA8)                       # Y = n - 1 - i
     a.abs(0xB9, p + "t_item").b(0xC9, 0x04).br(0xB0, p + "n_r").b(0xC9, 0x02).br(0x90, p + "n_r")
     a.abs(0xAD, 0x7FF7).br(0xF0, p + "n_sw").b(0xA9, 0x24, 0x60)                  # swordless: a bomb upgrade

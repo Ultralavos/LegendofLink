@@ -108,6 +108,14 @@ ROWS = [
     # pool of a set whose dungeons can have walk-through walls (WALK_SET); 2026-11-25: tier 3 / 200, regen's (regen
     # took its tier 2 / 125)
     ("x-ray glasses",   (UP6, 0x08),      200, 2, 13, [], "_xray_glasses", {}, 0x1A),
+    # owner 2026-11-25: boomerang mastery (75, tier 2; with either boomerang): boomerang hits +1 damage ($10;
+    # lol_upgrades' sword hook, weapon slot $0F)
+    ("boomerang mastery", (UP6, 0x10),     75, 1, 13, [("anynz", BOOMERANG, MAGIC_BOOMERANG)], "_boomerang_mastery",
+     {0: 0x36}, 0x1A),
+    # owner 2026-11-25: bookworm (200, tier 3; only from level 8, 8+ containers): the red book +2, the blue +4
+    # (lol_books' bonus doubled); until Link has a book, one of each dungeon old man's choices is the red book and
+    # every shop sells it for 25 (lol_odds.wrappers' book)
+    ("bookworm",        (UP6, 0x20),      200, 2, 13, [("ge", HEARTS, 0x70)], "_bookworm", {}, 0x1A),
 ]
 N_UP = len(ROWS)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)

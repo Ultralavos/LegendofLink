@@ -141,7 +141,11 @@ def apply(rom: bytearray, notes: list) -> None:
     def b_sword(org):                                  # the heart snubber's level, sword +1, then the books' bonus
         a = Asm(org)
         ROD = T.bit("divining rod")                    # the divining rod's stab (weapon slot $12): 1 less, $10 at least
-        a.label("sword").b(0xA5, 0x00, 0xC9, 0x12).br(0xD0, "sw_s").abs(0xAD, ROD[0]).b(0x29, ROD[1]).br(0xF0, "sw_s")
+        BM = T.bit("boomerang mastery")                # (owner 2026-11-25) a boomerang's hit (weapon slot $0F): +$10
+        a.label("sword").b(0xA5, 0x00, 0xC9, 0x0F).br(0xD0, "sw_bm").abs(0xAD, BM[0]).b(0x29, BM[1]).br(0xF0, "sw_bm")
+        a.b(0xA5, 0x07, 0x18, 0x69, 0x10).br(0x90, "sw_bs").b(0xA9, 0xFF)
+        a.label("sw_bs").b(0x85, 0x07)
+        a.label("sw_bm").b(0xA5, 0x00, 0xC9, 0x12).br(0xD0, "sw_s").abs(0xAD, ROD[0]).b(0x29, ROD[1]).br(0xF0, "sw_s")
         a.b(0xA5, 0x07, 0xC9, 0x20).br(0x90, "sw_s").b(0xE9, 0x10, 0x85, 0x07)
         a.label("sw_s").abs(0x20, ZL["z_melee"])                    # (Zombie Link: double, a humanoid heals him)
         a.b(0xA5, 0x09, 0xC9, 0x01).br(0xD0, "sw_go")

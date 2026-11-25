@@ -51,6 +51,13 @@ open shows grey and a walk-through wall orange (only the wall's palette changes;
 Always in the pool when the seed's dungeons can have walk-through walls (2Q, 3Q, 4Q, and Random when it deals one of
 their grids); otherwise it's rolled like any other upgrade.
 
+**Boomerang Mastery** (75, tier 2; with either boomerang): boomerang hits deal +1 damage ($10; `lol_upgrades`' sword
+hook, weapon slot $0F), so they hurt as well as stun.
+
+**Bookworm** (200, tier 3; from level 8, 8+ heart containers): the books' bonus doubles (red +2, blue +4;
+`lol_books`). Until Link owns a book, the last of a dungeon old man's choices is the red book (an extra one when he'd
+offer fewer) and every shop's third ware is the red book for 25 rupees (`lol_choice.book_routines`).
+
 **Red Gleeok** (`build/lol/lol_gleeok.py`): at 12+ heart containers (as enemies see them) Gleeok turns red and,
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
@@ -92,7 +99,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.309 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.310 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

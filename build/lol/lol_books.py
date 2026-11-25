@@ -1,6 +1,6 @@
 """Legend of Link: the red and blue books. The red one is the book (item $11, $0661 = 1); the blue one is item $25
 ($0661 = 2). Either still makes the wand burn; with one, every hit Link deals does more damage: red +1, blue +2
-(a damage unit is $10, the wooden sword's hit).
+(a damage unit is $10, the wooden sword's hit); with the bookworm upgrade twice that, red +2, blue +4.
 
 Code that can run with any bank at $8000 goes in the COMMON area, the same bytes at the same address in banks 0-6:
   pal   (bank 7 $E73A: LDA ItemSlotToPalette,X): the book's slot is drawn blue (palette 1) for the blue book
@@ -25,7 +25,12 @@ def apply(rom: bytearray, notes: list) -> None:
     # bonus: in bank 0, far-called from the common stub (lol_upgrades chains its sword +1 in front)
     def build(org):
         b = Asm(org)
-        b.label("bonus").abs(0xAD, BOOK).br(0xF0, "b_n").b(0x0A, 0x0A, 0x0A, 0x0A, 0x18, 0x65, 0x07)
+        import lol_uptable as UT
+        bw = UT.bit("bookworm")                       # (owner 2026-11-25: with the bookworm, twice the bonus)
+        b.label("bonus").abs(0xAD, BOOK).br(0xF0, "b_n").b(0x0A, 0x0A, 0x0A, 0x0A, 0x48)
+        b.abs(0xAD, bw[0]).b(0x29, bw[1]).br(0xF0, "b_1").b(0x68, 0x0A).br(0xD0, "b_add")
+        b.label("b_1").b(0x68)
+        b.label("b_add").b(0x18, 0x65, 0x07)
         b.br(0x90, "b_st").b(0xA9, 0xFF)
         b.label("b_st").b(0x85, 0x07)
         b.label("b_n").abs(0xBD, 0x0485).b(0x60)
@@ -57,7 +62,7 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 7, 0xE73A, bytes([0xBD, 0xEC, 0x72]), j("pal"))
     patch(rom, 1, 0x7C59 + WRAM_DELTA, bytes([0xBD, 0x85, 0x04]), j("bstub"))
     patch(rom, 1, 0x891E, bytes([0x20, 0x70, 0x73]), j("take"))
-    notes.append(f"books: red +1, blue (item $25) +2 ({len(code)} bytes in every bank at ${COMMON:04X}, the bonus in bank 0, the take in bank 1)")
+    notes.append(f"books: red +1, blue (item $25) +2, twice with the bookworm ({len(code)} bytes in every bank at ${COMMON:04X}, the bonus in bank 0, the take in bank 1)")
 
 
 # Every major item a dungeon gives (room items and item cellars, both quests) becomes bombs

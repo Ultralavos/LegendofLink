@@ -12,7 +12,7 @@ ORDER = ['beams', 'boomstick', 'regen', 'skull ring', 'sword mastery', 'fairy bo
          'ganon visible', 'slow fireballs', 'key hoarder', 'unlimited candle', 'misers bow', 'refilling bag',
          'map master', 'spider bomber', 'bow of greed', 'holy fire', 'xp boost', 'ghost hunter', 'healerang',
          'shield breaker', 'membership card', 'poison bait', 'heart snubber', 'divining rod', 'song of chaos',
-         'zombie link', 'brain potion', 'x-ray glasses']
+         'zombie link', 'brain potion', 'x-ray glasses', 'boomerang mastery', 'bookworm']
 ICON = {k: f"img/up_{i:02d}.png" for i, k in enumerate(ORDER)}
 
 UP = {
@@ -44,6 +44,7 @@ UP = {
   ("spider bomber", "Spider Bomber", 75, "A bomb upgrade", "Bombs hurt Gohma even with its eye shut."),
   ("zombie link", "Zombie Link", 75, "Exactly 3 hearts, no ring, no Regeneration",
    "Rare. See the Zombie Link page."),
+  ("boomerang mastery", "Boomerang Mastery", 75, "A boomerang", "Your boomerangs hit 1 harder, so they hurt as well as stun."),
   ("boomstick", "Boomstick", 100, "Wand. Not with Divining Rod", "The wand's shot ends in a bomb blast where it hits a wall or a monster."),
   ("sword mastery", "Sword Mastery", 100, "A sword. Not with Heart Snubber", "Your sword hits one step harder."),
   ("rupee speed", "Rupee Speed", 100, "", "The more rupees you carry, the faster Link walks."),
@@ -71,11 +72,13 @@ UP = {
   ("membership card", "Membership Card", 200, "Only in the first upgrade cave you find", "Every shop price is cut in half."),
   ("heart snubber", "Heart Snubber", 200, "A sword, 3 hearts or fewer. Only in the second upgrade cave you find",
    "See the Heart Snubber page."),
+  ("bookworm", "Bookworm", 200, "Level 8 or higher",
+   "Books teach twice as much: the red book adds 2 to every hit, the blue book 4. Until you own a book, a dungeon old man always offers the red book, and every shop sells it for 25 rupees."),
   ("x-ray glasses", "X-ray Glasses", 200, "",
    "In dungeons, walls you can bomb glow grey and walls you can walk through glow orange."),
  ],
 }
-assert sum(len(v) for v in UP.values()) == 37 and {u[0] for v in UP.values() for u in v} == set(ORDER)
+assert sum(len(v) for v in UP.values()) == 39 and {u[0] for v in UP.values() for u in v} == set(ORDER)
 
 
 def up_rows(items):
@@ -96,7 +99,7 @@ pages = []
 P = pages.append
 
 # ---------------- cover
-cover_icons = "".join(f'<img src="{ICON[k]}">' for k in ORDER[:36])
+cover_icons = "".join(f'<img src="{ICON[k]}">' for k in ORDER[:36])   # (a 9 x 4 grid)
 P(f'''<section class="page cover">
 <div class="cframe">
  <div class="ctop">INSTRUCTION BOOKLET</div>
@@ -171,7 +174,7 @@ P(f'''<section class="page"><h1 class="band">WHAT'S NEW</h1>
 <li><b>Every door is a surprise.</b> Each cave, shop and dungeon entrance on the overworld is dealt out at random.</li>
 <li><b>Old men offer choices.</b> In each level an old man lets you take one of two items.</li>
 <li><b>Shrines and prizes.</b> Beat a shrine's guardian to claim its prize.</li>
-<li><b>Upgrades.</b> 37 upgrades for sale, three upgrade caves to find, and one purchase in each.</li>
+<li><b>Upgrades.</b> 39 upgrades for sale, three upgrade caves to find, and one purchase in each.</li>
 <li><b>Old men cards.</b> Collect cards in dungeons that bring better items from shops, old men and shrines.</li>
 <li><b>New items.</b> The bomb upgrade, the blue book and XP bags.</li>
 <li><b>Triforce caves.</b> Rewards for 4 and for all 8 triforce pieces.</li>
@@ -315,7 +318,9 @@ P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 2</h1>
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 2 (CONT.)</h1>
 <div class="ups">{up_rows(UP[2][7:])}</div></section>''')
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 3</h1>
-<div class="ups">{up_rows(UP[3])}</div></section>''')
+<div class="ups">{up_rows(UP[3][:6])}</div></section>''')
+P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 3 (CONT.)</h1>
+<div class="ups">{up_rows(UP[3][6:])}</div></section>''')
 
 # ---------------- snubber & zombie
 P(f'''<section class="page"><h1 class="band">HEART SNUBBER AND ZOMBIE LINK</h1>

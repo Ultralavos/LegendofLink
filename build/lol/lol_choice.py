@@ -96,7 +96,33 @@ def picker(a: Asm, items: list, p: str, badge_shift: int = None) -> None:
         a.label(f"{p}t_hi{k}").b(*[c[3 + k][2] for c in items])
 
 
+BOOK_AT = 0xBEE2                        # bank 1 free in the finished ROM ($BEE2-$BF4F)
+BOOK_RT = {}
+
+
+def book_routines(rom):
+    """(owner 2026-11-25) The bookworm, and no book yet: the last of an offer's picks is the red book (an extra one
+    when the line gave fewer). bkc (Y = the most picks; after the engine, CNT its count): BOOK_K = that pick, CNT
+    grown; bkn: carry set and A = the red book when pick K is it."""
+    import lol_uptable as UT
+    from lol_odds import BOOK_K
+    bw = UT.bit("bookworm")
+    b = Asm(BOOK_AT)
+    b.label("bkc").b(0xA9, 0xFF).abs(0x8D, BOOK_K)
+    b.abs(0xAD, bw[0]).b(0x29, bw[1]).br(0xF0, "bk_r").abs(0xAD, 0x0661).br(0xD0, "bk_r")
+    b.b(0xC4, CNT).br(0xF0, "bk_full")
+    b.b(0xA5, CNT).abs(0x8D, BOOK_K).b(0xE6, CNT, 0x60)
+    b.label("bk_full").b(0x88).abs(0x8C, BOOK_K)
+    b.label("bk_r").b(0x60)
+    b.label("bkn").b(0xA5, K).abs(0xCD, BOOK_K).br(0xD0, "bn_no").b(0xA9, 0x11, 0x38, 0x60)
+    b.label("bn_no").b(0x18, 0x60)
+    place(rom, 1, BOOK_AT, b.bytes())
+    assert BOOK_AT + len(b.bytes()) <= 0xBF50
+    BOOK_RT.update(b.labels)
+
+
 def apply(rom: bytearray, notes: list) -> None:
+    book_routines(rom)
     a = Asm(FREE)
     vanilla = {lv: rom[TABLE + 2 * lv] | rom[TABLE + 2 * lv + 1] << 8 for lv in CHOICE_ROOMS}
     from lol_dungeons import CHOICE_ROOMS_2Q            # A-F's (by their second-quest level)
@@ -117,7 +143,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("os_q2").b(0xA5, T0, 0xC9, 0x04).br(0xF0, "os_e").b(0xA9, 0x0A).br(0xD0, "os_st")
         a.label("os_e").b(0xA9, 0x09)
         a.label("os_st").abs(0x8D, lol_odds.CTX)
-    lol_odds.wrappers(a, 0, CHOICES, "", 1, old_store, 2)
+    lol_odds.wrappers(a, 0, CHOICES, "", 1, old_store, 2, book=True)
     # the choice: A = level
     a.label("choice").b(0x85, T0).abs(0x8E, SAVE_X)                            # (X: the caller's, kept)
     a.abs(0x20, "count").b(0xA5, CNT).br(0xD0, "ch_some")
@@ -265,6 +291,7 @@ SHOP_ITEMS = [   # (name, item, fewest containers, cond, cond, most containers, 
     ("magical boomerang", 0x1E, 1, (MAGIC_BOOMERANG, 0, 1), (BOOMERANG, 1, 0), 16, 50),
     ("magical shield", 0x1C, 1, (SHIELD, 0, 1), ANY, 16, 50),
 ]
+BOOK_PRICE = 25                                  # (owner 2026-11-25) the bookworm's red book in every shop
 SHOP_TYPES = (0x74, 0x77, 0x78, 0x79, 0x7A)      # the potion shop, shops A-D (person $6A + cave index)
 CAVE_WARES, CAVE_PRICES = 0x6A7E, 0x6ABA
 J, BASE = 0x04, 0x05
@@ -310,8 +337,8 @@ def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
 
     def shop_store(a):                  # not saved; the shop's kind is the hash's place (every shop 1 the same)
         a.abs(0xAD, 0x0350).abs(0x8D, lol_odds.CTX).b(0xA9, 0xFF)
-    lol_odds.wrappers(a, 2, [c[:6] for c in SHOP_ITEMS], "s_", 1, shop_store, 3)
-    a.label("s_t_price").b(*[c[6] for c in reversed(SHOP_ITEMS)])
+    lol_odds.wrappers(a, 2, [c[:6] for c in SHOP_ITEMS], "s_", 1, shop_store, 3, book=True)
+    a.label("s_t_price").b(*[c[6] for c in reversed(SHOP_ITEMS)], BOOK_PRICE)   # (+ the bookworm's red book)
     code = a.bytes()
     place(rom, 1, cpu, code)
     L = a.labels
