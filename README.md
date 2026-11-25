@@ -70,6 +70,15 @@ decides each cave (out of 64, never the same option in both): 30 the Thorn Brace
 1 a free ring, book or sword. **Thorn Bracelet** (UP6 $80): replaces the Heavy Bracelet's picture on the item screen;
 a monster that touches Link takes what Link loses (rings count), rounded up to whole hearts, $10 a heart.
 
+**Song of Discovery** (75, tier 2, with the recorder; `build/lol/lol_discovery.py`, caves in `lol_heavy.py`): only on
+seeds whose upgrade pool has it. With it the recorder drains a patch of sea at H16 (east of the shore, 3x3) with
+stairs in it, and turns E4's bush right of the fairy pond into stairs; neither is saved (the water and the bush are
+back when the screen loads again; play again, as with the vanilla recorder spots). Link comes out of H16's cave on
+the sand and E4's above the pond. A recorder sprite marks the four recorder spots (E3, F9, E4, H16) until they're
+revealed. The seed deals the two caves as the Heavy Bracelet's, with the **Song of Sleep** (EXTRA $02) in the Thorn
+Bracelet's place; it replaces the Song of Discovery's picture on the item screen (its dungeon effects: next).
+Bits: $7F47 (lol_entrances' spare byte, cleared for a new file; lol_upgrades' uget reads rows from K7F there).
+
 **Goriya Charger** (`build/lol/lol_enemies2.py`): at 12+ heart containers (as enemies see them) blue Goriyas wear
 Link's colors (sprite palette 0, so they follow his ring), have 6 health, deal 4 hearts on contact (with knockback)
 and give 15 XP. Their boomerang does no damage: it stuns Link for 30 frames (no input, no flashing; lol_upgrades'
@@ -115,7 +124,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.316 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.317 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
@@ -147,8 +156,8 @@ After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips 
 ## Planned
 
 - A spoiler log.
-- Upgrades from the owner's first list not built yet (what each does is still to be decided): Song of Sleep,
-  Song of Discovery, Destruction Expert, Bomb Blast Suit, Expert Arsonist,
+- Song of Sleep's dungeon effects (the recorder puts some enemies to sleep).
+- Upgrades from the owner's first list not built yet (what each does is still to be decided): Destruction Expert, Bomb Blast Suit, Expert Arsonist,
   Orbital Shield. (Glass Cannon became Zombie Link and Attack over Heart became the Heart Snubber.)
 
 ## Layout

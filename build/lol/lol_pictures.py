@@ -47,10 +47,10 @@ def apply(rom: bytearray, notes: list) -> None:
     # (owner 2026-11-25) one more picture past the rows: the Thorn Bracelet (lol_heavy), shown in the Heavy
     # Bracelet's place once Link has it
     import lol_icons2
-    tg = lol_icons2._thorn_bracelet()
-    halves.append([("data", b"".join(B.tile_bytes(["".join(".123"[tg[y0 + y][x0 + x]] for x in range(8))
-                                                    for y in range(8)]) for y0 in (0, 8))) for x0 in (0, 8)])
-    NP = N_UP + 1
+    for tg in (lol_icons2._thorn_bracelet(), lol_icons2._song_of_sleep()):   # (+ the Song of Sleep's, lol_discovery)
+        halves.append([("data", b"".join(B.tile_bytes(["".join(".123"[tg[y0 + y][x0 + x]] for x in range(8))
+                                                        for y in range(8)]) for y0 in (0, 8))) for x0 in (0, 8)])
+    NP = N_UP + 2
     assert all(len(h) == 2 for h in halves)
     w = Asm(B.POT_W)
     w.abs(0xB9, 0x78DC).b(0xC9, 0x40).br(0xD0, "st")
@@ -140,8 +140,10 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("uget").abs(0xBD, "uahi").b(0x85, 0x01).abs(0xBD, "ualo").b(0x85, 0x00).b(0xA0, 0x00, 0xB1, 0x00)
         a.abs(0x3D, "ubits").b(0x60)
         # put: X = the upgrade, U_SLOT the slot: both halves loaded, the slot's tables pointed at them, its palette
-        a.label("put").abs(0x8E, U_ORG).b(0xE0, T.index("heavy bracelet")).br(0xD0, "pu_x").abs(0xAD, T.THORN[0]).b(0x29, T.THORN[1])
+        a.label("put").abs(0x8E, U_ORG).b(0xE0, T.index("heavy bracelet")).br(0xD0, "pu_d").abs(0xAD, T.THORN[0]).b(0x29, T.THORN[1])
         a.br(0xF0, "pu_x").b(0xA2, N_UP)                                     # (the Thorn Bracelet's picture)
+        a.label("pu_d").b(0xE0, T.index("song of discovery")).br(0xD0, "pu_x").abs(0xAD, T.SLEEP[0]).b(0x29, T.SLEEP[1])
+        a.br(0xF0, "pu_x").b(0xA2, N_UP + 1)                                 # (the Song of Sleep's)
         a.label("pu_x").abs(0x8E, U_IT).abs(0xAD, U_SLOT).b(0x0A).abs(0x8D, U_K)
         a.abs(0x20, "half").abs(0xAC, U_SLOT).abs(0x99, B.WLW + 8)
         a.abs(0xEE, U_K).abs(0xAE, U_IT).b(0x8A, 0x18, 0x69, NP, 0xAA).abs(0x20, "half")
@@ -159,7 +161,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("ualo").b(*[T.ROWS[k][T.SAVE][0] & 0xFF for k in range(N_UP)])
         a.label("uahi").b(*[T.ROWS[k][T.SAVE][0] >> 8 for k in range(N_UP)])
         a.label("ubits").b(*[T.ROWS[k][T.SAVE][1] for k in range(N_UP)])
-        a.label("upal").b(*[T.ROWS[k][T.PAL] for k in range(N_UP)], 0x00)   # (the thorns: blue)
+        a.label("upal").b(*[T.ROWS[k][T.PAL] for k in range(N_UP)], 0x00, 0x1A)   # (the thorns blue, sleep red)
         a.label("slotp").b(*pairs)
         a.label("ppk").b(0, 1, 2, 0, 0, 0, 1, 2, 0, 1, 2)
         a.label("ppair").b(*ppairs)

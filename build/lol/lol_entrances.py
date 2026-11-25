@@ -159,7 +159,7 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("roll_entry")
     if hent is not None:
         import lol_v3core as V3
-        a.b(*V3.far(0, hent))
+        a.b(*V3.far(3, hent))
     a.b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
     a.abs(0x20, "setoff")
     a.b(0xA2, N - 1).label("fi").abs(0xBD, "rooms").b(0xC5, ROOM).br(0xF0, "found").b(0xCA).br(0x10, "fi")

@@ -46,9 +46,13 @@ HINTS = {"swordless": ["ENTER 5 DOORS BEFORE", "YOU TAKE A SWORD, THEN", "VISIT 
          "hard": ["DIE 5 TIMES BEFORE YOU", "ENTER ANY DOOR, THEN", "VISIT THE SWORD CAVE"]}
 
 
-def _deal():
+H16, E4 = 0x7F, 0x43                    # (lol_discovery's two caves: the same deal)
+ACTIVE2 = T.index("song of discovery") in T.POOL
+
+
+def _deal(salt, rooms):
     seed = int(os.environ.get("LOL_SET_SEED") or os.environ.get("LOL_SEED") or 0)
-    rng = random.Random(seed * 6151 + 0x4EA7)
+    rng = random.Random(seed * 6151 + salt)
 
     def roll():
         r = rng.randrange(64)
@@ -60,34 +64,44 @@ def _deal():
     a = roll()
     while a == g:                       # (owner: no option in both caves)
         a = roll()
-    return {G6: g, A10: a}, rng.choice(sorted(HINTS))
+    return {rooms[0]: g, rooms[1]: a}, rng.choice(sorted(HINTS))
 
 
-DEALT, HINT_MODE = _deal()
+DEALT, HINT_MODE = _deal(0x4EA7, (G6, A10))
+DEALT2, HINT_MODE2 = _deal(0x5D15, (H16, E4))
+# every cave this seed has: (room, its option, the special's item and bit, the hint's mode)
+CAVES = ([(r, DEALT[r], 0x14, THORN, HINT_MODE) for r in (G6, A10)] if ACTIVE else []) + \
+        ([(r, DEALT2[r], 0x05, T.SLEEP, HINT_MODE2) for r in (H16, E4)] if ACTIVE2 else [])
 
 
 def describe():
-    names = {THORN_C: "Thorn Bracelet", SHOP_C: "secret shop", SECRET_C: "100 rupees", HINT_C: f"hint ({HINT_MODE})",
-             FREE_C: "free ring / book / sword"}
-    return f"G6 {names[DEALT[G6]]}, A10 {names[DEALT[A10]]}" if ACTIVE else "no Heavy Bracelet this seed"
+    out = []
+    for r, c, item, bit, mode in CAVES:
+        sp = "Thorn Bracelet" if bit == THORN else "Song of Sleep"
+        names = {THORN_C: sp, SHOP_C: "secret shop", SECRET_C: "100 rupees", HINT_C: f"hint ({mode})",
+                 FREE_C: "free ring / book / sword"}
+        out.append(f"{'ABCDEFGH'[r // 16]}{r % 16 + 1} {names[c]}")
+    return ", ".join(out) or "no Heavy Bracelet / Song of Discovery this seed"
 
 
 def entry_code(rom):
-    """lol_entrances' roll_entry far-calls this (bank 0) first: G6 / A10 get their cave's destination."""
-    if not ACTIVE:
+    """lol_entrances' roll_entry far-calls this (bank 0) first: the caves get their destinations."""
+    if not CAVES:
         return None
     import lol_v3core as V
 
     def build(org):
         a = Asm(org)
-        a.label("ent").b(0xA5, 0x10).br(0xD0, "e_r").b(0xA5, 0xEB, 0xC9, G6).br(0xD0, "e_a")
-        a.b(0xA9, DEST[DEALT[G6]]).br(0xD0, "e_w")
-        a.label("e_a").b(0xC9, A10).br(0xD0, "e_r").b(0xA9, DEST[DEALT[A10]])
-        a.label("e_w").b(0x0A, 0x0A).abs(0x8D, THD).b(0xA6, 0xEB).abs(0xBD, ATTR_B).b(0x29, 0x03).abs(0x0D, THD)
-        a.abs(0x9D, ATTR_B)
+        a.label("ent").b(0xA5, 0x10).br(0xD0, "e_r").b(0xA2, len(CAVES) - 1)
+        a.label("e_l").b(0xA5, 0xEB).abs(0xDD, "e_rm").br(0xF0, "e_f").b(0xCA).br(0x10, "e_l").b(0x60)
+        a.label("e_f").abs(0xBD, "e_d").b(0x0A, 0x0A).abs(0x8D, THD).b(0xA6, 0xEB).abs(0xBD, ATTR_B).b(0x29, 0x03)
+        a.abs(0x0D, THD).abs(0x9D, ATTR_B)
         a.label("e_r").b(0x60)
+        a.label("e_rm").b(*[c[0] for c in CAVES])
+        a.label("e_d").b(*[DEST[c[1]] for c in CAVES])
         return a
-    return V.put0(rom, build).labels["ent"]
+    from lol_newups import put3 as put
+    return put(rom, 3, build).labels["ent"]                 # (bank 3; far-called)
 
 
 def marks(rom):
@@ -171,7 +185,7 @@ def _set_square(rom, screen, col, row, old, new, notes):
             enc.append(sq[k]); k += 1
     enc[0] |= 0x80
     heap = bytes(rom[B5 + lo:B5 + hi]) + bytes(enc)
-    at = free_in(rom, 5, len(heap))
+    at = free_in(rom, 5, len(heap), 0x8000, 0xBD40 - len(heap))   # (lol_snubber: $BD5E on)
     place(rom, 5, at, heap)
     rom[COL_DIR + 2 * g:COL_DIR + 2 * g + 2] = bytes([at & 0xFF, at >> 8])
     k = sum(1 for x in rom[B5 + lo:B5 + hi] if x & 0x80)   # (its index: every column start in the copy before it)
@@ -182,8 +196,8 @@ def _set_square(rom, screen, col, row, old, new, notes):
 
 
 def apply(rom: bytearray, notes: list) -> None:
-    if not ACTIVE:
-        notes.append("heavy bracelet: " + describe())
+    if not CAVES:
+        notes.append("heavy bracelet / song of discovery: " + describe())
         return
     import lol_v3core as V
     import lol_modes
@@ -196,7 +210,16 @@ def apply(rom: bytearray, notes: list) -> None:
             sys.path.insert(0, p)
     from zora.rom.serialize.text import _encode_quote
     import build_mock as base
-    # --- the screens
+    if ACTIVE:
+        heavy_screens(rom, notes)
+    if ACTIVE2:
+        import lol_discovery
+        lol_discovery.apply(rom, notes)
+    caves(rom, notes)
+
+
+def heavy_screens(rom, notes):
+    from lol_newups import free_in
     f = OW + 0x280
     assert rom[f + A10] == 0xA4 and rom[OW + 0x80 + A10] >> 2 == 0x13
     rom[f + A10] = 0x24                                         # first quest too (spot 2, exit row 4)
@@ -220,25 +243,42 @@ def apply(rom: bytearray, notes: list) -> None:
     place(rom, 4, pa, bpush(pa).bytes())
     patch(rom, 4, 0x8E4F, bytes([0xAD, 0x65, 0x06]), bytes([0x20, pa & 0xFF, pa >> 8]))
 
+
+def caves(rom, notes):
+    import lol_v3core as V
+    import lol_modes
+    from lol_newups import free_in
+    from lol_saveblock import HINT_BUF
+    import sys
+    import lolpaths
+    for p in (lolpaths.ZORA, lolpaths.Q3B):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    from zora.rom.serialize.text import _encode_quote
+    import build_mock as base
+
     # --- bank 0: the wares and the take
-    texts = bytes(_encode_quote(base.centered(HINTS[HINT_MODE])))
-    texts = texts + bytes(80 - len(texts))
+    modes = sorted(HINTS)
+    texts = b""
+    for m in modes:
+        t = bytes(_encode_quote(base.centered(HINTS[m])))
+        texts += t + bytes(80 - len(t))
     mc = T.bit("membership card")
     zl = T.bit("zombie link")
     sn = T.bit("heart snubber")
+    n = len(CAVES)
 
     def bwares(o):
         a = Asm(o)
-        a.label("w").b(0xA5, 0x10).br(0xD0, "w_r").b(0xA5, 0xEB, 0xC9, G6).br(0xD0, "w_a").b(0xA9, DEALT[G6])
-        a.br(0xD0, "w_go")
-        a.label("w_a").b(0xC9, A10).br(0xD0, "w_r").b(0xA9, DEALT[A10])
-        a.label("w_go").b(0xC9, THORN_C).br(0xF0, "w_th").b(0xC9, SHOP_C).br(0xF0, "w_sh")
-        a.b(0xC9, FREE_C).br(0xF0, "w_fr").b(0xC9, HINT_C).br(0xF0, "w_hi")
+        a.label("w").b(0xA5, 0x10).br(0xD0, "w_r").b(0xA2, n - 1)
+        a.label("w_l").b(0xA5, 0xEB).abs(0xDD, "rm").br(0xF0, "w_f").b(0xCA).br(0x10, "w_l")
         a.label("w_r").b(0x60)
+        a.label("w_f").abs(0xBD, "opt").b(0xC9, THORN_C).br(0xF0, "w_th").b(0xC9, SHOP_C).br(0xF0, "w_sh")
+        a.b(0xC9, FREE_C).br(0xF0, "w_fr").b(0xC9, HINT_C).br(0xF0, "w_hi").b(0x60)
         ta = 3 * (TAKE_ANY - 0x10)
         sh = 3 * (SHOP - 0x10)
-        # the Thorn Bracelet: the take-any's middle place (drawn as the bracelet)
-        a.label("w_th").b(0xA2, ta, 0xA9, 0x3F).abs(0x20, "put").b(0xA9, 0x14).abs(0x20, "put")
+        # the special (Thorn Bracelet / Song of Sleep): the take-any's middle place, drawn as its item
+        a.label("w_th").abs(0xBD, "item").b(0x48, 0xA2, ta, 0xA9, 0x3F).abs(0x20, "put").b(0x68).abs(0x20, "put")
         a.b(0xA9, 0x3F).abs(0x4C, "put")
         # free: ring, book, sword (take one)
         a.label("w_fr").b(0xA2, ta).abs(0x20, "ring").abs(0x20, "put").abs(0x20, "book").abs(0x20, "put")
@@ -250,9 +290,9 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("w_pl").abs(0xBD, "prices").b(0xA8).abs(0xAD, mc[0]).b(0x29, mc[1]).br(0xF0, "w_ps")
         a.b(0x98, 0x4A, 0x69, 0x00, 0xA8)
         a.label("w_ps").b(0x98).abs(0x9D, CAVE_PRICES + sh).b(0xCA).br(0x10, "w_pl").b(0x60)
-        # the hint: the old man's text
-        a.label("w_hi").b(0xA0, 0x00)
-        a.label("w_hl").abs(0xB9, "text").abs(0x99, HINT_BUF).b(0xC8, 0xC0, 80).br(0xD0, "w_hl")
+        # the hint: the old man's text (this cave's mode)
+        a.label("w_hi").abs(0xBC, "hix").b(0xA2, 0x00)
+        a.label("w_hl").abs(0xB9, "text").abs(0x9D, HINT_BUF).b(0xC8, 0xE8, 0xE0, 80).br(0xD0, "w_hl")
         a.b(0xA9, lol_modes.HINT_SEL).abs(0x8D, lol_modes.QOVR).b(0x60)
         # put: item A into ware X (its flag bits kept); X + 1
         a.label("put").abs(0x8D, THD).abs(0xBD, CAVE_WARES).b(0x29, 0xC0).abs(0x0D, THD).abs(0x9D, CAVE_WARES)
@@ -267,18 +307,25 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("b_r").b(0xA9, 0x11, 0x60)
         a.label("none").b(0xA9, 0x3F, 0x60)
         a.label("prices").b(150, 150, 100)
-        # the take: the Thorn Bracelet's cave
-        a.label("take")
-        th = [s for s in (G6, A10) if DEALT[s] == THORN_C]
-        if th:
-            a.b(0xA5, 0x10).br(0xD0, "t_r").b(0xA5, 0xEB, 0xC9, th[0]).br(0xD0, "t_r")
-            a.abs(0xAD, THORN[0]).b(0x09, THORN[1]).abs(0x8D, THORN[0])
-            import lol_pictures as PIC                          # (its picture now: the owned ones reloaded)
-            a.b(0x8A, 0x48, 0xA2, 0x00).abs(0x20, PIC.LOAD["load"]).b(0x68, 0xAA)
-        a.label("t_r").b(0x60)
+        # the take: in a special's cave, its bit (and its picture now: the owned ones reloaded). X kept.
+        import lol_pictures as PIC
+        a.label("take").b(0xA5, 0x10).br(0xD0, "t_x").b(0x8A, 0x48, 0xA2, n - 1)
+        a.label("t_l").b(0xA5, 0xEB).abs(0xDD, "rm").br(0xF0, "t_f").b(0xCA).br(0x10, "t_l").br(0x30, "t_r")
+        a.label("t_f").abs(0xBD, "opt").b(0xC9, THORN_C).br(0xD0, "t_r").abs(0xBD, "sel").br(0xD0, "t_s")
+        a.abs(0xAD, THORN[0]).b(0x09, THORN[1]).abs(0x8D, THORN[0]).br(0xD0, "t_p")
+        a.label("t_s").abs(0xAD, T.SLEEP[0]).b(0x09, T.SLEEP[1]).abs(0x8D, T.SLEEP[0])
+        a.label("t_p").b(0xA2, 0x00).b(*V.far(0, PIC.LOAD["load"]))
+        a.label("t_r").b(0x68, 0xAA)
+        a.label("t_x").b(0x60)
+        a.label("rm").b(*[c[0] for c in CAVES])
+        a.label("opt").b(*[c[1] for c in CAVES])
+        a.label("item").b(*[c[2] for c in CAVES])
+        a.label("sel").b(*[0 if c[3] == THORN else 1 for c in CAVES])
+        a.label("hix").b(*[80 * modes.index(c[4]) for c in CAVES])
         a.label("text").b(*texts)
         return a
-    W = V.put0(rom, bwares).labels
+    from lol_newups import put3 as put
+    W = put(rom, 3, bwares).labels                          # (bank 3: bank 0 is full)
 
     # --- bank 1: the stubs (InitCave's fill; TakeItem)
     f1 = BANK(1) + 0x85F9 - 0x8000
@@ -290,12 +337,12 @@ def apply(rom: bytearray, notes: list) -> None:
 
     def bstub(o):
         a = Asm(o)
-        a.label("fill").abs(0x20, old_fill).b(0x48).b(*V.far(0, W["w"])).b(0x68, 0x38, 0x60)   # (A $0350, C set)
-        a.label("take").b(0x48).b(*V.far(0, W["take"])).b(0x68).abs(0x4C, old_take)
+        a.label("fill").abs(0x20, old_fill).b(0x48).b(*V.far(3, W["w"])).b(0x68, 0x38, 0x60)   # (A $0350, C set)
+        a.label("take").b(0x48).b(*V.far(3, W["take"])).b(0x68).abs(0x4C, old_take)
         return a
     sa = free_in(rom, 1, len(bstub(0x8000).bytes()), 0xB000)
     s = bstub(sa)
     place(rom, 1, sa, s.bytes())
     rom[f1 + 1:f1 + 3] = bytes([s.labels["fill"] & 0xFF, s.labels["fill"] >> 8])
     rom[t1 + 1:t1 + 3] = bytes([s.labels["take"] & 0xFF, s.labels["take"] >> 8])
-    notes.append("heavy bracelet: " + describe())
+    notes.append("heavy bracelet / song of discovery: " + describe())

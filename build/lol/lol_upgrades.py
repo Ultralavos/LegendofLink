@@ -36,7 +36,9 @@ import lol_uptable as T
 ROLL1 = None                                # bank 1 free: the roll (set in apply)
 SWORD_UP, BUBBLE_RING, FAIRY = 0x08, 0x10, 0x20
 N_UP = T.N_UP                               # (the upgrades: lol_uptable's rows)
-assert all((T.ROWS[k][T.SAVE][0] >> 8) == (0x06 if k < 9 else 0x60) for k in range(N_UP))   # (uget's CPX #9 rule)
+K7F = T.K7F                                 # rows from here keep their bits in $7Fxx (lol_uptable.EXTRA)
+assert all((T.ROWS[k][T.SAVE][0] >> 8) == (0x06 if k < 9 else 0x60 if k < K7F else 0x7F) for k in range(N_UP))
+# (uget's CPX #9 / CPX #K7F rule)
 # the white sword cave's list, in priority: (item, inventory byte, offered while that byte is below this)
 WS_LIST = [(0x11, 0x0661, 1),   # (owner 2026-11-25) red book: first, but only once Link has the white sword (or
            (0x25, 0x0661, 2),   #  better; ws_build's CPX #6); blue book, the same, once he has the red one
@@ -193,6 +195,7 @@ def apply(rom: bytearray, notes: list) -> None:
     import lol_shrineui, lol_entrances as _E
     gen_roar = _E.GEN
     ROAR = lol_shrineui.roar(rom) if gen_roar else None
+    DISC_FRAME = [None]
     def b_frame(org):                                  # every frame of play: regen, the refilling bag, the snubber
         a = Asm(org)
         a.label("frame").abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xF0, "f1").abs(0x20, B0["regen"])
@@ -203,6 +206,11 @@ def apply(rom: bytearray, notes: list) -> None:
         import lol_enemies2 as E2                                          # a Goriya Charger's stun: no input
         a.abs(0xAD, E2.STUN).br(0xF0, "f5").abs(0xCE, E2.STUN).b(0xA9, 0x00, 0x85, 0xF8, 0x85, 0xFA).abs(0x8D, 0x03F8)   # (+ $EC5B's copy)
         a.label("f5")
+        import lol_discovery                                                # (lol_heavy's Song of Discovery)
+        if DISC_FRAME[0] is None:
+            DISC_FRAME[0] = lol_discovery.frame_code(rom) or 0
+        if DISC_FRAME[0]:
+            a.b(*V.far(3, DISC_FRAME[0]))
         if gen_roar:
             a.abs(0x4C, ROAR)                                                  # (Level 9 / shrines: lol_shrineui)
         return a.b(0x60)
@@ -656,10 +664,12 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         # uget / uset: X = the upgrade; A = its owned bit (Z clear: owned). Y used, X kept. (Bits of 0-8: $06xx;
         # 9 on: $60xx)
         b.label("uget").abs(0xBC, "ualo").b(0xE0, 9).br(0xB0, "ug_h").abs(0xB9, 0x0600).abs(0x3D, "ubits").b(0x60)
-        b.label("ug_h").abs(0xB9, 0x6000).abs(0x3D, "ubits").b(0x60)
+        b.label("ug_h").b(0xE0, K7F).br(0xB0, "ug_7").abs(0xB9, 0x6000).abs(0x3D, "ubits").b(0x60)
+        b.label("ug_7").abs(0xB9, 0x7F00).abs(0x3D, "ubits").b(0x60)
         b.label("uset").abs(0xBC, "ualo").b(0xE0, 9).br(0xB0, "us_h")
         b.abs(0xB9, 0x0600).abs(0x1D, "utbits").abs(0x99, 0x0600).b(0x60)
-        b.label("us_h").abs(0xB9, 0x6000).abs(0x1D, "utbits").abs(0x99, 0x6000).b(0x60)
+        b.label("us_h").b(0xE0, K7F).br(0xB0, "us_7").abs(0xB9, 0x6000).abs(0x1D, "utbits").abs(0x99, 0x6000).b(0x60)
+        b.label("us_7").abs(0xB9, 0x7F00).abs(0x1D, "utbits").abs(0x99, 0x7F00).b(0x60)
         # uptake: X = the ware slot. Its upgrade (WIX) gets its bit, and moves to the next owned slot (the pictures
         # stay where they are: the slot's tables and palette are copied); the map master's maps; the item tune
         b.label("uptake").abs(0xAC, CI).abs(0xB9, "dmask").abs(0x0D, LINES + 7).abs(0x8D, LINES + 7)   # (all 3 go)

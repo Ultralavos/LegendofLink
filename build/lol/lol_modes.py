@@ -235,7 +235,7 @@ def apply_rom(rom: bytearray, notes: list) -> None:
     sq[SECRET_ROW] = ROCK_WALL_SECRET
     newcol = bytes([sq[0] | 0x80] + sq[1:])
     new_heap = heap + newcol
-    at = free_in(rom, 5, len(new_heap))
+    at = free_in(rom, 5, len(new_heap), 0x8000, 0xBD40 - len(new_heap))   # (lol_snubber: $BD5E on)
     place(rom, 5, at, new_heap)
     rom[COL_DIR + 2 * g:COL_DIR + 2 * g + 2] = bytes([at & 0xFF, at >> 8])
     code = g << 4 | n

@@ -61,6 +61,16 @@ def free_in(rom, bank, size, lo=0x8000, hi=0xBF00):
     raise AssertionError(f"no {size} bytes free in bank {bank}")
 
 
+def put3(rom, bank, build):
+    """(2026-11-25) bank 3's tail ($B300-): free in every finished ROM (lol_heavy / lol_discovery's code)."""
+    assert bank == 3
+    n = len(build(0xB300).bytes())
+    at = free_in(rom, 3, n, 0xB300)
+    a = build(at)
+    place(rom, 3, at, a.bytes())
+    return a
+
+
 def put(rom, bank, build):
     n = len(build(0x8000).bytes())
     at = free_in(rom, bank, n, 0xB000 if bank == 4 else 0x8000)

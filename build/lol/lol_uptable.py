@@ -37,6 +37,8 @@ WAND = 0x065F
 RECORDER = 0x065C
 TRIFORCE = 0x0671
 RING = 0x0662
+EXTRA = 0x7F47                          # (owner 2026-11-25) lol_entrances' spare 72nd byte (cleared for a new file):
+                                        # rows from K7F keep their bits here (lol_upgrades' uget)
 LINES = 0x6012                          # 8 (owner 2026-11-24): the upgrade caves' lines - 2 bits per place in a
                                         # tier's line (tier_items: 0 not taken, 1-3 the cave), the caves' "bought
                                         # here" bits 4-6 of the last byte (file 3's name; cleared for a new file)
@@ -120,9 +122,16 @@ ROWS = [
     # (lol_heavy), whose caves roll once each: the Thorn Bracelet (UP6 $80, not a row: it takes this one's picture),
     # a secret shop, 100 rupees, a secret-mode hint or a free ring / book / sword
     ("heavy bracelet",  (UP6, 0x40),       75, 1, 13, [("ge", 0x0665, 1)], "_heavy_bracelet", {}, 0x00),
+    # owner 2026-11-25: song of discovery (75, tier 2; with the recorder): the recorder opens H16 (a drained patch
+    # of sea) and E4 (a bush by the fountain), whose caves roll as the Heavy Bracelet's do, with the Song of Sleep
+    # (EXTRA $02, not a row: it takes this one's picture) in the Thorn Bracelet's place; the four recorder spots
+    # show a recorder (lol_discovery)
+    ("song of discovery", (EXTRA, 0x01),  75, 1, 13, [("ge", RECORDER, 1)], "_song_of_discovery", {}, 0x1A),
 ]
 THORN = (UP6, 0x80)                     # (owner 2026-11-25) the Thorn Bracelet (lol_heavy)
+SLEEP = (EXTRA, 0x02)                   # (owner 2026-11-25) the Song of Sleep (lol_discovery)
 N_UP = len(ROWS)
+K7F = next(k for k, r in enumerate(ROWS) if r[1][0] == EXTRA)
 NAME, SAVE, PRICE, TIER, WEIGHT, COND, PIC, FIXED, PAL = range(9)
 POWER_ON = 9                            # the first nine have pictures in the power-on tiles (the title's legend)
 assert all(r[TIER] == (0 if r[PRICE] <= 50 else 1 if r[PRICE] <= 125 else 2) for r in ROWS)

@@ -12,7 +12,7 @@ ORDER = ['beams', 'boomstick', 'regen', 'skull ring', 'sword mastery', 'fairy bo
          'ganon visible', 'slow fireballs', 'key hoarder', 'unlimited candle', 'misers bow', 'refilling bag',
          'map master', 'spider bomber', 'bow of greed', 'holy fire', 'xp boost', 'ghost hunter', 'healerang',
          'shield breaker', 'membership card', 'poison bait', 'heart snubber', 'divining rod', 'song of chaos',
-         'zombie link', 'brain potion', 'x-ray glasses', 'boomerang mastery', 'bookworm', 'heavy bracelet']
+         'zombie link', 'brain potion', 'x-ray glasses', 'boomerang mastery', 'bookworm', 'heavy bracelet', 'song of discovery']
 ICON = {k: f"img/up_{i:02d}.png" for i, k in enumerate(ORDER)}
 
 UP = {
@@ -47,6 +47,8 @@ UP = {
   ("boomerang mastery", "Boomerang Mastery", 75, "A boomerang", "Your boomerangs hit 1 harder, so they hurt as well as stun."),
   ("heavy bracelet", "Heavy Bracelet", 75, "Power Bracelet",
    "Lets you push certain heavy rocks on the overworld. What's behind them? The heavy rocks show grey once you have it."),
+  ("song of discovery", "Song of Discovery", 75, "Recorder",
+   "Your recorder finds new places. Spots where it reveals something show a recorder once you have it."),
   ("boomstick", "Boomstick", 100, "Wand. Not with Divining Rod", "The wand's shot ends in a bomb blast where it hits a wall or a monster."),
   ("sword mastery", "Sword Mastery", 100, "A sword. Not with Heart Snubber", "Your sword hits one step harder."),
   ("rupee speed", "Rupee Speed", 100, "", "The more rupees you carry, the faster Link walks."),
@@ -80,7 +82,7 @@ UP = {
    "In dungeons, walls you can bomb glow grey and walls you can walk through glow orange."),
  ],
 }
-assert sum(len(v) for v in UP.values()) == 40 and {u[0] for v in UP.values() for u in v} == set(ORDER)
+assert sum(len(v) for v in UP.values()) == 41 and {u[0] for v in UP.values() for u in v} == set(ORDER)
 
 
 def up_rows(items):
@@ -176,7 +178,7 @@ P(f'''<section class="page"><h1 class="band">WHAT'S NEW</h1>
 <li><b>Every door is a surprise.</b> Each cave, shop and dungeon entrance on the overworld is dealt out at random.</li>
 <li><b>Old men offer choices.</b> In each level an old man lets you take one of two items.</li>
 <li><b>Shrines and prizes.</b> Beat a shrine's guardian to claim its prize.</li>
-<li><b>Upgrades.</b> 40 upgrades for sale, three upgrade caves to find, and one purchase in each.</li>
+<li><b>Upgrades.</b> 41 upgrades for sale, three upgrade caves to find, and one purchase in each.</li>
 <li><b>Old men cards.</b> Collect cards in dungeons that bring better items from shops, old men and shrines.</li>
 <li><b>New items.</b> The bomb upgrade, the blue book and XP bags.</li>
 <li><b>Triforce caves.</b> Rewards for 4 and for all 8 triforce pieces.</li>
