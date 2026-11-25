@@ -58,12 +58,13 @@
 
   <section>
     <h2>2. Settings</h2>
-    <label for="seed">Seed</label>
+    <label for="seed">Seed (numbers only)</label>
     <div class="row">
-      <input id="seed" type="text" inputmode="numeric" placeholder="Blank: one is picked for you">
+      <input id="seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10"
+             placeholder="Numbers only">
       <button id="roll" type="button">Random</button>
     </div>
-    <p class="hint">Everyone who builds the same seed and settings gets the same game (the seed shows on the title
+    <p class="hint">Leave it blank and one is picked for you. Everyone who builds the same seed and settings gets the same game (the seed shows on the title
       screen, and the file screen shows a four-icon code to compare).</p>
 
     <label for="dset">Dungeons</label>

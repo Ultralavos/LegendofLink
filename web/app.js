@@ -71,6 +71,11 @@ $("rom").addEventListener("change", async () => {
   refresh();
 });
 
+$("seed").addEventListener("input", () => {     // (numbers only: anything else is dropped as it's typed)
+  const v = $("seed").value, d = v.replace(/\D/g, "");
+  if (d !== v) $("seed").value = d;
+});
+
 $("roll").addEventListener("click", () => {
   $("seed").value = String(crypto.getRandomValues(new Uint32Array(1))[0]);
 });
