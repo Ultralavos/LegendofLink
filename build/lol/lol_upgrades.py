@@ -296,7 +296,8 @@ def apply(rom: bytearray, notes: list) -> None:
       g4.label("ll_r").b(0x60)
       # red octoroks at 10+ containers (HVE, lol_enemies2's bomb octoroks): the bomb-dropping class (the third
       # list, whose table holds the bombs; looked up as a blue octorok, $09, as the like-like's upgrade does)
-      g4.label("oc_c").b(0xC9, 0x07).br(0xF0, "oc_x").b(0xC9, 0x08).br(0xD0, "ll_r")
+      # (owner 2026-11-25) and blue pols voices ($16, lol_newups: also at 10+)
+      g4.label("oc_c").b(0xC9, 0x07).br(0xF0, "oc_x").b(0xC9, 0x08).br(0xF0, "oc_x").b(0xC9, 0x16).br(0xD0, "ll_r")
       g4.label("oc_x").abs(0xAD, HVE).b(0xC9, 0x90).br(0x90, "oc_n").b(0xA9, 0x09, 0x60)
       g4.label("oc_n").abs(0xBD, 0x0412).b(0x60)
       # Ganon (bank 4 Ganon_CheckCollisions' JSR CheckMonsterSwordCollision): with the upgrade the boomerang (slot
