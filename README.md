@@ -120,9 +120,10 @@ gone. His picture is the cave old man's, written over Patra's body tiles ($F8-$F
 (RAM: stack-page bytes no code touches; $6530+ is the play area's tiles, not free.)
 
 **Ganon's guards** (`build/lol/lol_ganon.py`): at 16 heart containers (as enemies see them), and always in hard mode,
-Ganon calls up Level 9's strongest ordinary monster (the most XP at 16 containers, from the level's enemy group; no
-bosses, Lanmolas, Patras, traps or Vires; a tie never a Wallmaster) in a cloud of smoke every 30 seconds while fewer
-than 3 are alive (with 3 the timer stops, and starts again when one dies). They drop nothing, and they die when Ganon
+Ganon calls up Level 9's strongest ordinary monster (the most XP at 16 containers, from Level 9's own sprite set,
+which his room shows whatever the level's enemy group; no bosses, Lanmolas, Patras, traps or Vires; a tie never a
+Wallmaster) in a cloud of smoke 60 frames into the fight and every 580 frames after, while fewer than 3 are alive
+(with 3 the timer stops, and starts again when one dies). They drop nothing, and they die when Ganon
 does. Test build: `LOL_DEBUG_GANON=1` (never the page's) starts a file with 16 hearts, the magical sword, the red
 ring, the bow, silver arrows, 30 rupees and the triforce, sends the wood sword cave into Level 9 and moves Ganon's
 room north of the way in.
@@ -164,7 +165,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.334 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.335 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

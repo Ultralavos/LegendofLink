@@ -1,7 +1,7 @@
 """Legend of Link: Ganon's guards (owner, 2026-11-25): at 16 heart containers (as enemies see them: HVE $F0), and
-always in hard mode, Ganon calls up Level 9's strongest ordinary monster (the most XP at 16 containers, from the
-level's enemy group; no bosses, Lanmolas, Patras, traps or Vires), in a cloud of smoke, every 30 seconds while
-fewer than 3 of them are alive (with 3 the timer stops; it starts again when one dies). When Ganon falls (his dying count,
+always in hard mode, Ganon calls up Level 9's strongest ordinary monster (the most XP at 16 containers, from Level
+9's own sprite set, which his room shows whatever the level's enemy group; no bosses, Lanmolas, Patras, traps or Vires), in a cloud of smoke, 60 frames into the fight
+and every 580 after while fewer than 3 of them are alive (with 3 the timer stops; it starts again when one dies). When Ganon falls (his dying count,
 $042C, running) they die too. Called-up monsters drop nothing.
 
 Ganon's update (UpdateObject's $3E, bank 4) -> a far call (bank 3) first: in his room, during the fight, the count,
@@ -15,7 +15,8 @@ AT = 0xF0
 HARD = 0x7FF8
 REC9 = 0x7FAD + 8 * 5 + 1               # Level 9's record [1]: the enemy group in bits 2-3
 GROOM, TL, TH, SPT, MK = 0x0110, 0x0111, 0x0112, 0x0113, 0x0114   # (stack page, unused)
-PERIOD = 30 * 60
+PERIOD = 580                            # (owner 2026-11-25: frames between calls)
+FIRST = 60                              # (the first: 60 frames into the fight)
 MAX = 3
 FIND_EMPTY, SET_TYPE = 0xFEBB, 0xFEB3
 GANON = 0x3E
@@ -59,20 +60,28 @@ def best_per_group():
     return out
 
 
+def BEST_OF(best):
+    """(2026-11-25) Ganon's room shows Level 9's own sprite set (levels 4, 6 and 9's: groups 2 and 3), whatever the
+    level's enemy group: the strongest of those two groups' monsters."""
+    return max((best[2], best[3]), key=lambda k: (_xp16(k), k != 0x27, k))
+
+
 def apply(rom: bytearray, notes: list) -> None:
     import lol_v3core as V
     import lol_wizzrobe as W
     from lol_newups import free_in
     best = best_per_group()
+    global BEST
+    BEST = BEST_OF(best)
 
     def code(o):
         a = Asm(o)
         a.label("gan").abs(0xAD, HARD).br(0xD0, "g_on").abs(0xAD, HVE).b(0xC9, AT).br(0xB0, "g_on").b(0x60)
         a.label("g_on").b(0xA5, 0xEB).abs(0xCD, GROOM).br(0xF0, "g_same").abs(0x8D, GROOM)
-        a.b(0xA9, PERIOD & 0xFF).abs(0x8D, TL).b(0xA9, PERIOD >> 8).abs(0x8D, TH)
+        a.b(0xA9, FIRST & 0xFF).abs(0x8D, TL).b(0xA9, FIRST >> 8).abs(0x8D, TH)
         a.b(0xA9, 0x00, 0xA0, 0x0B)
         a.label("g_c0").abs(0x99, MK).b(0x88).br(0x10, "g_c0")
-        a.label("g_same").abs(0xAD, REC9).b(0x4A, 0x4A, 0x29, 0x03, 0xA8).abs(0xB9, "best").abs(0x8D, SPT)
+        a.label("g_same").b(0xA9, BEST).abs(0x8D, SPT)
         a.abs(0xAD, 0x0445).b(0xC9, 0x02).br(0xD0, "g_r")                   # (phase 2: the fight)
         a.abs(0xBD, 0x042C).br(0xD0, "g_kill")                               # (his dying count running)
         # the count (marks of the dead cleared)
@@ -98,7 +107,6 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("g_kl").abs(0xB9, MK).br(0xF0, "g_kn").abs(0xB9, 0x034F).abs(0xCD, SPT).br(0xD0, "g_kn")
         a.abs(0xB9, 0x0405).b(0x29, 0x10).br(0xD0, "g_kn").b(0xA9, 0x11).abs(0x99, 0x0405)
         a.label("g_kn").b(0x88).br(0xD0, "g_kl").b(0x60)
-        a.label("best").b(*best)
         a.label("sx").b(*[x for x, _ in SPOTS])
         a.label("sy").b(*[y for _, y in SPOTS])
         return a
@@ -128,8 +136,7 @@ def apply(rom: bytearray, notes: list) -> None:
     s = Asm(s4).b(*V.far(3, L["gan"])).abs(0x4C, old)
     place(rom, 4, s4, s.bytes())
     rom[ut:ut + 2] = bytes([s4 & 0xFF, s4 >> 8])
-    names = ", ".join(f"${t:02X}" for t in best)
-    notes.append(f"Ganon's guards (16 containers / hard): by group {names} (bank 3 ${at:04X}, stub bank 4 ${s4:04X})")
+    notes.append(f"Ganon's guards (16 containers / hard): ${BEST:02X} every {PERIOD} frames (first {FIRST}) (bank 3 ${at:04X}, stub bank 4 ${s4:04X})")
 
 
 # ---------------- the owner's test build (LOL_DEBUG_GANON=1; never the page's) ----------------
