@@ -5,7 +5,8 @@ The fifteen grouped enemies (Zol, Goriya, Darknut, Vire, Pols Voice, Like Like, 
 Gibdo, Lanmola; Tektite, Lynel, Moblin; each with its color partner) are dealt into three new dungeon groups and a new
 overworld group, at most 34 tiles of graphics each. ZORA's rules keep Wallmasters, Vires, Like Likes, Zols and
 Lanmolas out of the overworld, Vires always share the Wizzrobes' group (their split), and so do Wizzrobes here (ZORA's overworld-Wizzrobe code hooks where LoL's does); Gels and Keese (the dungeon's common graphics) and Octoroks, Peahats, Leevers,
-boulders, Zoras, Ghinis and Armos (the overworld's own) never move.
+boulders, Zoras, Ghinis and Armos (the overworld's own) never move out of the overworld. The overworld screens'
+monsters are then dealt to other screens (_shuffle_overworld), Zoras and Ghinis staying put.
 
 mixed() computes it once per build (the seed's): the clean ROM with the new graphics, animation frames, mixed monster
 lists, overworld monsters, item-carrier operands and ZORA's overworld-Wizzrobe bytes written, and the vanilla dungeon
@@ -68,6 +69,7 @@ def mixed():
             if gv is not None and Enemy.BLUE_WIZZROBE not in d.members(gv):
                 continue
             assert not result.staged.red_wizzrobe_overworld
+            _shuffle_overworld(gw, rng)
             apply_groups(gw, result)
             patch = serialize_game_world(gw, original_bins_from_rom(canvas))
             image = bytearray(canvas)
@@ -78,6 +80,35 @@ def mixed():
         raise AssertionError("Mix enemy groups: no deal keeps the vires with the wizzrobes")
     _CACHE["m"] = (clean, out, result.enemy_deal)
     return _CACHE["m"]
+
+
+KEEP_OW = (0x11, 0x21, 0x22)            # Zora, the Ghinis: never moved (owner 2026-11-24)
+
+
+def _shuffle_overworld(gw, rng):
+    """(owner 2026-11-24) The overworld screens' monsters dealt to other screens: ZORA's Shuffle Overworld Monsters
+    (its forward walk and barred placements: no blue moblin on the bracelet screens, peahats / leevers where they'd
+    stick), with every screen that holds a Zora or a Ghini kept as it is; screens without monsters keep none."""
+    import zora.generate.steps.shuffle_overworld_monsters as OWM
+    ow = gw.overworld
+    def keep(screen):
+        pair = OWM.MonsterPair(ow.screens[screen].enemy_spec, ow.screens[screen].enemy_quantity)
+        return any(OWM._holds(gw, pair, v) for v in KEEP_OW)
+    cand = [s.screen_num for s in ow.screens
+            if OWM._monster_byte(ow, s.screen_num) not in OWM.EXCLUDED_MONSTER_BYTES and not keep(s.screen_num)]
+    pairs = [OWM.MonsterPair(ow.screens[x].enemy_spec, ow.screens[x].enemy_quantity) for x in cand]
+    n = len(pairs)
+    for pos in range(n):
+        for _ in range(200):
+            other = pos + rng.below(n - pos)
+            if not (OWM._is_barred(gw, pairs[pos], cand[other]) or OWM._is_barred(gw, pairs[other], cand[pos])):
+                break
+        else:
+            other = pos
+        pairs[pos], pairs[other] = pairs[other], pairs[pos]
+    for x, p in zip(cand, pairs):
+        ow.screens[x].enemy_spec = p.spec
+        ow.screens[x].enemy_quantity = p.quantity
 
 
 def source():
