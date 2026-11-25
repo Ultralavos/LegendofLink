@@ -82,3 +82,6 @@ Red Gleeok (2026-11-24):
 
 X-ray glasses (2026-11-24):
 55. X-ray glasses: bomb grey walls, walk through orange   [only with the upgrade x-ray glasses]
+
+Overworld secrets (2026-11-25):
+56. Play some music in the forest 2 screens south of the big bridge   (was: ...two screens... - 4 lines; the recorder spot at F9)
