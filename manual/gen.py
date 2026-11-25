@@ -152,7 +152,6 @@ P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME</h1>
 <dl>
 <dt>Seed (numbers only)</dt><dd>The seed decides the whole game: dungeons, caves, upgrades and hints. Players with the same seed and settings play the same game. Leave it blank and one is picked for you.</dd>
 <dt>Dungeon set</dt><dd>Where the dungeon shapes come from: Legend of Link's own maps, the 1st, 2nd, 3rd or 4th Quest shapes, random shapes, Random (any four grids) or Mixed (each level from any set). Shrines always use Legend of Link maps or random shapes.</dd>
-<dt>Mode</dt><dd>Normal (the secret modes can still be found), Swordless from the start, or Hard mode from the start.</dd>
 <dt>Mix enemy groups</dt><dd>Deals the enemies into new groups, so new mixes of enemies meet in dungeons and on the overworld.</dd>
 <dt>Unseeded</dt><dd>The old way: each new file deals its own dungeons and caves inside the game.</dd>
 </dl>
@@ -353,7 +352,7 @@ P(f'''<section class="page"><h1 class="band">THE TRIFORCE CAVES</h1>
 
 # ---------------- secret modes
 P(f'''<section class="page"><h1 class="band">SECRET MODES</h1>
-<p>Two secret modes are hidden in every game. How to find them is up to you, or choose one on the randomizer page from the start.</p>
+<p>Two secret modes are hidden in every game. How to find them is up to you. Some old men may know a thing or two.</p>
 <h2>Swordless</h2>
 <p>No sword for Link. Every offer of the white or magical sword becomes a bomb upgrade while Link holds fewer than 32 bombs.</p>
 <h2>Hard Mode</h2>
