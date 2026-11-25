@@ -348,7 +348,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             if t != s and walls[gan][t] == OPEN:
                 walls[gan][t] = SHUT
         roles[gan], roles[zel] = "ganon", "zelda"
-        tri, boss, choice = gan, gan, None
+        tri, boss, choice = zel, gan, None      # (owner 2026-11-24: the compass points to Zelda)
     elif shrine:
         # the prize room: a dead end, its only way in a shutter on the approach room's side
         best = None
