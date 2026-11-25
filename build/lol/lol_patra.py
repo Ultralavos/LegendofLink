@@ -14,7 +14,7 @@ Bank 4: Patra's init (the children's loop, $A964: 11 bytes) -> JSR cfg (each chi
 removed) ... JMP pin (the old man: health, the damage table, STARTS); its update's body draw ($AB74: LDA #2 / JSR
 $8476 / LDY #8) -> a far call (the draw, the fireball, LDY #8); the child's draw ($AC71: 12 bytes) -> a far call;
 the start point compare (CMP $ABCF,Y at $ABEE) -> CMP STARTS,Y.
-RAM: STARTS $6533-$6539, FT $653A (battery RAM past the save files, unused)."""
+RAM: STARTS $0146-$014C, FT $014D, CSTEP $014E (stack page: no code of the game or LoL touches them)."""
 from lol_af import Asm, place, patch, BANK
 
 HVE = 0x016F
@@ -23,7 +23,7 @@ BODY_HP, FLAME_HP = 0xF0, 0x80
 BODY_DMG, FLAME_DMG = 4, 2      # (hearts; vanilla 2 / 1)
 FIRE_T = 90
 DMG = 0x7A4A
-STARTS, FT, CSTEP = 0x6533, 0x653A, 0x653B
+STARTS, FT, CSTEP = 0x0146, 0x014D, 0x014E   # (stack page, unused; not $6530+: the play area tiles)
 OLD_MAN, CAVE_FLAME = 0x6B, 0x40
 VANILLA_STARTS = (0x14, 0x10, 0x0C, 0x08, 0x04, 0x00, 0x1C)
 SIX_STARTS = (19, 13, 8, 3, 0, 0, 29)           # slots 3, 4, 5, 6, (7, 8 gone), 9: 32 / 6 apart

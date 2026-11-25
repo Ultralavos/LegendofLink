@@ -83,7 +83,8 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0x98, 0xAA)
         a.label("d_r").b(0x60)
         # its death (X, still its type)
-        a.label("death").abs(0x20, "up").br(0xB0, "spawn").b(0x60)
+        a.label("death").b(0xEA, 0xEA, 0xEA)                              # (lol_ganon: JSR its no-drop check)
+        a.abs(0x20, "up").br(0xB0, "spawn").b(0x60)
         return a
     n = len(code(0x8000).bytes())
     at = free_in(rom, 2, n, 0xB940)

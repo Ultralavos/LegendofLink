@@ -211,6 +211,10 @@ def apply(rom: bytearray, notes: list) -> None:
             DISC_FRAME[0] = lol_discovery.frame_code(rom) or 0
         if DISC_FRAME[0]:
             a.b(*V.far(3, DISC_FRAME[0]))
+        import lol_ganon                                                    # (the owner's test build only)
+        dbg = lol_ganon.debug_frame(rom)
+        if dbg:
+            a.b(*V.far(3, dbg))
         if gen_roar:
             a.abs(0x4C, ROAR)                                                  # (Level 9 / shrines: lol_shrineui)
         return a.b(0x60)

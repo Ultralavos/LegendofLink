@@ -311,6 +311,9 @@ def main():
     lol_gohma.apply(rom, notes)
     import lol_patra
     lol_patra.apply(rom, notes)
+    import lol_ganon
+    lol_ganon.apply(rom, notes)
+    lol_ganon.debug_apply(rom, notes)
     import lol_potion
     lol_potion.apply(rom, notes)
     import lol_zombie

@@ -18,8 +18,8 @@ from lol_af import Asm, place, patch, BANK
 
 HVE = 0x016F
 AT = 0xD0
-HYB = 0x6531                    # 0 no, 1 made (its Gohma to come), 2 on
-KIND = 0x6532                   # the Gohma's type
+HYB = 0x0160                    # 0 no, 1 made (its Gohma to come), 2 on
+KIND = 0x0161                   # the Gohma's type
 GS = 0x0B
 GLEEOK = 0x43
 HP = 0x60                       # the blue Gohma's ($33)
