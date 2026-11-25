@@ -50,6 +50,12 @@ their grids); otherwise it's rolled like any other upgrade.
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
+## Title and seed code
+
+The title screen reads LEGEND OF LINK / BETA 0.301 and the seed below it (NEW SEED EACH FILE without one;
+`build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
+players whose four icons match have the same game (same seed and settings).
+
 ## The end screen
 
 After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips them, Select goes on):

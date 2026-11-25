@@ -315,6 +315,9 @@ def main():
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
     import lol_mixgroups
     lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
+    import lol_seedcode
+    lol_seedcode.apply(rom, notes)                # the title's version and seed, the file select's code
+    lol_seedcode.apply_code(rom, notes)           # (last: a hash of the finished ROM)
     print("\n".join(notes))
     open(sys.argv[2], "wb").write(make_ips(src, bytes(rom)))
     if len(sys.argv) > 3:

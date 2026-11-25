@@ -5,7 +5,7 @@ const KNOWN = {   // SHA-1 of the ROM without its 16-byte header
   "a12d74c73a0481599a5d832361d168f4737bbcf6": "PRG0",
   "be2f5dc8c5ba8ec1a344a71f9fb204750af24fe7": "PRG1",
 };
-const VERSION = "2.02";
+const VERSION = "0.301";   // (owner: Beta 0.301; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
 let rom = null, original = null, version = null, ready = false;
