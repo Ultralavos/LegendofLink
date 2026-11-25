@@ -5,6 +5,12 @@ const KNOWN = {   // SHA-1 of the ROM without its 16-byte header
   "a12d74c73a0481599a5d832361d168f4737bbcf6": "PRG0",
   "be2f5dc8c5ba8ec1a344a71f9fb204750af24fe7": "PRG1",
 };
+// Custom sprites: a ROM whose only changes are in the sprite pattern blocks (Link and the items, the enemies, the
+// bosses; offsets without the header, as lol_seedcode.SPRITE_BLOCKS) is taken too. With those blocks zeroed (after
+// prg0-to-prg1.ips for a PRG0, which touches none of them) it must match clean PRG1's.
+const SPRITE_BLOCKS = [[32895, 1792], [53595, 1824], [55419, 544], [55963, 544], [56507, 256], [56763, 544],
+                       [57307, 1024], [58331, 1024], [59355, 1024]];
+const MASKED_PRG1 = "de692f18ce78c23645553f7399258b69c05afc0a";
 const VERSION = "0.301";   // (owner: Beta 0.301; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
@@ -39,18 +45,28 @@ $("rom").addEventListener("change", async () => {
   if (!f) return;
   const bytes = new Uint8Array(await f.arrayBuffer());
   const body = bytes[0] === 0x4E && bytes[1] === 0x45 && bytes[2] === 0x53 ? bytes.subarray(16) : bytes;
-  const v = KNOWN[await sha1(body)];
-  if (!v || body.length !== bytes.length - 16) {
-    $("romstatus").textContent = "That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM with its header.";
-    $("romstatus").className = "hint bad";
-    return;
+  const bad = (text) => { $("romstatus").textContent = text; $("romstatus").className = "hint bad"; };
+  if (body.length !== bytes.length - 16 || body.length !== 131072) {
+    bad("That isn't a Legend of Zelda (USA) PRG0 or PRG1 ROM with its header."); return;
+  }
+  const toPrg1 = async (b) => applyIps(b, new Uint8Array(await (await fetch("prg0-to-prg1.ips")).arrayBuffer()));
+  let v = KNOWN[await sha1(body)], custom = false;
+  if (v) rom = v === "PRG0" ? await toPrg1(bytes) : bytes;
+  else {
+    // custom sprites? (PRG1, or PRG0 made PRG1; with the sprite blocks zeroed it must be clean PRG1)
+    for (const [cand, name] of [[bytes, "PRG1"], [await toPrg1(bytes), "PRG0"]]) {
+      const m = cand.slice(16);
+      for (const [o, n] of SPRITE_BLOCKS) m.fill(0, o, o + n);
+      if (await sha1(m) === MASKED_PRG1) { v = name; rom = cand; custom = true; break; }
+    }
+    if (!v) {
+      bad("That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM. Custom sprites are fine, but only the " +
+          "sprites of Link, the items and the enemies may be changed (nothing else, not even colors).");
+      return;
+    }
   }
   original = bytes; version = v;
-  if (v === "PRG0") {
-    const patch = new Uint8Array(await (await fetch("prg0-to-prg1.ips")).arrayBuffer());
-    rom = applyIps(bytes, patch);
-  } else rom = bytes;
-  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}.`;
+  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}${custom ? " with custom sprites" : ""}.`;
   $("romstatus").className = "hint ok";
   refresh();
 });

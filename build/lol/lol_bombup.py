@@ -420,6 +420,9 @@ CONV = (0x00, 0x11, 0x0A, 0x05, 0x00, 0x05, 0x00)
 SLOT_CONV = (len(CONV), len(CONV) + 6)       # the draw's X range read from SCONV
 
 
+SPRITE_COPIES = []                  # file ranges made from the base's sprite tiles (custom sprites: not in the code)
+
+
 def apply(rom: bytearray, notes: list) -> None:
     global POT_W, POUCH_W
     import lol_v3core as V3
@@ -435,6 +438,7 @@ def apply(rom: bytearray, notes: list) -> None:
         at = BG_CHR + t * 16
         assert not any(rom[at:at + 16]), hex(t)
         rom[at:at + 16] = tile_bytes(rows)
+    SPRITE_COPIES.append((BG_CHR + (TILE - 1) * 16, 16))   # (from the player's bomb sprite: lol_seedcode skips it)
 
     # the new items' pictures (16x16: a left and a right 8x16 half). Each half is a tile pair: background pairs
     # from $34 to $5F, then $AA/$AB, then the sprite table's blank $1C/$1D; identical halves share a pair (the badges'

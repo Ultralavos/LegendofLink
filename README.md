@@ -6,6 +6,11 @@ A randomizer and rework of *The Legend of Zelda* (NES), built on [ZORA](https://
 PRG0 or PRG1, pick your settings and build. Everything runs in your browser; your ROM is never uploaded and no game
 data is stored in this repository.
 
+**Custom sprites**: a ROM whose only changes are in the sprite pattern blocks (Link and the items, the overworld's
+and the dungeons' enemies, the bosses) is taken too, PRG0 or PRG1 (`web/app.js` zeroes those blocks and checks the
+rest against clean PRG1). Anything else changed, colors included, and the page turns it down. The file-select code
+leaves the sprite tiles out, so players with different sprites and the same settings see the same code.
+
 ## Settings (first version)
 
 - **Seed**: blank gives a different game on every new file (as the IPS releases do). A number fixes the game: the

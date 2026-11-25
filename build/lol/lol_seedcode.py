@@ -8,7 +8,8 @@ item icons: a hash of the finished ROM (everything the page's settings change), 
 icons have the same game. Drawn as ZORA's FP-HASH-01 draws them: the menu's second step (bank 2 $A4BD: LDA #$14 /
 STA TileBufSelector / INC GameSubmode / RTS) -> icons, drawing each item with DrawItemBySlot (bank 7 $E73A) into
 OAM offsets the menu leaves alone, then Link's palette row kept and every other row made the cursor's (row 3).
-apply_code runs last (lol_build): the hash is of the ROM with the four bytes still 0."""
+apply_code runs last (lol_build): the hash is of the ROM with the four bytes still 0, and the sprite tiles (a custom
+sprite ROM's pictures) left out."""
 import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
@@ -26,6 +27,10 @@ ICON_Y, ICON_X = 0x27, (0x68, 0x78, 0x88, 0x98)
 ITEMS = (0x00, 0x01, 0x03, 0x04, 0x05, 0x06, 0x08, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x10, 0x11, 0x12, 0x14, 0x15, 0x16,
          0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1F, 0x21, 0x22, 0x23)
 DOMAIN = b"Legend of Link seed code\x00"
+# the sprite pattern blocks a custom-sprite ROM may change (file offsets: header included; the page's check is the
+# same list): Link and the items, the overworld's and the dungeons' enemies, the bosses
+SPRITE_BLOCKS = tuple((16 + o, n) for o, n in ((32895, 1792), (53595, 1824), (55419, 544), (55963, 544), (56507, 256),
+                                               (56763, 544), (57307, 1024), (58331, 1024), (59355, 1024)))
 CODE_AT = None                        # (bank 2: the four icons' slot and value bytes)
 
 
@@ -95,7 +100,11 @@ def apply_code(rom: bytearray, notes: list) -> None:
     """Last: the four icons, from a hash of the finished ROM."""
     s_at, v_at = CODE_AT
     assert not any(rom[s_at:s_at + 8])
-    digest = hashlib.sha256(DOMAIN + bytes(rom)).digest()
+    import lol_bombup
+    plain = bytearray(rom)              # (custom sprites don't change the code: the same game, other pictures)
+    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES):
+        plain[at:at + n] = bytes(n)
+    digest = hashlib.sha256(DOMAIN + bytes(plain)).digest()
     items = [ITEMS[b % len(ITEMS)] for b in digest[:4]]
     tbl = BANK(1) + SLOT_TABLE + WRAM_DELTA - 0x8000
     for k, it in enumerate(items):
