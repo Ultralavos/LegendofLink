@@ -309,6 +309,8 @@ def main():
     lol_gleeok.apply(rom, notes)
     import lol_gohma
     lol_gohma.apply(rom, notes)
+    import lol_patra
+    lol_patra.apply(rom, notes)
     import lol_potion
     lol_potion.apply(rom, notes)
     import lol_zombie

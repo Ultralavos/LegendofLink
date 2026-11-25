@@ -112,6 +112,12 @@ Gleeok's do. While any head is on, Gohma's eye stays shut (and its health held);
 good, with the blue Gohma's health (arrows from below, as ever). The slot becomes a two-headed Gleeok (Gleeok's code
 owns slots 1-6, cut heads 7-8) and the Gohma moves to slot 11; flags at $6531-$6532 (battery RAM, unused).
 
+**Fire Sage** (`build/lol/lol_patra.py`): at 15+ heart containers (as enemies see them) a Patra becomes an old man
+with 6 flames circling him (Patra's own moves and patterns; six evenly spaced, not eight). The old man has 15 health,
+does 4 hearts on touch and throws a fireball (1 heart) every 1.5 seconds; each flame has 8 health and does 2 hearts.
+They're hurt as Patra is (sword and wand hits; arrows too with piercing arrows), the old man only once the flames are
+gone. His picture is the cave old man's, written over Patra's body tiles ($F8-$FB) as the room starts.
+
 ## Seeded games, upgrade lines and item lines
 
 **Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
@@ -149,7 +155,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.330 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.331 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

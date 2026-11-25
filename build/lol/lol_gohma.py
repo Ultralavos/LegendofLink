@@ -45,7 +45,8 @@ def apply(rom: bytearray, notes: list) -> None:
         a = Asm(o)
         # init (X the slot, A / [00] the type), the init chain's end
         a.label("init").b(0xE0, 0x01).br(0xD0, "i_g").b(0xA8, 0xA9, 0x00).abs(0x8D, HYB).b(0x98)
-        a.label("i_g").b(0xC9, 0x33).br(0xF0, "i_go").b(0xC9, 0x34).br(0xF0, "i_go").b(0x60)
+        a.label("i_g").b(0xC9, 0x33).br(0xF0, "i_go").b(0xC9, 0x34).br(0xF0, "i_go")
+        a.label("i_nx").b(0x60, 0xEA, 0xEA)                                # (lol_patra: JMP its init)
         a.label("i_go").b(0xE0, 0x01).br(0xD0, "i_r").abs(0xAD, HVE).b(0xC9, AT).br(0x90, "i_r")
         a.b(0xA5, 0x00).abs(0x8D, KIND).b(0xA9, 0x01).abs(0x8D, HYB)               # (its Gohma: Gleeok's first frame)
         # this slot: a two-headed Gleeok (InitObject goes on with [00])
@@ -96,6 +97,8 @@ def apply(rom: bytearray, notes: list) -> None:
     c = code(at)
     place(rom, 2, at, c.bytes())
     INIT = c.labels["init"]
+    global LABELS
+    LABELS = c.labels
     n2 = len(gl(0x8000).bytes())
     at2 = free_in(rom, 2, n2, 0xB940)
     g = gl(at2)
