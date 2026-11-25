@@ -3,6 +3,7 @@
 // per level and shrine. Everything is kept in localStorage (one key), so a refresh keeps the run.
 
 const KEY = "lol-tracker-v1";
+const VER = (new URL(document.currentScript.src).searchParams.get("v")) || "";   // (the page's ?v=: the build's version)
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, kids = []) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
 
@@ -331,3 +332,4 @@ function renderAll() {
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); tick();
 }
 renderAll();
+if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
