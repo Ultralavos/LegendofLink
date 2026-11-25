@@ -38,7 +38,9 @@ SWORD_UP, BUBBLE_RING, FAIRY = 0x08, 0x10, 0x20
 N_UP = T.N_UP                               # (the upgrades: lol_uptable's rows)
 assert all((T.ROWS[k][T.SAVE][0] >> 8) == (0x06 if k < 9 else 0x60) for k in range(N_UP))   # (uget's CPX #9 rule)
 # the white sword cave's list, in priority: (item, inventory byte, offered while that byte is below this)
-WS_LIST = [(0x02, 0x0657, 2),   # white sword (Link has no better sword)
+WS_LIST = [(0x11, 0x0661, 1),   # (owner 2026-11-25) red book: first, but only once Link has the white sword (or
+           (0x25, 0x0661, 2),   #  better; ws_build's CPX #6); blue book, the same, once he has the red one
+           (0x02, 0x0657, 2),   # white sword (Link has no better sword)
            (0x0A, 0x065A, 1),   # bow
            (0x08, 0x0659, 1),   # wood arrows (no arrows)
            (0x10, 0x065F, 1),   # wand
@@ -359,9 +361,9 @@ def apply(rom: bytearray, notes: list) -> None:
     gb = Asm(INIT4B)
     gb.b(0xC9, 0x30).br(0xD0, "j_v").abs(0xAD, HVE).b(0xC9, 0x70).br(0x90, "j_r")
     gb.b(0xA9, 0x28).abs(0x9D, 0x03BC).b(0xA9, 0x90).abs(0x4C, ga.labels["i_set"])
-    # a vire ($12) once Link has 12 containers: 6 HP, red
+    # a vire ($12) once Link has 12 containers: 5 HP, red
     gb.label("j_v").b(0xC9, 0x12).br(0xD0, "j_w").abs(0xAD, HVE).b(0xC9, 0xB0).br(0x90, "j_r")
-    gb.b(0xA9, 0x60).abs(0x4C, ga.labels["i_set"])
+    gb.b(0xA9, 0x50).abs(0x4C, ga.labels["i_set"])
     gb.label("j_r").b(0x60)
     gb.label("j_w").abs(0x4C, WM4)
     # ... and splits (UpdateVire's LDA #$1C / STA $00 at $9D75, JSR Shoot at $9D79) into two blue wizzrobes ($23,
@@ -733,22 +735,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     t = b                                                                     # (the take and text labels)
     # The white sword cave (person $6C) offers, each time Link walks in, the first item of WS_LIST he doesn't have
     # (a key when he has them all), in its middle place; taking it still empties the cave for good.
-    def ws_build(org):
+    def ms_build(org):                                                        # (its own place: bank 1 is tight)
       w = Asm(org)
-      w.b(0xC9, 0x6C).br(0xF0, "ws").b(0xC9, MS_PERSON).br(0xD0, "ms_no").abs(0x4C, "ms")
-      w.label("ms_no").abs(0x4C, fill)
-      w.label("ws").b(0xA2, 0x00)
-      w.label("ws_lp").abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
-      w.abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
-      w.abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, "ws_nx")   # (snubber: none)
-      w.abs(0xAD, 0x7FF7).br(0xF0, "ws_put")                                   # swordless:
-      w.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, "ws_nx").b(0xA9, 0x24).br(0xD0, "ws_st")            # a bomb upgrade
-      w.label("ws_b").b(0xC9, 0x1D).br(0xD0, "ws_put").abs(0xAC, 0x0675).br(0xF0, "ws_put")   # no boomerang of any kind
-      w.label("ws_nx").b(0xE8, 0xE8, 0xE8, 0xE0, 3 * len(WS_LIST)).br(0xD0, "ws_lp")
-      w.b(0xA9, 0x19).br(0xD0, "ws_st")                                       # everything: a key
-      w.label("ws_put").abs(0xBD, WS_TABLE)
-      w.label("ws_st").abs(0x8D, 0x019C).abs(0xAD, CAVE_WARES + 7).b(0x29, 0xC0).abs(0x0D, 0x019C).abs(0x8D, CAVE_WARES + 7)
-      w.abs(0xAD, 0x0350).abs(0x4C, fill)
       # the 8-triforce cave: MS_LIST (swords: none with the heart snubber, a bomb upgrade below 32 bombs when
       # swordless; rings: none with Zombie Link)
       w.label("ms").b(0xA2, 0x00)
@@ -768,6 +756,26 @@ def apply_caves(rom: bytearray, notes: list) -> None:
       w.abs(0xAD, 0x0350).abs(0x4C, fill)
       w.label("msi").b(*[c[0] for c in MS_LIST]).label("msa").b(*[c[1] & 0xFF for c in MS_LIST])
       w.label("msm").b(*[c[2] for c in MS_LIST])
+      return w
+    ms_at = free_in(rom, 1, len(ms_build(0x8000).bytes()), 0xB000)
+    place(rom, 1, ms_at, ms_build(ms_at).bytes())
+    def ws_build(org):
+      w = Asm(org)
+      w.b(0xC9, 0x6C).br(0xF0, "ws").b(0xC9, MS_PERSON).br(0xD0, "ms_no").abs(0x4C, ms_at)
+      w.label("ms_no").abs(0x4C, fill)
+      w.label("ws").b(0xA2, 0x00)
+      w.label("ws_lp").abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
+      w.b(0xE0, 0x06).br(0xB0, "ws_bk").abs(0xAD, 0x0657).b(0xC9, 0x02).br(0x90, "ws_nx")    # the books: a white sword
+      w.label("ws_bk").abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
+      w.abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, "ws_nx")   # (snubber: none)
+      w.abs(0xAD, 0x7FF7).br(0xF0, "ws_put")                                   # swordless:
+      w.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, "ws_nx").b(0xA9, 0x24).br(0xD0, "ws_st")            # a bomb upgrade
+      w.label("ws_b").b(0xC9, 0x1D).br(0xD0, "ws_put").abs(0xAC, 0x0675).br(0xF0, "ws_put")   # no boomerang of any kind
+      w.label("ws_nx").b(0xE8, 0xE8, 0xE8, 0xE0, 3 * len(WS_LIST)).br(0xD0, "ws_lp")
+      w.b(0xA9, 0x19).br(0xD0, "ws_st")                                       # everything: a key
+      w.label("ws_put").abs(0xBD, WS_TABLE)
+      w.label("ws_st").abs(0x8D, 0x019C).abs(0xAD, CAVE_WARES + 7).b(0x29, 0xC0).abs(0x0D, 0x019C).abs(0x8D, CAVE_WARES + 7)
+      w.abs(0xAD, 0x0350).abs(0x4C, fill)
       return w
     nws = len(ws_build(0x8000).bytes())
     ws_at[0] = free_in(rom, 1, nws, 0xB000)

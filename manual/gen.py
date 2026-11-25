@@ -340,7 +340,7 @@ P(f'''<section class="page"><h1 class="band">HEART SNUBBER AND ZOMBIE LINK</h1>
 P(f'''<section class="page"><h1 class="band">THE TRIFORCE CAVES</h1>
 <div class="two">{shot("img/tri4.png", "The 4-triforce cave.")}{shot("img/tri8.png", "The 8-triforce cave.")}</div>
 <h2>4 Triforce Pieces</h2>
-<p>This old man rewards 4 triforce pieces with the first item Link is missing: the white sword, then the bow, arrows, wand, ladder, recorder, bracelet, raft, book, boomerang and more.</p>
+<p>This old man rewards 4 triforce pieces with the first item Link is missing. Once he has the white sword, that's a book (red, then blue). Otherwise the white sword, then the bow, arrows, wand, ladder, recorder, bracelet, raft, book, boomerang and more.</p>
 <h2>All 8 Pieces</h2>
 <p>This old man gives the first item from this list that Link can still use:</p>
 <p class="list">Silver arrows, magic key, book (red, then blue), sword (white, then magical), ring (blue, then red), bow, ladder, recorder, power bracelet, raft, wand. With everything, a red potion.</p>

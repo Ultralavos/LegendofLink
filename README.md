@@ -92,8 +92,8 @@ line, otherwise once a cave has offered it.
 
 ## The triforce caves
 
-The 4-triforce cave (the white sword cave) offers the first item Link lacks from its list (white sword, bow, arrows,
-wand, ladder, ...). The 8-triforce cave offers, once he has all 8, the first he can still use of: silver arrows,
+The 4-triforce cave (the white sword cave) offers the first item Link lacks from its list (a book first once he has
+the white sword or better: red, then blue; then white sword, bow, arrows, wand, ladder, ...). The 8-triforce cave offers, once he has all 8, the first he can still use of: silver arrows,
 magic key, book (red, then blue), sword (white, then magical), ring (blue, then red), bow, ladder, recorder, power
 bracelet, raft, wand; with all of them, a red potion (`lol_upgrades.MS_LIST`). No swords with the Heart Snubber (a bomb
 upgrade instead when swordless), no rings with Zombie Link.
@@ -107,7 +107,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.311 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.312 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
