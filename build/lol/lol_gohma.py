@@ -28,6 +28,7 @@ NECK_X, NECK_Y = (0x0438, 0x0452), (0x0445, 0x045F)     # Gleeok's neck tables (
 ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x4E                      # the roots: the north wall, halfway from the middle to
                                                          #  each side (owner 2026-11-25: less flicker)
 GOHMA_INIT = 0xA161
+SOUTH_EXTRA = 0x60              # ($80 + $60 = $E0 of $100 a frame = $38 of $40: blue darknut $28 + 2 x $08)
 TOP_Y, BOT_Y = 0x90, 0xB0      # (its own band is $70-$90: two squares lower)
 
 
@@ -79,6 +80,11 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xB5, 0x84, 0xC9, TOP_Y).br(0xB0, "e_t").b(0xA9, TOP_Y, 0x95, 0x84, 0xA9, 0x04, 0x95, 0x98).br(0xD0, "e_u")
         a.label("e_t").b(0xC9, BOT_Y + 1).br(0x90, "e_u").b(0xA9, BOT_Y, 0x95, 0x84, 0xA9, 0x08, 0x95, 0x98)
         a.label("e_u")
+        # (owner 2026-11-25) south at the blue darknut's speed + 2 steps ($38 of $40 a pixel: 7/8 px a frame); its
+        # own is $80 of $100 a frame in $041F, so $60 more going south (back up and sideways: its own)
+        a.b(0xB5, 0x98, 0xC9, 0x04).br(0xD0, "e_v").abs(0xBD, 0x041F).b(0x18, 0x69, SOUTH_EXTRA).abs(0x9D, 0x041F)
+        a.br(0x90, "e_v").b(0xF6, 0x84)
+        a.label("e_v")
         a.abs(0xAD, 0x0350).b(0x38, 0xE9, 0x42, 0xC9, 0x04, 0xA9, 0x40).br(0xB0, "e_s")
         a.b(0xA9, HP).abs(0x9D, 0x0485).b(0xA9, 0x78)                      # (heads on: the health held at HP)
         a.label("e_s").abs(0x9D, 0x0444)
