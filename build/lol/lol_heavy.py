@@ -42,6 +42,8 @@ ACTIVE = T.index("heavy bracelet") in T.POOL
 THORN_C, SHOP_C, SECRET_C, HINT_C, FREE_C = 1, 2, 3, 4, 5
 ODDS = [(THORN_C, 30), (SHOP_C, 10), (SECRET_C, 20), (HINT_C, 3), (FREE_C, 1)]
 DEST = {THORN_C: TAKE_ANY, SHOP_C: SHOP, SECRET_C: SECRET100, HINT_C: HINT, FREE_C: TAKE_ANY}
+SPECIAL_TEXT = {THORN_C: ["WITH THIS YOU DEAL", "DAMAGE BACK WHEN", "ENEMIES TOUCH YOU"],
+                "sleep": ["THIS LULLABY PUTS SOME", "ENEMIES TO SLEEP,", "AND SLOWS OTHERS"]}   # (owner 2026-11-25)
 HINTS = {"swordless": ["ENTER 5 DOORS BEFORE", "YOU TAKE A SWORD, THEN", "VISIT THE SWORD CAVE"],
          "hard": ["DIE 5 TIMES BEFORE YOU", "ENTER ANY DOOR, THEN", "VISIT THE SWORD CAVE"]}
 
@@ -263,6 +265,11 @@ def caves(rom, notes):
     for m in modes:
         t = bytes(_encode_quote(base.centered(HINTS[m])))
         texts += t + bytes(80 - len(t))
+    stexts = b""
+    for lines in (SPECIAL_TEXT[THORN_C], SPECIAL_TEXT["sleep"]):
+        t = bytes(_encode_quote(base.centered(lines)))
+        assert len(t) <= 80
+        stexts += t + bytes(80 - len(t))
     mc = T.bit("membership card")
     zl = T.bit("zombie link")
     sn = T.bit("heart snubber")
@@ -278,8 +285,14 @@ def caves(rom, notes):
         ta = 3 * (TAKE_ANY - 0x10)
         sh = 3 * (SHOP - 0x10)
         # the special (Thorn Bracelet / Song of Sleep): the take-any's middle place, drawn as its item
-        a.label("w_th").abs(0xBD, "item").b(0x48, 0xA2, ta, 0xA9, 0x3F).abs(0x20, "put").b(0x68).abs(0x20, "put")
-        a.b(0xA9, 0x3F).abs(0x4C, "put")
+        # (owner 2026-11-25) and the old man's own words for it (sel: 0 the Thorn Bracelet, 1 the Song of Sleep)
+        a.label("w_th").abs(0xBD, "sel").br(0xF0, "w_t0").b(0xA9, 80)
+        a.label("w_t0").b(0x48)
+        a.abs(0xBD, "item").b(0x48, 0xA2, ta, 0xA9, 0x3F).abs(0x20, "put").b(0x68).abs(0x20, "put")
+        a.b(0xA9, 0x3F).abs(0x20, "put")
+        a.b(0x68, 0xA8, 0xA2, 0x00)
+        a.label("w_tl").abs(0xB9, "stext").abs(0x9D, HINT_BUF).b(0xC8, 0xE8, 0xE0, 80).br(0xD0, "w_tl")
+        a.b(0xA9, lol_modes.HINT_SEL).abs(0x8D, lol_modes.QOVR).b(0x60)
         # free: ring, book, sword (take one)
         a.label("w_fr").b(0xA2, ta).abs(0x20, "ring").abs(0x20, "put").abs(0x20, "book").abs(0x20, "put")
         a.abs(0x20, "sword").abs(0x4C, "put")
@@ -323,6 +336,7 @@ def caves(rom, notes):
         a.label("sel").b(*[0 if c[3] == THORN else 1 for c in CAVES])
         a.label("hix").b(*[80 * modes.index(c[4]) for c in CAVES])
         a.label("text").b(*texts)
+        a.label("stext").b(*stexts)
         return a
     from lol_newups import put3 as put
     W = put(rom, 3, bwares).labels                          # (bank 3: bank 0 is full)

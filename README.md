@@ -70,7 +70,9 @@ every 2-4 seconds, two of its attached heads (one if only one is left) spit a ca
 **Heavy Bracelet** (75, tier 2, with the power bracelet; `build/lol/lol_heavy.py`): only on seeds whose upgrade pool
 has it. A10 gets the second quest's pushable rock and G6 the owner's 4Q one (the middle rock of column 10, stairs
 right of it), both pushable only with the Heavy Bracelet; with it, every pushable overworld rock shows grey. The seed
-decides each cave (out of 64, never the same option in both): 30 the Thorn Bracelet (free), 10 a secret shop (ring
+decides each cave (out of 64, never the same option in both): 30 the Thorn Bracelet (free; its old man says "WITH
+THIS YOU DEAL DAMAGE BACK WHEN ENEMIES TOUCH YOU", and the Song of Sleep's "THIS LULLABY PUTS SOME ENEMIES TO
+SLEEP, AND SLOWS OTHERS"), 10 a secret shop (ring
 150, sword 150, book 100, each the next one Link can use), 20 100 rupees, 3 an old man's hint about a secret mode,
 1 a free ring, book or sword. **Thorn Bracelet** (UP6 $80): replaces the Heavy Bracelet's picture on the item screen;
 a monster that touches Link takes what Link loses (rings count), rounded up to whole hearts, $10 a heart.
@@ -94,6 +96,12 @@ frame hook clears the buttons), and 20 frames after it hits, that Goriya charges
 until a wall, the room's edge, contact, 16 px past Link or 64 frames). The hit is caught at HarmLink's start (the
 critter crusher's hook, then a common stub at $BFC0 far-calling bank 2); the charge is UpdateObject's entry for $05
 (bank 4 $BF20, a far call into bank 2, else $8119).
+
+**Bomber Wizzrobe** (`build/lol/lol_wizzrobe.py`): at 14+ heart containers (as enemies see them) red Wizzrobes wear the
+level's colors (sprite palette 3), have 12 health and give 16 XP. Bombs don't hurt them; the candles' fire does (the
+blue candle 4 per hit, the red candle kills). Four frames before one starts to fade out it leaves a red bomb where it
+stands (lol_dodongo's type $29: lit $30 frames, then a blast that only hurts Link, 4 hearts), so the blast comes
+shortly after it's gone, and it leaves one when it dies. At most 3 red bombs on the floor, never two within 16 px.
 
 ## Seeded games, upgrade lines and item lines
 
@@ -132,7 +140,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.324 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.325 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

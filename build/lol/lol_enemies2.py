@@ -191,13 +191,14 @@ def apply(rom: bytearray, notes: list) -> None:
         g.label("i_go").b(0xC9, 0x05).br(0xD0, "i_gb").abs(0xAD, HVE).b(0xC9, CHARGER_AT).br(0xB0, "go_u")
         g.b(0xA9, DMG5).abs(0x8D, DMG + 0x05).b(0xA0, 0x03)
         g.label("go_v").abs(0xB9, "gopv").abs(0x99, PALT + GF).b(0x88).br(0x10, "go_v")
-        g.label("i_gb").b(0x60)
+        g.label("i_gb").b(0x60, 0xEA, 0xEA)                         # (lol_wizzrobe: JMP its init)
         g.label("go_u").b(0xA9, CHARGER_HP).abs(0x9D, 0x0485).b(0xA9, CHARGER_DMG).abs(0x8D, DMG + 0x05).b(0xA0, 0x03)
         g.label("go_w").abs(0xB9, "gopu").abs(0x99, PALT + GF).b(0x88).br(0x10, "go_w").b(0x60)
         g.label("gopv").b(*GPAL)
         g.label("gopu").b(*[v & 0x80 for v in GPAL])
         return g
     gat = free_in(rom, 2, len(gob(0x8000).bytes()), 0xB940)
+    global GO
     GO = gob(gat).labels
     place(rom, 2, gat, gob(gat).bytes())
     # bank 2: Y = 2, 3, 4
