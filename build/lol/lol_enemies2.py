@@ -170,7 +170,9 @@ def apply(rom: bytearray, notes: list) -> None:
     def gob(o):                                                      # (bank 2, beside: InitObject's part)
         g = Asm(o)
         # any object's init in the charging goriya's slot ends the charge
-        g.label("clr").abs(0xEC, CSLOT).br(0xD0, "c_r").b(0xA9, 0x00).abs(0x8D, CSLOT).abs(0x8D, CTIME).abs(0x8D, CHG)
+        g.label("clr").abs(0xEC, CSLOT).br(0xD0, "c_p").b(0xA9, 0x00).abs(0x8D, CSLOT).abs(0x8D, CTIME).abs(0x8D, CHG)
+        # a pols voice's init (a new room): the recorder's hold on blue pols voices ends (lol_newups' FREEZE)
+        g.label("c_p").b(0xA5, 0x00, 0xC9, 0x16).br(0xD0, "c_r").b(0xA9, 0x00).abs(0x8D, 0x01B5)
         g.label("c_r").b(0x60)
     # the Goriya Charger: blue goriya ($05) at 12+ (frames GF-GF+3: palette 0, else theirs)
         g.label("i_go").b(0xC9, 0x05).br(0xD0, "i_gb").abs(0xAD, HVE).b(0xC9, CHARGER_AT).br(0xB0, "go_u")
@@ -326,7 +328,7 @@ def apply(rom: bytearray, notes: list) -> None:
     ch = charger(cat)
     place(rom, 2, cat, ch.bytes())
     # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
-    gs = 0xBF20                                                         # (bank 4: past free_in's reach, free)
+    gs = 0xBFD0                                                         # (bank 4: past free_in's reach, free)
     st = Asm(gs).b(*V.far(2, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
     place(rom, 4, gs, st.bytes())
     ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05
