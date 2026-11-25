@@ -65,7 +65,12 @@ const NICKNAMES = ["The Serpent", "The Bell", "The Face", "The Rook", "The Bat",
   "The Armos", "The Crown", "The Swiss Cheese"];
 
 // ---------------------------------------------------------------- state
-const fresh = () => ({ items: {}, hearts: 3, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
+// the dungeon old men's choices (odds/old_men.csv), and a red potion when there's nothing to offer
+const OM_ITEMS = [["boom1", "Boomerang"], ["candle1", "Blue candle"], ["raft", "Raft"], ["recorder", "Recorder"],
+  ["bracelet", "Power bracelet"], ["ladder", "Ladder"], ["arrow1", "Arrows"], ["bombs", "Bomb upgrade"],
+  ["sword2", "White sword"], ["wand", "Wand"], ["bow", "Bow"], ["arrow2", "Silver arrows"], ["shield", "Magical shield"],
+  ["candle2", "Red candle"], ["sword3", "Magical sword"], ["potion2", "Red potion"]];
+const fresh = () => ({ items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
   ow: {}, owDone: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
@@ -118,6 +123,7 @@ function renderTri() {
     b.onclick = () => { S.shrines = on ? S.shrines.filter((x) => x !== c) : [...S.shrines, c]; save(); renderTri(); };
     s.append(b);
   }
+  renderOM();
   const k = $("cards"); k.replaceChildren();
   for (const [c, name] of [["S", "Shop"], ["D", "Dungeon"], ["X", "Shrine"]]) {
     const b = el("button", { type: "button", className: "card" + (S.cards[c] ? " on" : ""), title: `${name} cards (up to 3)` });
@@ -126,6 +132,49 @@ function renderTri() {
     k.append(b);
   }
 }
+
+// ---------------------------------------------------------------- old men (levels 1-8)
+const omDrawn = (n) => Object.values((S.dun[String(n)] || {}).cells || {}).some((c) => c.m === "O");
+let omOpen = null;
+function renderOM() {
+  S.om = S.om || {};
+  const box = $("oldmen"); box.replaceChildren();
+  for (let n = 1; n <= 8; n++) {
+    const o = S.om[n] || {};
+    const auto = omDrawn(n), lit = auto || o.found || o.item;
+    const name = o.item ? OM_ITEMS.find((x) => x[0] === o.item)[1] : null;
+    const b = el("button", { type: "button", className: "om" + (lit ? " on" : "") + (o.item ? " took" : ""),
+      title: `Level ${n} old man` + (name ? `: took ${name}` : lit ? ": found" : ": not found yet") });
+    b.append(el("span", { className: "n", textContent: n }), icon(o.item || "cardD", o.item ? "it" : "man"));
+    b.onclick = (e) => { e.stopPropagation(); openOM(n, b); };
+    box.append(b);
+  }
+}
+function openOM(n, btn) {
+  const p = $("ompick"); omOpen = n; p.replaceChildren();
+  const o = (S.om[n] = S.om[n] || {});
+  p.append(el("div", { className: "ptitle", textContent: `Level ${n} old man: what did you take?` }));
+  const g = el("div", { className: "omgrid" });
+  for (const [img, name] of OM_ITEMS) {
+    const b = el("button", { type: "button", className: "omi" + (o.item === img ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = () => { o.item = img; o.found = true; save(); closeOM(); renderOM(); };
+    g.append(b);
+  }
+  const found = el("button", { type: "button", className: "wide", textContent: o.found && !o.item ? "Not found" : "Found, nothing taken" });
+  found.onclick = () => { o.found = !(o.found && !o.item); o.item = null; save(); closeOM(); renderOM(); };
+  const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
+  clear.onclick = () => { delete S.om[n]; save(); closeOM(); renderOM(); };
+  p.append(g, el("div", { className: "prow" }, [found, clear]));
+  p.hidden = false;
+  const r = btn.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function closeOM() { $("ompick").hidden = true; omOpen = null; }
+document.addEventListener("click", (e) => { if (omOpen !== null && !$("ompick").contains(e.target)) closeOM(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOM(); });
 
 // ---------------------------------------------------------------- upgrades: none -> seen -> bought
 function renderUps() {
@@ -227,15 +276,15 @@ function renderDun() {
       if (brush === "room") cur.r = ((cur.r || 0) + 1) % 3;
       else { cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1; }
       if (!cur.r && !cur.m) delete d.cells[i]; else d.cells[i] = cur;
-      save(); renderDun();
+      save(); renderDun(); renderOM();
     };
-    cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; save(); renderDun(); };
+    cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; save(); renderDun(); renderOM(); };
     g.append(cell);
   }
 }
 $("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); });
 $("ddone").addEventListener("change", (e) => { dun(S.cur).done = e.target.checked; save(); renderDTabs(); });
-$("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; save(); renderDun(); });
+$("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; save(); renderDun(); renderOM(); });
 $("nicknames").append(...NICKNAMES.map((n) => el("option", { value: n })));
 
 // ---------------------------------------------------------------- timer, notes, new run

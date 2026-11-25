@@ -51,6 +51,16 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .shrinerow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
 .shrine { background: #0b0b10; border: 2px solid var(--line); border-radius: 6px; padding: 6px 0; font: bold 16px ui-monospace, monospace; color: #555; }
 .shrine.on { color: #fff; background: var(--pink); border-color: var(--pink); }
+.omrow { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.om { position: relative; aspect-ratio: 1; background: #0b0b10; border: 2px solid var(--line); border-radius: 6px; padding: 0; display: grid; place-items: center; }
+.om img { width: 62%; height: 62%; opacity: .18; filter: grayscale(1); }
+.om.on { border-color: #b0453a; } .om.on img { opacity: 1; filter: none; }
+.om.took { border-color: var(--green); }
+.om .n { position: absolute; top: 1px; left: 3px; font: bold 11px ui-monospace, monospace; color: var(--muted); }
+.ompick { width: 300px; }
+.omgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.omi { aspect-ratio: 1; background: #0b0b10; border: 1px solid var(--line); border-radius: 5px; padding: 3px; display: grid; place-items: center; }
+.omi img { width: 100%; height: 100%; } .omi.sel { border-color: var(--accent); }
 .cardrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .card { display: flex; align-items: center; gap: 6px; justify-content: center; background: #0b0b10; border: 2px solid var(--line); border-radius: 6px; padding: 5px; }
 .card img { width: 26px; height: 26px; opacity: .3; } .card.on img { opacity: 1; } .card.on { border-color: #4a4a62; }

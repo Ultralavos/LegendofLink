@@ -92,7 +92,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.303 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.304 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
@@ -107,7 +107,8 @@ randomizer page links to it. `node manual/pdf.js web/manual/index.html out.pdf` 
 
 `web/tracker/` (linked from the page): items with tiers, triforce 1-8 and shrines A-D, hearts, bomb upgrades, S/D/X
 cards, the 37 upgrades (seen / bought), the overworld map (rendered from the game) with its 71 entrances to mark,
-a room grid per level and shrine with its nickname, notes and a timer; kept in the browser's localStorage. Its
+a room grid per level and shrine with its nickname, the old men of Levels 1-8 (lit when one is drawn in that
+level's grid; click to record the item taken), notes and a timer; kept in the browser's localStorage. Its
 layout follows ZORATracker (TheGobOne, MIT), rebuilt here as a plain web page.
 
 ## The end screen
