@@ -167,13 +167,19 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("s_lo").b(0xA9, 0x00).abs(0x8D, 0x0529).b(0x60)
         return a
     B0["snub"] = V.put0(rom, b_snub).labels["snub"]
+    import lol_shrineui, lol_entrances as _E
+    gen_roar = _E.GEN
+    ROAR = lol_shrineui.roar(rom) if gen_roar else None
     def b_frame(org):                                  # every frame of play: regen, the refilling bag, the snubber
         a = Asm(org)
         a.label("frame").abs(0xAD, UPGRADES).b(0x29, 0x04).br(0xF0, "f1").abs(0x20, B0["regen"])
         a.label("f1").abs(0xAD, RF[0]).b(0x29, RF[1]).br(0xF0, "f2").abs(0x20, B0["refill"])
         a.label("f2").abs(0xAD, SNUB[0]).b(0x29, SNUB[1]).br(0xF0, "f3").abs(0x20, B0["snub"])
         a.label("f3").abs(0xAD, ZB[0]).b(0x29, ZB[1]).br(0xF0, "f4").abs(0x20, ZL["z_frame"])
-        return a.label("f4").b(0x60)
+        a.label("f4")
+        if gen_roar:
+            a.abs(0x4C, ROAR)                                                  # (Level 9 / shrines: lol_shrineui)
+        return a.b(0x60)
     B0["frame"] = V.put0(rom, b_frame).labels["frame"]
     # --- bank 7 stubs ---
     s_regen = V.put7(rom, lambda o: Asm(o).b(*V.far(0, B0["frame"]))          # (bank 0 checks each upgrade;

@@ -551,7 +551,9 @@ def apply(rom: bytearray, notes: list) -> None:
         t.b(0xA9, 50).abs(0xAC, 0x7FF8).br(0xF0, "x_t").b(0xA9, 100)              # (lol_modes' hard mode: 100)
         t.label("x_t").abs(0x8D, 0x0173)
         t.abs(0xAD, XP).b(0x18).abs(0x7D, "xpv").abs(0xCD, 0x0173).br(0x90, "x_st")
-        t.abs(0xED, 0x0173).abs(0x8D, XP).b(0xA9, 0x1A).abs(0x4C, 0x7370)          # a heart container
+        t.abs(0xED, 0x0173).abs(0x8D, XP)
+        # a heart container (2026-11-24: Link keeps lifting the XP bag in a cellar or cave, not the container)
+        t.abs(0xAD, 0x0505).b(0x48, 0xA9, 0x1A).abs(0x20, 0x7370).b(0x68).abs(0x8D, 0x0505).b(0x60)
         t.label("x_st").abs(0x8D, XP)
         t.label("x_done").b(0x60)
         t.label("mask").b(0x03, 0x0C, 0x30)

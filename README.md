@@ -50,6 +50,13 @@ their grids); otherwise it's rolled like any other upgrade.
 every 2-4 seconds, two of its attached heads (one if only one is left) spit a candle flame straight down: it moves
 16 pixels and burns about a second, 2 hearts to Link.
 
+## Shrine touches
+
+`build/lol/lol_shrineui.py`: rooms next to Ganon's (Level 9) or a shrine guardian's room roar while that boss
+lives (on entering and every few seconds); the overworld item screen shows A B left of TRIFORCE and C D right of it
+as each shrine's reward is taken; a shrine's status bar reads SHRINE-X from the first frame. A level-up from an XP
+bag in a cellar keeps Link lifting the bag (not a heart container).
+
 ## Title and seed code
 
 The title screen reads LEGEND OF LINK / BETA 0.301 and the seed below it (NEW SEED EACH FILE without one;
