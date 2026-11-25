@@ -76,7 +76,10 @@ stairs in it, and turns E4's bush right of the fairy pond into stairs; neither i
 back when the screen loads again; play again, as with the vanilla recorder spots). Link comes out of H16's cave on
 the sand and E4's above the pond. A recorder sprite marks the four recorder spots (E3, F9, E4, H16) until they're
 revealed. The seed deals the two caves as the Heavy Bracelet's, with the **Song of Sleep** (EXTRA $02) in the Thorn
-Bracelet's place; it replaces the Song of Discovery's picture on the item screen (its dungeon effects: next).
+Bracelet's place; it replaces the Song of Discovery's picture on the item screen. In a level, when the recorder's
+tune ends, the room's red and blue Goriyas (not Chargers), Ropes, red Darknuts, Vires (which then can't split) and
+Moblins (not the charging top tier) fall asleep until Link leaves the room; blue and brown Darknuts slow a step;
+every Pols Voice dies; Digdogger's babies sleep if they were already there when the tune ended.
 Bits: $7F47 (lol_entrances' spare byte, cleared for a new file; lol_upgrades' uget reads rows from K7F there).
 
 **Goriya Charger** (`build/lol/lol_enemies2.py`): at 12+ heart containers (as enemies see them) blue Goriyas wear
@@ -124,7 +127,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.318 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.319 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
@@ -156,7 +159,6 @@ After the credits, Start opens two pages (`build/lol/lol_stats.py`; Start flips 
 ## Planned
 
 - A spoiler log.
-- Song of Sleep's dungeon effects (the recorder puts some enemies to sleep).
 - Upgrades from the owner's first list not built yet (what each does is still to be decided): Destruction Expert, Bomb Blast Suit, Expert Arsonist,
   Orbital Shield. (Glass Cannon became Zombie Link and Attack over Heart became the Heart Snubber.)
 

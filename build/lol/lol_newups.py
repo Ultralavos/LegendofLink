@@ -282,7 +282,11 @@ def apply(rom: bytearray, notes: list) -> None:
         # update's own LDA $066C / ORA $3D,X follow.
         # (owner 2026-11-25) in a dungeon the tune holds them stunned until Link leaves the room (FREEZE, cleared
         # by a pols voice's init: lol_enemies2's clr)
-        r.label("prec").abs(0xAD, FREEZE).br(0xF0, "pr_0").b(0xA9, 0x10, 0x95, 0x3D)   # (only set for blue ones)
+        # (owner 2026-11-25) the Song of Sleep (lol_discovery's SACT bit 7): a pols voice dies at once (a sword hit
+        # of $FF, its mask cleared), and its update is left
+        r.label("prec").abs(0xAD, 0x652E).br(0x10, "pr_k").b(0xA9, 0x00).abs(0x9D, 0x04B2).b(0xA9, 0xFF, 0x85, 0x07)
+        r.b(0xA9, 0x01, 0x85, 0x09, 0xA0, 0x0D).abs(0x20, 0x7C16).b(0x68, 0x68, 0x60)
+        r.label("pr_k").abs(0xAD, FREEZE).br(0xF0, "pr_0").b(0xA9, 0x10, 0x95, 0x3D)   # (only set for blue ones)
         r.label("pr_0").abs(0xAD, 0x051B).br(0xF0, "pr_c").b(0xA5, 0x3C).br(0xD0, "pr_c")
         r.abs(0xAD, REC_LATCH).br(0xF0, "pr_1").b(0xC5, 0x15).br(0xD0, "pr_o").br(0xF0, "pr_s")
         r.label("pr_1").b(0xA5, 0x15).abs(0x8D, REC_LATCH)

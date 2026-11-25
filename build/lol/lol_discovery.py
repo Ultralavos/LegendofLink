@@ -19,6 +19,8 @@ import lol_uptable as T
 
 H16, E4, E3, F9 = 0x7F, 0x43, 0x42, 0x58
 ROOMP, PEND, STEP = 0x652B, 0x652C, 0x652D
+SACT, FLAST = 0x652E, 0x652F            # the Song of Sleep: this room's (bit 0 on, 6 babies, 7 pols die); the tune
+HVE = 0x016F                            #  was playing last frame
 PLAY = 0x6530
 FLUTE_T = 0x3C
 SECRET_CYCLE = 0x051A
@@ -55,8 +57,8 @@ def frame_code(rom):
     def build(org):
         a = Asm(org)
         a.label("fr").b(0xA5, 0xEB).abs(0xCD, ROOMP).br(0xF0, "f_s").abs(0x8D, ROOMP).b(0xA9, 0x00)
-        a.abs(0x8D, PEND).abs(0x8D, STEP)
-        a.label("f_s").b(0xA5, 0x10).br(0xF0, "f_ow").b(0x60)
+        a.abs(0x8D, PEND).abs(0x8D, STEP).abs(0x8D, SACT)
+        a.label("f_s").b(0xA5, 0x10).br(0xF0, "f_ow").abs(0x4C, "slp")
         a.label("f_ow").b(0xA5, 0x12, 0xC9, 0x05).br(0xF0, "f_m5").b(0x60)
         a.label("f_m5").abs(0xAD, DISC_BIT[0]).b(0x29, DISC_BIT[1]).br(0xD0, "f_up").b(0x60)
         # the screen loaded anew (out of the cave: the water's back, the bush too): the recorder works again
@@ -112,6 +114,29 @@ def frame_code(rom):
         a.label("m_k0").abs(0x20, "found").br(0xD0, "m_r")                                 # E3
         a.label("m_draw").abs(0xBD, "m_y").abs(0x8D, OAM).b(0xA9, RECORDER_TILE).abs(0x8D, OAM + 1)
         a.b(0xA9, RECORDER_ATTR).abs(0x8D, OAM + 2).abs(0xBD, "m_x").abs(0x8D, OAM + 3).b(0x60)
+        # --- the Song of Sleep (in a level): when the tune ends, this room's sleepers are stunned for as long as
+        # Link stays (every frame); blue and brown darknuts slow a step; pols voices die (lol_newups' pols update,
+        # SACT bit 7); Digdogger's babies sleep only if they were there when the tune ended (bit 6)
+        a.label("slp").abs(0xAD, T.SLEEP[0]).b(0x29, T.SLEEP[1]).br(0xD0, "s_on").b(0x60)
+        a.label("s_on").b(0xA5, FLUTE_T).br(0xF0, "s_t0").abs(0x8D, FLAST).b(0x60)
+        a.label("s_t0").abs(0xAD, FLAST).br(0xF0, "s_act").b(0xA9, 0x00).abs(0x8D, FLAST)
+        a.b(0xA9, 0x81).abs(0x8D, SACT).b(0xA2, 0x0B)                                   # (the tune just ended)
+        a.label("s_l0").abs(0xBD, 0x034F).b(0xC9, 0x18).br(0xD0, "s_n0").abs(0xAD, SACT).b(0x09, 0x40)
+        a.abs(0x8D, SACT)
+        a.label("s_n0").b(0xC9, 0x0C).br(0xF0, "s_slow").b(0xC9, 0x0B).br(0xD0, "s_x0").abs(0xAD, HVE).b(0xC9, 0x80)
+        a.br(0x90, "s_x0")
+        a.label("s_slow").abs(0xBD, 0x03BC).b(0x38, 0xE9, 0x08).b(0xC9, 0x10).br(0x90, "s_x0").abs(0x9D, 0x03BC)
+        a.label("s_x0").b(0xCA).br(0xD0, "s_l0")
+        a.label("s_act").abs(0xAD, SACT).br(0xD0, "s_go").b(0x60)
+        a.label("s_go").b(0xA2, 0x0B)
+        a.label("s_l").abs(0xBD, 0x034F).b(0xC9, 0x03).br(0xF0, "s_st").b(0xC9, 0x06).br(0xF0, "s_st")
+        a.b(0xC9, 0x28).br(0xF0, "s_st").b(0xC9, 0x12).br(0xF0, "s_st")
+        a.b(0xC9, 0x04).br(0xD0, "s_g").abs(0xAD, HVE).b(0xC9, 0x70).br(0x90, "s_st").br(0xB0, "s_nx")
+        a.label("s_g").b(0xC9, 0x05).br(0xD0, "s_d").abs(0xAD, HVE).b(0xC9, 0xB0).br(0x90, "s_st").br(0xB0, "s_nx")
+        a.label("s_d").b(0xC9, 0x0B).br(0xD0, "s_b").abs(0xAD, HVE).b(0xC9, 0x80).br(0x90, "s_st").br(0xB0, "s_nx")
+        a.label("s_b").b(0xC9, 0x18).br(0xD0, "s_nx").abs(0xAD, SACT).b(0x29, 0x40).br(0xF0, "s_nx")
+        a.label("s_st").b(0xA9, 0x10, 0x95, 0x3D)
+        a.label("s_nx").b(0xCA).br(0xD0, "s_l").b(0x60)
         a.label("q_lo").b(*[(PLAY + _off(c, r)) & 0xFF for s, c, r, k in sq])
         a.label("q_hi").b(*[(PLAY + _off(c, r)) >> 8 for s, c, r, k in sq])
         a.label("q_src").b(*[k for s, c, r, k in sq])
