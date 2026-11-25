@@ -985,6 +985,9 @@ def apply(rom: bytearray, notes: list) -> None:
     nv = sum(len(v) for v in out.values())
     notes.append(f"generated dungeons: {nd} designs, {nv} variants; banks 8-14 used " +
                  ", ".join(f"{b}:{used[b]}" for b in DATA_BANKS if used[b]))
+    import lol_fixed
+    if lol_fixed.FIXED:
+        notes.append("dungeons (the build's): " + lol_fixed.describe())
 
 
 def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
