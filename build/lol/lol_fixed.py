@@ -16,7 +16,10 @@ A card Link already holds three of comes as an orange XP bag (lol_bombup).
 import os
 import random
 
-FIXED = os.environ.get("LOL_FIXED", "1") != "0"   # (the norm since 2026-11-24; LOL_FIXED=0: unseeded, the old way)
+FIXED = os.environ.get("LOL_FIXED", "1") != "0"
+# (owner 2026-11-26) the page's "Upgrade mix (needs testing)": upgrades in the item deck, old men's and shrines' odds and
+# level 9's potion stairs; one upgrade cave a 30-rupee secret (lol_upmix). Seeded builds only.
+UPMIX = FIXED and os.environ.get("LOL_UPMIX") == "1"   # (the norm since 2026-11-24; LOL_FIXED=0: unseeded, the old way)
 _CACHE = {}
 
 
@@ -135,6 +138,8 @@ def deck():
         return _CACHE["deck"]
     n = spots()
     rng = _rng("deck")
+    if UPMIX:                       # (the upgrade card: kept apart, lol_upmix's UPOS; the deck one card shorter)
+        n -= 1
     # (owner 2026-11-26) each card 1-3 of (the seed's), the rest XP bags
     cards = [c for c in range(3) for _ in range(rng.randint(1, CARD_EACH))]
     if n < len(cards):
@@ -144,7 +149,21 @@ def deck():
         d = cards + [3 + (k & 1) for k in range(n - len(cards))]
     rng.shuffle(d)
     _CACHE["deck"] = d
+    _CACHE["upos"] = rng.randrange(n + 1)
     return d
+
+
+def upos():
+    """Upgrade mix: the upgrade card's place in the deck at the start (lol_upmix: each container Link gains moves it
+    one closer to the next card)."""
+    deck()
+    return _CACHE["upos"]
+
+
+def gone_cave():
+    """Upgrade mix: the upgrade cave (0-2: lol_upgrades' SHOPS order) that is a 30-rupee secret this seed; its code
+    (+ 1) marks an upgrade taken elsewhere in the lines."""
+    return _rng("gone cave").randrange(3)
 
 
 def mix_ok(recs, dests):

@@ -866,8 +866,9 @@ def apply(rom: bytearray, notes: list) -> None:
     ptr = {}
     for key in sorted(bodies):
         body = bodies[key]
+        import lol_upmix
         for b in DATA_BANKS:
-            if fill[b] + len(body) <= TRAMPD - 0x10:
+            if fill[b] + len(body) <= (lol_upmix.UAT if b == lol_upmix.BANKX and lol_upmix.UAT else TRAMPD - 0x10):
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break
         else:
@@ -962,7 +963,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("slot_class").b(*SLOT_CLASS)
     a.label("sidx").b(*SLOT_INDEX)
     a.label("letter").b(0, *[0x0A + AF_LEVELS.index(lv) for lv in range(1, 7)], 0, 0, 0)
-    a.label("citems").b(*CELLAR_ITEMS, 0x19, 0x19, 0xFF)              # (7: not drawn yet: $FF, the draw's)
+    a.label("citems").b(*CELLAR_ITEMS, 0xFE, 0x19, 0xFF)              # (7: not drawn yet: $FF, the draw's; 5: the
+                                                                        #  upgrade card, $FE: lol_upmix)
     import lol_choice, lol_fixed
     if lol_fixed.FIXED and lol_choice.DECK_FAR is not None:
         # (owner 2026-11-26) the item deck's draw (far-called by the reward hook for a generated level's item room, in
@@ -970,19 +972,37 @@ def apply(rom: bytearray, notes: list) -> None:
         # in the level's record (bits 0-2 / 3-5) and SUB_IT; then the fixer as before
         from lol_choice import SAVE_X
         dk = lol_fixed.deck()
-        a.label("dfx").b(0xC9, 0xFF).br(0xF0, "dfx_d").abs(0x4C, lol_choice.FIX_AT)
+        a.label("dfx").b(0xC9, 0xFF).br(0xF0, "dfx_d")
+        if lol_fixed.UPMIX:
+            a.b(0xC9, 0xFE).br(0xD0, "dfx_f").abs(0x4C, "dfx_u")
+            a.label("dfx_f")
+        a.abs(0x4C, lol_choice.FIX_AT)
         a.label("dfx_d").b(0x8A, 0x48, 0x98, 0x48, 0xA5, 0x08, 0x48, 0xA5, 0x0E, 0x48)   # X, the index, $08, $0E
         a.abs(0x20, "find")                                                   # Y = the record
-        a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0x90, "dfx_k").b(0xA9, 0x03).br(0xD0, "dfx_h")   # (none left: +15)
-        a.label("dfx_k").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
+        if lol_fixed.UPMIX:
+            # the upgrade card's place: UPOS0 - the moves (lol_upmix); before it the deck's own, after it one back
+            import lol_upmix as UM, lol_v3core as V3
+            a.b(*V3.far(UM.BANKX, UM.UCARD)).br(0x10, "dfx_h")                            # (lol_upmix: the card, 0-5)
+        else:
+            a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0x90, "dfx_k").b(0xA9, 0x03).br(0xD0, "dfx_h")   # (none left: +15)
+            a.label("dfx_k").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
         a.label("dfx_h").b(0x48, 0xBA).abs(0xBD, 0x0104).br(0xD0, "dfx_1")          # the room's index
         a.abs(0xB9, REC + 4).b(0x29, 0xF8).abs(0x1D, 0x0101).abs(0x99, REC + 4).abs(0x4C, "dfx_s")
         a.label("dfx_1").abs(0xBD, 0x0101).b(0x0A, 0x0A, 0x0A, 0x85, 0x0E)
         a.abs(0xB9, REC + 4).b(0x29, 0xC7, 0x05, 0x0E).abs(0x99, REC + 4)
         a.label("dfx_s").b(0x68, 0xAA).abs(0xBD, "citems").abs(0x8D, SAVE_X)
         a.b(0x68, 0x85, 0x0E, 0x68, 0x85, 0x08, 0x68, 0xA8).abs(0xAD, SAVE_X).abs(0x99, SUB_IT)
-        a.b(0x68, 0xAA).abs(0xAD, SAVE_X).abs(0x4C, lol_choice.FIX_AT)
-        a.label("deck").b(*dk)
+        a.b(0x68, 0xAA).abs(0xAD, SAVE_X)
+        if lol_fixed.UPMIX:
+            a.b(0xC9, 0xFE).br(0xF0, "dfx_u")
+        a.abs(0x4C, lol_choice.FIX_AT)
+        if lol_fixed.UPMIX:
+            # dfx_u: the upgrade card's item: its upgrade (UPDECK: 0 not picked yet, $FF none: an orange XP bag, else
+            # the upgrade + 1), picked once (the first tier 2 one Link may have: lol_upgrades' upick) and shown as
+            # the third ware slot's item ($30: WIX + 2, its picture loaded)
+            a.label("dfx_u").b(*V3.far(UM.BANKX, UM.UITEM)).abs(0x4C, lol_choice.FIX_AT)    # (lol_upmix: its item)
+        else:
+            a.label("deck").b(*dk)
     code = a.bytes()
     assert B6 + len(code) <= TRAMPD, hex(B6 + len(code))
     place(rom, 6, B6, code)
@@ -1078,9 +1098,12 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
     import lol_fixed
     if lol_fixed.FIXED:                 # the build's record, copied (Level 9: its stair item rolled now)
         a.label("gm_go").b(0x48).abs(0x20, "gf_slotrec").b(0xA2, 0x00)
-        a.label("gx_c").abs(0xB9, "gx_tab").abs(0x99, REC).b(0xC8, 0xE8, 0xE0, 0x05).br(0xD0, "gx_c")
-        a.b(0x68, 0x48, 0xC9, 0x09).br(0xD0, "gx_r")
-        a.b(0x88, 0x88, 0x88, 0x88, 0x88).abs(0x20, "gf_up").abs(0x99, REC + 4)
+        # (2026-11-26) a shrine's record: its first four bytes (its fifth, never used by a shrine, keeps lol_upmix's
+        # state: cleared for a new file)
+        a.label("gx_c").abs(0xB9, "gx_tab").abs(0x99, REC).b(0xC8, 0xE8, 0xE0, 0x04).br(0xD0, "gx_c")
+        a.b(0x68, 0x48, 0xC9, 0x0A).br(0xB0, "gx_s").abs(0xB9, "gx_tab").abs(0x99, REC)
+        a.label("gx_s").b(0x68, 0x48, 0xC9, 0x09).br(0xD0, "gx_r")
+        a.b(0x88, 0x88, 0x88, 0x88).abs(0x20, "gf_up").abs(0x99, REC + 4)
         a.label("gx_r").b(0x68, 0x38, 0x60)
         a.label("gx_tab").b(*[x for r in lol_fixed.records() for x in r])
     else:

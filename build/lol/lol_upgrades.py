@@ -34,6 +34,7 @@ CRUSHER, JAMMER, BOMBSMITH = (UP3, 0x01), (UP3, 0x02), (UP3, 0x04)
 POUCH, BAT_POTION, PIERCING = (UP3, 0x08), (UP3, 0x10), (UP3, 0x20)   # (PIERCING: bow mastery)
 import lol_uptable as T
 ROLL1 = None                                # bank 1 free: the roll (set in apply)
+ENGINE = None                               # the engine's labels (bank 0; set in apply_caves)
 SWORD_UP, BUBBLE_RING, FAIRY = 0x08, 0x10, 0x20
 N_UP = T.N_UP                               # (the upgrades: lol_uptable's rows)
 K7F = T.K7F                                 # rows from here keep their bits in $7Fxx (lol_uptable.EXTRA)
@@ -803,6 +804,8 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.labels["cl2"] = b.labels["cl"] + 2
         return b
     E = V3.put0(rom, b_engine).labels
+    global ENGINE
+    ENGINE = E                                  # (lol_upmix: upick, t_af)
     if NL is not None:
         _p = b_pick(PICK_AT[0], E)
         _o = BANK(6) + _p.labels["adpick"] - 0x8000

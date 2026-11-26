@@ -33,6 +33,7 @@ WLW, WRW = 0x6312 - 3, 0x6312 + N_FLAGS - 3    # WRAM (file 2's old area): the 1
 PTILE, PPAL = WLW + 3 + 2 * N_FLAGS, WLW + 3 + 2 * N_FLAGS + 4   # WRAM: the potion's tile / palette by its count 1-4
 POT_W = POUCH_W = None                  # bank 7 (stage 4; lol_pictures writes them): the frame tile lookup's potion
 POT_LEN, POUCH_LEN = 0x28, 0x38           # case; TakeItem's potions with the pouch (and the key hoarder)
+TAKE_FARS = None
 WRAM_DELTA = 0x3870                        # bank 1 $A500-$B76F runs from WRAM $6C90 (cpu - $3870)
 
 
@@ -567,8 +568,8 @@ def apply(rom: bytearray, notes: list) -> None:
         return t.label("xpv").b(15, 25)
     af0 = V.put0(rom, b_af).labels["af"]
     hi0 = V.put0(rom, b_hi).labels["hi"]
-    a.label("take").b(*V.far(0, af0)).b(0xC9, BOMB_UP).br(0xB0, "k_hi").abs(0x4C, POUCH_W)   # (WRAM: potions)
-    a.label("k_hi").b(*V.far(0, hi0)).b(0x68, 0x68, 0x60)                     # (out of TakeItem)
+    a.label("take").label("tk_af").b(*V.far(0, af0)).b(0xC9, BOMB_UP).br(0xB0, "k_hi").abs(0x4C, POUCH_W)   # (WRAM: potions)
+    a.label("k_hi").label("tk_hi").b(*V.far(0, hi0)).b(0x68, 0x68, 0x60)      # (out of TakeItem)
     a.label("conv").b(*CONV)
     global WL_INIT, WR_INIT             # (copied to WRAM at power-on by lol_pictures; the loads change them)
     WL_INIT = bytes(tiles.get(c, [0, 0])[0] for c in range(0x26, 0x26 + N_FLAGS))   # (the upgrade slots: set by
@@ -580,6 +581,8 @@ def apply(rom: bytearray, notes: list) -> None:
         assert all(x == 0xFF for x in rom[at:at + len(code)]), bank
         rom[at:at + len(code)] = code
     L = a.labels
+    global TAKE_FARS                    # (lol_upmix re-aims these two far calls: [(cpu, routine)], every bank 0-6)
+    TAKE_FARS = [(L["tk_af"], af0), (L["tk_hi"], hi0)]
     j = lambda n: bytes([0x20, L[n] & 0xFF, L[n] >> 8])
     patch(rom, 7, 0xE71D, bytes([0xAA, 0xBD, 0xC8, 0x72]), j("draw"))
     patch(rom, 1, 0x793D + WRAM_DELTA, bytes([0xB9, 0xDC, 0x78, 0x85, 0x02]), j("tile"))

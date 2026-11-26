@@ -315,6 +315,8 @@ def main():
     import lol_pictures
     lol_pictures.apply(rom, notes)
     lol_upgrades.apply_caves(rom, notes)
+    import lol_upmix
+    lol_upmix.apply(rom, notes)                   # (the page's Upgrade mix: off unless LOL_UPMIX=1)
     import lol_newups
     lol_newups.apply(rom, notes)
     import lol_rodsong
@@ -364,6 +366,7 @@ def main():
     if lol_entrances.GEN:
         import lol_genload
         lol_genload.apply(rom, notes)
+        lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
     import lol_mixgroups
     lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
