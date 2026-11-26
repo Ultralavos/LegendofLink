@@ -28,6 +28,7 @@
   label.check { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; }
   label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
   .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  .tag { color: #e8a33a; font-size: 12px; font-weight: 600; }
   input[type=text], select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: #101017; color: var(--text); font: inherit; }
   input[type=file] { width: 100%; color: var(--muted); }
@@ -131,6 +132,10 @@
       Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and Keese stay in dungeons; Octoroks, Peahats, Leevers,
       boulders, Zoras, Ghinis and Armos stay outside. Then the overworld screens' monsters are dealt to other screens
       (Zoras and Ghinis stay where they are; screens without monsters keep none).</p>
+
+    <label class="check"><input id="upmix" type="checkbox"> Upgrade mix <span class="tag">(needs testing)</span></label>
+    <p class="hint">Upgrades turn up outside the upgrade caves too: one in the dungeons' stairs and floor items (it comes
+      sooner as Link levels up), and more as the game goes on. Link still keeps at most three. Seeded games only.</p>
   </section>
 
   <section>

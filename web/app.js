@@ -139,7 +139,7 @@ $("build").addEventListener("click", () => {
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
                        start: $("start").value, dset: $("dset").value, setSeed,
                        mix: $("mix").checked, fixed: !$("unseeded").checked, tunic: tunicSetting(),
-                       noflash: $("noflash").checked, race: $("race").checked });
+                       noflash: $("noflash").checked, race: $("race").checked, upmix: $("upmix").checked });
 });
 
 worker.onmessage = (ev) => {
@@ -149,7 +149,7 @@ worker.onmessage = (ev) => {
   else if (m.type === "error") { status("Something went wrong: " + m.text, true); refresh(); }
   else if (m.type === "result") {
     const seed = $("seed").value.trim() || "free";
-    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}${$("mix").checked ? "-mix" : ""}${$("unseeded").checked ? "-unseeded" : ""}-${seed}`;
+    const name = `LegendOfLink-v${VERSION}-${$("dset").value}-${$("start").value}${$("mix").checked ? "-mix" : ""}${$("upmix").checked ? "-upmix" : ""}${$("unseeded").checked ? "-unseeded" : ""}-${seed}`;
     const link = (id, data, ext) => {
       const a = $(id); a.href = URL.createObjectURL(new Blob([data], { type: "application/octet-stream" }));
       a.download = `${name}.${ext}`;
