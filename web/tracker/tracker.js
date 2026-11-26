@@ -420,7 +420,12 @@ function renderDun() {
   d.doors = d.doors || {};
   $("dname").value = d.name; $("ddone").checked = d.done;
   renderQuest(); renderNicknames();
-  $("dlabel").textContent = (isShrine(S.cur) ? "SHRINE-" : "LEVEL-") + S.cur;     // (as the game's map screen)
+  // LEVEL-X / SHRINE-X, one letter over each column (as the game's map screen: lines your map up with it)
+  const lab = (isShrine(S.cur) ? "SHRINE-" : "LEVEL-") + S.cur;
+  $("dlabel").setAttribute("aria-label", lab);
+  $("dlabel").replaceChildren(...[...lab.padEnd(8, " ")].slice(0, 8).map((ch, c) => {
+    const s = el("span", { textContent: ch.trim() }); s.style.gridColumn = String(c * 2 + 1); s.ariaHidden = "true"; return s;
+  }));
   const g = $("dgrid"); g.replaceChildren();
   const redraw = () => { save(); renderDun(); renderOM(); };
   for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {

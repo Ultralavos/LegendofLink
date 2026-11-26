@@ -234,5 +234,10 @@ footer a { color: var(--accent); }
 .dgrid { position: relative; }
 .dgrid .shape { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .dgrid .shape path { fill: none; stroke: #cfd6ff; stroke-opacity: .45; stroke-width: 2; stroke-linecap: square; }
-/* LEVEL-X / SHRINE-X above the map, as the game shows it */
-.dlabel { font: bold 15px/1 ui-monospace, "Courier New", monospace; letter-spacing: .12em; color: #f0f0f0; margin: 2px 0 6px 6px; }
+/* LEVEL-X / SHRINE-X above the map, one letter per column (the map's own columns) */
+.dcol { flex: 1 1 auto; min-width: 0; max-width: 560px; }
+.dwrap .dcol .dgrid { min-width: 0; }
+.dlabel { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr) 10px) minmax(0, 1fr); column-gap: 2px; padding: 0 7px 4px;
+  font: bold 16px/1 ui-monospace, "Courier New", monospace; color: #f0f0f0; text-align: center; }
+@media (max-width: 640px) { .dlabel { grid-template-columns: repeat(7, minmax(0, 1fr) 8px) minmax(0, 1fr); column-gap: 1px; padding: 0 4px 3px; } }
+.dside { margin-top: 20px; }
