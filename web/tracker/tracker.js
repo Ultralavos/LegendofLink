@@ -380,7 +380,7 @@ const ART = {
 };
 function roomArt(kind) {
   if (kind === "O") return el("img", { src: "img/cardD.png", className: "rk px", alt: "Old man", draggable: false });
-  if (/^n\d$/.test(kind)) return el("b", { className: "rk rn", textContent: kind.slice(1) });
+  if (/^n\d$/.test(kind)) return el("b", { className: "rk rn c" + kind.slice(1), textContent: kind.slice(1) });
   if (ART[kind]) {
     const w = document.createElement("span"); w.className = "rk art " + kind;
     w.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${ART[kind]}</svg>`;
@@ -516,7 +516,11 @@ function openKinds(i, cell) {
   for (const [id, name] of RKINDS) {
     if (id === "O" && isShrine(S.cur)) continue;
     const cur = id === "O" ? c0.m === "O" : (c0.k || "blank") === id && c0.r;
-    const b = el("button", { type: "button", className: "rpi kind" + (cur ? " sel" : ""), title: name });
+    // a number: two rooms a level at most (a pair of stairs)
+    const used = /^n/.test(id) ? Object.entries(d.cells).filter(([j, o]) => +j !== i && o.k === id).length : 0;
+    const full = used >= 2;
+    const b = el("button", { type: "button", className: "rpi kind" + (cur ? " sel" : ""), disabled: full,
+      title: full ? `${name}: already in two rooms` : name });
     const pv = el("span", { className: "kpv" }); const a = roomArt(id); if (a) pv.append(a);
     b.append(pv); if (!/^n/.test(id)) b.append(el("small", { textContent: name }));
     b.onclick = () => {

@@ -197,3 +197,6 @@ footer a { color: var(--accent); }
 .kpv .rk { position: absolute; }
 .kpv img.rk { width: 46%; height: 60%; object-fit: contain; left: 27%; top: 20%; }
 .kpv .rn { inset: 0; display: grid; place-items: center; font: bold 16px/1 ui-monospace, monospace; color: #fff; }
+.rn.c1 { color: #ff5a4a; } .rn.c2 { color: #ffa53a; } .rn.c3 { color: #ffe14a; } .rn.c4 { color: #5ee36a; }
+.rn.c5 { color: #4ad6ff; } .rn.c6 { color: #9db0ff; } .rn.c7 { color: #c26bff; } .rn.c8 { color: #ff70c8; }
+.rpi.kind:disabled { opacity: .3; cursor: not-allowed; }
