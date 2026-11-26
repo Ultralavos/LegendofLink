@@ -383,7 +383,8 @@ function roomArt(kind) {
   if (/^n\d$/.test(kind)) return el("b", { className: "rk rn c" + kind.slice(1), textContent: kind.slice(1) });
   if (ART[kind]) {
     const w = document.createElement("span"); w.className = "rk art " + kind;
-    w.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${ART[kind]}</svg>`;
+    w.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${ART[kind]}</svg>`
+      + (kind === "stair" ? '<b class="si">I</b>' : "");                 // (item stairs: a capital I by them)
     return w;
   }
   return null;
