@@ -92,7 +92,13 @@ function stepper(node, fn) {
   node.addEventListener("touchstart", () => { longed = false; held = setTimeout(() => { longed = true; fn(-1); }, 450); }, { passive: true });
   ["touchend", "touchmove", "touchcancel"].forEach((t) => node.addEventListener(t, () => clearTimeout(held)));
 }
-const icon = (name, cls = "") => el("img", { src: `img/${name}.png`, className: `px ${cls}`, alt: "", draggable: false });
+// (an upgrade pick, "up:N": its picture from the manual's)
+const UPI = (v) => /^up:(\d+)$/.exec(v || "");
+const icon = (name, cls = "") => {
+  const m = UPI(name);
+  return el("img", { src: m ? `../manual/img/up_${m[1].padStart(2, "0")}.png` : `img/${name}.png`, className: `px ${cls}`, alt: "", draggable: false });
+};
+const optName = (list, v) => { const m = UPI(v); if (m) return UPGRADES[+m[1]]; const f = list.find((x) => x[0] === v); return f ? f[1] : v; };
 
 // ---------------------------------------------------------------- items, counters, triforce, cards
 function renderItems() {
@@ -163,10 +169,16 @@ function giveItem(img) {
 }
 // what each pick gave (S.grants: where it was picked -> {img, prev}), so a pick changed or cleared takes back what
 // the wrong one gave (the item back to where it was, a card or bomb upgrade off) and the upgrades follow
-function grant(src, img) {
+function grant(src, img, lit) {
   S.grants = S.grants || {};
-  if (S.grants[src] && S.grants[src].img === img) return;
+  if (S.grants[src] && S.grants[src].img === img && !!S.grants[src].lit === !!lit) return;
   revoke(src);
+  const u = UPI(img);
+  if (u) {                                         // an upgrade: its picture only; right-clicked: bought too
+    S.grants[src] = { img, lit: !!lit, prevUp: S.ups[+u[1]] || 0 };
+    if (lit) S.ups[+u[1]] = 2;
+    return;
+  }
   const it = ITEMS.find(([, steps]) => steps.includes(img));
   S.grants[src] = { img, prev: it ? S.items[it[0]] || 0 : null };
   if (/^card[SDX]$/.test(img)) S.cards[img[4]] = Math.min(3, (S.cards[img[4]] || 0) + 1); else giveItem(img);
@@ -174,6 +186,8 @@ function grant(src, img) {
 function revoke(src) {
   const g = (S.grants || {})[src]; if (!g) return;
   delete S.grants[src];
+  const u = UPI(g.img);
+  if (u) { if (g.lit) S.ups[+u[1]] = g.prevUp || 0; return; }
   const m = /^card([SDX])$/.exec(g.img);
   if (m) { S.cards[m[1]] = Math.max(0, (S.cards[m[1]] || 0) - 1); return; }
   if (g.img === "bombs") { S.bombups = Math.max(0, (S.bombups || 0) - 1); return; }
@@ -191,7 +205,7 @@ function renderOM() {
   for (let n = 1; n <= 8; n++) {
     const o = S.om[n] || {};
     const auto = omDrawn(n), lit = auto || o.found || o.item;
-    const name = o.item ? OM_ITEMS.find((x) => x[0] === o.item)[1] : null;
+    const name = o.item ? optName(OM_ITEMS, o.item) : null;
     const b = el("button", { type: "button", className: "om" + (lit ? " on" : "") + (o.item ? " took" : ""),
       title: `Level ${n} old man` + (name ? `: took ${name}` : lit ? ": found" : ": not found yet") });
     b.append(el("span", { className: "n", textContent: n }), icon(o.item || "cardD", o.item ? "it" : "man"));
@@ -597,6 +611,8 @@ function openOMRoom(n, cell) {
     b.onclick = () => { o.item = img; o.found = true; grant("om:" + n, img); save(); closeRoomItems(); renderAll(); };
     grid.append(b);
   }
+  if (S.ug) grid.append(ugButton(cell, `Level ${n} old man`, 0, o.item,
+    (img, lit) => { o.item = img; o.found = true; grant("om:" + n, img, lit); save(); }));
   const none = el("button", { type: "button", className: "wide quiet", textContent: "Nothing taken" });
   none.onclick = () => { o.item = null; o.found = true; revoke("om:" + n); save(); closeRoomItems(); renderAll(); };
   const row = [none];
@@ -698,6 +714,10 @@ function renderQuest() {
   }
   // the pencil (a quest): every level 1-9 that quest, each named its own level's nickname (its outline on its map);
   // again: those names off
+  const ug = el("button", { type: "button", className: "qbtn ugt" + (S.ug ? " cur" : ""), textContent: "UG",
+    title: "Upgrade mix: an UG choice in the item spots' pickers (old men, item stairs, floor items, prizes)", ariaPressed: String(!!S.ug) });
+  ug.onclick = () => { S.ug = !S.ug; save(); renderAll(); };
+  box.append(ug);
   if (isShrine(k)) return;
   const on = !["lol", "custom"].includes(cur) && S.autoq === cur;
   const pen = el("button", { type: "button", className: "qbtn pen" + (on ? " cur" : ""), disabled: cur === "lol" || cur === "custom",
@@ -799,7 +819,36 @@ function sideDone(k) {
   return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (!flr || !!bx[0]) &&
     st.slice(0, nst).filter(Boolean).length === nst;
 }
-function sidePick(btn, title, opts, cur, pick, clear) {
+// (Upgrade mix) UG: the tier's upgrades Link may be offered now (tier -1: any); left-click shows it in the box,
+// right-click also marks it bought
+function ugButton(btn, title, tier, cur, pick) {
+  const b = el("button", { type: "button", className: "omi ug" + (UPI(cur) ? " sel" : ""), title: "An upgrade", textContent: "UG" });
+  b.onclick = (e) => { e.stopPropagation(); upPick(btn, title, tier, cur, pick); };
+  return b;
+}
+function upPick(btn, title, tier, cur, pick) {
+  const p = $("rpick"); rpicking = -2; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: `${title}: which upgrade? (right-click: bought)` }));
+  const grid = el("div", { className: "omgrid" });
+  UPGRADES.forEach((name, i) => {
+    if (tier >= 0 && tierOf(i) !== tier) return;
+    const ok = !UP_NEEDS[i] || UP_NEEDS[i](), v = `up:${i}`;
+    if ((!ok || (S.ups[i] || 0) === 2) && cur !== v) return;
+    const b = el("button", { type: "button", className: "omi" + (cur === v ? " sel" : ""), title: name }, [icon(v)]);
+    b.onclick = () => { pick(v, false); closeRoomItems(); renderAll(); };
+    b.oncontextmenu = (e) => { e.preventDefault(); pick(v, true); closeRoomItems(); renderAll(); };
+    grid.append(b);
+  });
+  if (!grid.children.length) grid.append(el("div", { className: "hint", textContent: "None offered now" }));
+  p.append(grid);
+  p.hidden = false;
+  const r = btn.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left - w + r.width, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function sidePick(btn, title, opts, cur, pick, clear, tier = null) {
   const p = $("rpick"); rpicking = -2; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: title }));
   const grid = el("div", { className: "omgrid" });
@@ -808,6 +857,7 @@ function sidePick(btn, title, opts, cur, pick, clear) {
     b.onclick = () => { pick(img); closeRoomItems(); };
     grid.append(b);
   }
+  if (S.ug && tier !== null) grid.append(ugButton(btn, title, tier, cur, pick));
   const none = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
   none.onclick = () => { clear(); closeRoomItems(); };
   p.append(grid, el("div", { className: "prow" }, [none]));
@@ -832,12 +882,12 @@ function renderSide() {
     const v = sd.prize;
     box.append(el("div", { className: "slabel", textContent: "Prize" }));
     const b = el("button", { type: "button", className: "sbox blank" + (v ? " on" : ""),
-      title: "Shrine prize" + (v ? ": " + PRIZEOPTS.find((x) => x[0] === v)[1] : "") }, v ? [icon(v)] : []);
+      title: "Shrine prize" + (v ? ": " + optName(PRIZEOPTS, v) : "") }, v ? [icon(v)] : []);
     b.onclick = (e) => {
       e.stopPropagation();
-      sidePick(b, `Shrine ${k} prize`, PRIZEOPTS, v, (img) => {
-        sd.prize = img; grant(`side:${k}:prize`, img); if (!S.shrines.includes(k)) S.shrines = [...S.shrines, k]; save();
-      }, () => { sd.prize = null; revoke(`side:${k}:prize`); S.shrines = S.shrines.filter((x) => x !== k); save(); });
+      sidePick(b, `Shrine ${k} prize`, PRIZEOPTS, v, (img, lit) => {
+        sd.prize = img; grant(`side:${k}:prize`, img, lit); if (!S.shrines.includes(k)) S.shrines = [...S.shrines, k]; save();
+      }, () => { sd.prize = null; revoke(`side:${k}:prize`); S.shrines = S.shrines.filter((x) => x !== k); save(); }, 2);
     };
     box.append(b);
     return;
@@ -853,7 +903,7 @@ function renderSide() {
       S.tri = on ? S.tri.filter((x) => x !== lv) : [...S.tri, lv]; save();
     });
     const o = S.om[lv] || {};
-    sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + OM_ITEMS.find((x) => x[0] === o.item)[1] : ""),
+    sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + optName(OM_ITEMS, o.item) : ""),
       [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
     sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
       sd.pot = !sd.pot; if (sd.pot) grant(`side:${k}:pot`, "potion1"); else revoke(`side:${k}:pot`); save();
@@ -862,9 +912,9 @@ function renderSide() {
       const v = sd[arr][i];
       const kids = stairs ? [stairArt()] : [];
       if (v) kids.push(icon(v, stairs ? "over" : ""));
-      sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + opts.find((x) => x[0] === v)[1] : ""), kids, (b) =>
-        sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; grant(`side:${k}:${arr}:${i}`, img); save(); },
-          () => { sd[arr][i] = null; revoke(`side:${k}:${arr}:${i}`); save(); }));
+      sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + optName(opts, v) : ""), kids, (b) =>
+        sidePick(b, title, opts, v, (img, lit) => { sd[arr][i] = img; grant(`side:${k}:${arr}:${i}`, img, lit); save(); },
+          () => { sd[arr][i] = null; revoke(`side:${k}:${arr}:${i}`); save(); }, 1));
     };
     const [nst, flr] = layoutOf(lv);                                     // (the map's set: LAYOUT)
     if (flr) slot("box", 0, BOXOPTS, "Floor item");
@@ -872,9 +922,9 @@ function renderSide() {
   } else {
     const slot = (i) => {
       const v = sd.st[i];
-      sbtn("st" + (v ? " on" : ""), "Item stairs" + (v ? ": " + L9OPTS.find((x) => x[0] === v)[1] : ""), [stairArt(), ...(v ? [icon(v, "over")] : [])], (b) =>
-        sidePick(b, "Level 9 item stairs", L9OPTS, v, (img) => { sd.st[i] = img; grant(`side:9:st:${i}`, img); save(); },
-          () => { sd.st[i] = null; revoke(`side:9:st:${i}`); save(); }));
+      sbtn("st" + (v ? " on" : ""), "Item stairs" + (v ? ": " + optName(L9OPTS, v) : ""), [stairArt(), ...(v ? [icon(v, "over")] : [])], (b) =>
+        sidePick(b, "Level 9 item stairs", L9OPTS, v, (img, lit) => { sd.st[i] = img; grant(`side:9:st:${i}`, img, lit); save(); },
+          () => { sd.st[i] = null; revoke(`side:9:st:${i}`); save(); }, -1));
     };
     slot(0); slot(1);
     sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
