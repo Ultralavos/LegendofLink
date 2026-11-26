@@ -72,7 +72,7 @@ const OM_ITEMS = [["boom1", "Boomerang"], ["candle1", "Blue candle"], ["raft", "
   ["sword2", "White sword"], ["wand", "Wand"], ["bow", "Bow"], ["arrow2", "Silver arrows"], ["shield", "Magical shield"],
   ["candle2", "Red candle"], ["sword3", "Magical sword"], ["potion2", "Red potion"]];
 const fresh = () => ({ items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
-  ow: {}, owDone: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
+  ow: {}, owDone: {}, owX: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ } }
@@ -216,11 +216,15 @@ function renderMap() {
       if (m) cell.append(el("span", { className: "tag " + m[2], textContent: m[1] }));
       else cell.classList.add("open");
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
-      cell.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
+      if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
+      // left click: an X ("don't need it"), again to take it off; right-click / long press: what's here
+      cell.onclick = (e) => { e.stopPropagation(); if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
+      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openPicker(s, cell); };
+      longPress(cell, () => openPicker(s, cell));
     }
     map.append(cell);
   }
-  $("spots").textContent = ENTRANCES.filter((s) => !S.ow[s]).length;
+  $("spots").textContent = ENTRANCES.filter((s) => !S.ow[s] && !S.owX[s]).length;
 }
 function openPicker(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
@@ -242,7 +246,7 @@ function openPicker(s, cell) {
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
   const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; save(); closePicker(); renderMap(); };
+  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; save(); closePicker(); renderMap(); };
   p.append(grid, el("div", { className: "prow" }, [done, clear]));
   p.hidden = false;
   // place it under the tile, inside the panel
