@@ -238,6 +238,13 @@ def lol_alt_set(swap2, swap3):
     return out
 
 
+def quest_l2():
+    """2Q, 3Q and 4Q keep their own level 2 (its item stairs and floor item as the quest has them); the other sets
+    play level 2 as LoL's (its stairs block reveals nothing: a floor item)."""
+    import os
+    return os.environ.get("LOL_SET", "lol") in ("2q", "3q", "4q")
+
+
 def quest_counts(cls, rule):
     """A quest level's (item stairs, transports) from its rule: level 2's stairs stay LoL's (a floor item), level 9
     keeps two cellars (its record's item and the red potion), at most two (the level header's)."""
@@ -257,7 +264,7 @@ def cellar_need(cls, cells=(), rule=None):
     pieces = len(set(G.pieces(set(cells)).values())) if cells else 1
     if rule is not None:                  # a quest's own stair rules (lol_quests.rules)
         qi, qt = quest_counts(cls, rule)
-        return (0 if cls == "L2" else qi), max(qt, pieces - 1)
+        return (0 if cls == "L2" and not quest_l2() else qi), max(qt, pieces - 1)
     return items, G.TRANSPORTS.get(grp, 0) + pieces - 1
 
 

@@ -55,6 +55,11 @@ BOSS_OF = {0x04: [0x3D], 0x05: [0x43, 0x44, 0x45], 0x06: [0x33, 0x34], 0x25: [0x
 BOSS_GROUP_A = {0x3D, 0x31, 0x32, 0x38, 0x39}               # Aquamentus, Dodongos, Digdogger (one boss graphics set)
 
 
+def _quest_l2():
+    import lol_sets
+    return lol_sets.quest_l2()
+
+
 def groups_of(bosses):
     return {1 if b in BOSS_GROUP_A else 0 for b in bosses}
 
@@ -412,7 +417,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
 
     # item stairs: 1 (levels 1-7), 2 (level 8); levels 1-3 always push-block (level 2 turns it into a floor item)
     item_stairs = []
-    n_items = ITEM_STAIRS[cls] if rule is None or lvcls == "L2" else rule[0]
+    n_items = ITEM_STAIRS[cls] if rule is None or (lvcls == "L2" and not _quest_l2()) else rule[0]
     for _ in range(n_items):
         c = rng.choice([x for x in free() if x not in hidden]); roles[c] = "item_stairs"; item_stairs.append(c)
 

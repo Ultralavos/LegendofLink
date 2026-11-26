@@ -192,6 +192,7 @@ def rule_of(nm):
 
 def floor_levels():
     """Levels 1-9 that get a floor badge / XP: LoL's 1 and 2; a quest's own levels with a major item on the floor."""
+    import lol_sets
     out = {1, 2}
     cs = custom_set()
     if cs is not None:
@@ -200,7 +201,7 @@ def floor_levels():
                 lv = int(g["classes"][nm][0][1:])
                 if r[3]:
                     out.add(lv)
-                elif lv != 2:
+                elif lv != 2 or lol_sets.quest_l2():
                     out.discard(lv)
     return out
 
@@ -235,7 +236,7 @@ def cellar_alloc(ds, free):
         for nm, (_, cl, i_n, t_n) in mine.items():
             a = area[nm]
             ic = free[gi][p[a]:p[a] + i_n]; p[a] += i_n
-            if cl[0] == "L2":
+            if cl[0] == "L2" and not lol_sets.quest_l2():
                 ic = [free[gi][0]]
             out[nm] = (ic, shared[:t_n])
     return out
@@ -451,6 +452,7 @@ def decoder(groups, ptr_table, maps, info):
     """DECODE (each data bank). In: $08 = variant index, $09 seed, $0A group, $0B boss, $0E slot code, $0F design.
     Writes the rooms, the level info (start, triforce, boss, cellars, item positions, room flags, map).
     Out: $03 old man, $04/$05 stairs rooms, $06/$07 cellars, $08 level 1 / 2's floor item room ($FF none)."""
+    import lol_sets
     S_N, S_CLS, S_POS, S_LAY, S_T, S_CNT, S_X, S_HI, S_R, S_BX, L1, L2, L3, S_RT, S_G = range(SCR, SCR + 15)
     P = 0x0C                                                                  # pointer $0C/$0D
     a = Asm(DECODE)
@@ -583,9 +585,11 @@ def decoder(groups, ptr_table, maps, info):
     a.abs(0x20, "roar")
     a.label("ro_x")
     # level 2: its stairs room's push block reveals nothing (the floor item instead of the cellar)
-    a.b(0xA5, 0x0E, 0xC9, 0x02).br(0xD0, "l2_x").b(0xA6, 0x04, 0xE0, 0xFF).br(0xF0, "l2_x")
-    a.abs(0xBD, ATTR[5]).b(0x29, 0xF8).abs(0x9D, ATTR[5])               # no stairs: a plain block, no trigger
-    a.abs(0xBD, ATTR[3]).b(0x29, 0xBF).abs(0x9D, ATTR[3])
+    # (2Q, 3Q, 4Q: their own level 2, stairs and all)
+    if not lol_sets.quest_l2():
+        a.b(0xA5, 0x0E, 0xC9, 0x02).br(0xD0, "l2_x").b(0xA6, 0x04, 0xE0, 0xFF).br(0xF0, "l2_x")
+        a.abs(0xBD, ATTR[5]).b(0x29, 0xF8).abs(0x9D, ATTR[5])           # no stairs: a plain block, no trigger
+        a.abs(0xBD, ATTR[3]).b(0x29, 0xBF).abs(0x9D, ATTR[3])
     a.label("l2_x").b(0x60)
     # cl_ptr: P = this design's cell list, S_N = its count + 1 (Y = 0)
     a.label("cl_ptr").b(0xA5, 0x0F, 0x0A, 0xA8).abs(0xB9, "cltab").b(0x85, P).abs(0xB9, "cltab1").b(0x85, P + 1)
@@ -837,6 +841,7 @@ def finish(rom: bytearray) -> None:
 
 
 def apply(rom: bytearray, notes: list) -> None:
+    import lol_sets
     expand(rom)
     ds, out = build_variants()
     from zora.generate.shapes.minimap import synthesize_minimap
@@ -930,8 +935,11 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xA9, 0x20).abs(0x8D, SUB_IT).b(0xA5, 0x01).abs(0x8D, SUB_IT + 1).br(0xD0, "nf_c")
     a.label("nf_lvi").b(0xA5, 0x01, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT)
     a.b(0xA5, 0x01, 0x4A, 0x4A, 0x4A, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT + 1)
-    a.b(0xA5, 0x0E, 0xC9, 0x02).br(0xD0, "nf_1")
-    a.b(0xA5, 0x08).abs(0x8D, SUB_RM).abs(0x4C, "nf_end")                   # level 2: the floor room
+    if lol_sets.quest_l2():               # (2Q, 3Q, 4Q: level 2 as their other levels)
+        a.b(0xA5, 0x0E)
+    else:
+        a.b(0xA5, 0x0E, 0xC9, 0x02).br(0xD0, "nf_1")
+        a.b(0xA5, 0x08).abs(0x8D, SUB_RM).abs(0x4C, "nf_end")               # level 2: the floor room
     # levels 1, 3-8: the two items go to the level's cellars, then its floor item room (whichever it has)
     a.label("nf_1").b(0xC9, 0x09).br(0xF0, "nf_c")
     a.b(0xA2, 0x00, 0xA9, 0xFF).abs(0x8D, SUB_RM).abs(0x8D, SUB_RM + 1)
