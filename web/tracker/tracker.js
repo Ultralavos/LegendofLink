@@ -367,6 +367,8 @@ function renderBrushes() {
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
+const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
+  ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 let rpicking = null;
 // the entrance: an arrow from the south, over the room's south door
 function entArrow(cls) {
@@ -397,8 +399,10 @@ function renderDun() {
     const it = RITEMS.find((x) => x[0] === c.it);
     if (it) cell.append(it[1] ? el("img", { src: "img/" + it[1], className: "rit px", alt: it[2], draggable: false })
       : el("b", { className: "rit ri", textContent: "I" }));
+    const en = RENEMIES.find((x) => x[0] === c.en);
+    if (en) cell.append(el("img", { src: "img/" + en[1], className: "ren px" + (it ? " small" : ""), alt: en[2], title: en[2], draggable: false }));
     if (c.m === "E") cell.append(entArrow("in"));
-    else if (c.m) cell.append(el("span", { className: it ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    else if (c.m) cell.append(el("span", { className: it || en ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
     cell.onclick = (e) => {
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
       if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
@@ -413,15 +417,16 @@ function renderDun() {
         if (brush === "O" && isShrine(S.cur)) return;
         cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
         if ((cur.m === "O" && S.cur !== "9") || cur.m === "E")   // one old man per level 1-8, one entrance: drawing another moves it
-          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === cur.m) { delete c.m; if (!c.r && !c.it) delete d.cells[j]; }
+          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === cur.m) { delete c.m; if (!c.r && !c.it && !c.en) delete d.cells[j]; }
       }
-      if (!cur.r && !cur.m && !cur.it) delete d.cells[i]; else d.cells[i] = cur;
+      if (!cur.r && !cur.m && !cur.it && !cur.en) delete d.cells[i]; else d.cells[i] = cur;
       redraw();
     };
     cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; redraw(); };
     cell.addEventListener("wheel", (e) => {
       e.preventDefault();
-      if (wheelDir(e) > 0) openRoomItems(i, cell); else closeRoomItems();
+      const w = wheelDir(e);
+      if (w > 0) openRoomItems(i, cell); else if (w < 0) openRoomItems(i, cell, true);
     }, { passive: false });
     longPress(cell, () => openRoomItems(i, cell));
     g.append(cell);
@@ -449,25 +454,28 @@ function renderDun() {
     }
   }
 }
-function openRoomItems(i, cell) {
+function openRoomItems(i, cell, enemies = false) {
   const p = $("rpick"), d = dun(S.cur); rpicking = i; p.replaceChildren();
-  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[i >> 3]}${(i & 7) + 1}: item` }));
+  const list = enemies ? RENEMIES : RITEMS, field = enemies ? "en" : "it";
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[i >> 3]}${(i & 7) + 1}: ${enemies ? "enemy" : "item"}` }));
   const grid = el("div", { className: "rgrid" });
-  for (const [id, img, name] of RITEMS) {
-    const cur = (d.cells[i] || {}).it === id;
-    const b = el("button", { type: "button", className: "rpi" + (cur ? " sel" : ""), title: name },
+  const keep = (c) => { if (!c.r && !c.m && !c.it && !c.en) delete d.cells[i]; else d.cells[i] = c; };
+  for (const [id, img, name] of list) {
+    const cur = (d.cells[i] || {})[field] === id;
+    const b = el("button", { type: "button", className: "rpi" + (cur ? " sel" : "") + (enemies ? " en" : ""), title: name },
       [img ? el("img", { src: "img/" + img, className: "px", alt: name, draggable: false }) : el("b", { textContent: "I" })]);
     b.onclick = () => {
       const c = d.cells[i] || {};
-      if (c.it === id) delete c.it; else { c.it = id; if (!c.r) c.r = 1; }
-      if (!c.r && !c.m && !c.it) delete d.cells[i]; else d.cells[i] = c;
-      save(); closeRoomItems(); renderDun();
+      if (c[field] === id) delete c[field]; else { c[field] = id; if (!c.r) c.r = 1; }
+      keep(c); save(); closeRoomItems(); renderDun();
     };
     grid.append(b);
   }
-  const clear = el("button", { type: "button", className: "wide quiet", textContent: "No item" });
-  clear.onclick = () => { const c = d.cells[i]; if (c) { delete c.it; if (!c.r && !c.m) delete d.cells[i]; } save(); closeRoomItems(); renderDun(); };
-  p.append(grid, el("div", { className: "prow" }, [clear]));
+  const clear = el("button", { type: "button", className: "wide quiet", textContent: enemies ? "No enemy" : "No item" });
+  clear.onclick = () => { const c = d.cells[i]; if (c) { delete c[field]; keep(c); } save(); closeRoomItems(); renderDun(); };
+  const other = el("button", { type: "button", className: "wide", textContent: enemies ? "Items" : "Enemies" });
+  other.onclick = (e) => { e.stopPropagation(); openRoomItems(i, cell, !enemies); };
+  p.append(grid, el("div", { className: "prow" }, [other, clear]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(260, host.width - 16);
