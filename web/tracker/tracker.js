@@ -367,7 +367,7 @@ function renderBrushes() {
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
-const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
+const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 let rpicking = null;
 // the entrance: an arrow from the south, over the room's south door
