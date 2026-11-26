@@ -251,7 +251,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePicke
 
 // ---------------------------------------------------------------- dungeons
 let brush = "room";
-const dun = (k) => (S.dun[k] = S.dun[k] || { name: "", done: false, cells: {} });
+const dun = (k) => (S.dun[k] = S.dun[k] || { name: "", done: false, cells: {}, doors: {}, g8: true });
 function renderDTabs() {
   const t = $("dtabs"); t.replaceChildren();
   for (const k of DUNGEONS) {
@@ -276,15 +276,37 @@ function renderBrushes() {
     b.append(btn);
   }
 }
+// the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green (again: none), the
+// mouse wheel through green, yellow, dark blue, red, purple; right-click clears. A room: click / right-click as the
+// brush says; the wheel (down) opens its item list (map, compass, key, bomb, triforce, potion, I).
+const DOORS = ["green", "yellow", "navy", "red", "purple"];
+const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
+  ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
+let rpicking = null;
+function wheelDir(e) { return e.deltaY > 0 ? 1 : e.deltaY < 0 ? -1 : 0; }
+// (touch screens have no wheel: a long press does the wheel-down step; the click after it is dropped)
+function longPress(node, fn) {
+  let held = null, longed = false;
+  node.addEventListener("touchstart", () => { longed = false; held = setTimeout(() => { longed = true; fn(); }, 450); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((t) => node.addEventListener(t, () => clearTimeout(held)));
+  node.addEventListener("click", (e) => { if (longed) { longed = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
 function renderDun() {
   renderDTabs();
   const d = dun(S.cur);
+  d.doors = d.doors || {};
   $("dname").value = d.name; $("ddone").checked = d.done;
   const g = $("dgrid"); g.replaceChildren();
-  for (let i = 0; i < 128; i++) {
+  const redraw = () => { save(); renderDun(); renderOM(); };
+  for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
+    const i = row * 8 + col;
     const c = d.cells[i] || {};
-    const cell = el("button", { type: "button", className: "room" + (c.r ? " r" + c.r : "") });
-    if (c.m) cell.append(el("span", { textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    const cell = el("button", { type: "button", className: "room" + (c.r ? " r" + c.r : ""), title: "ABCDEFGH"[row] + (col + 1) });
+    cell.style.gridRow = String(row * 2 + 1); cell.style.gridColumn = String(col * 2 + 1);
+    const it = RITEMS.find((x) => x[0] === c.it);
+    if (it) cell.append(it[1] ? el("img", { src: "img/" + it[1], className: "rit px", alt: it[2], draggable: false })
+      : el("b", { className: "rit ri", textContent: "I" }));
+    if (c.m) cell.append(el("span", { className: it ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
     cell.onclick = () => {
       const cur = d.cells[i] || {};
       if (brush === "room") cur.r = ((cur.r || 0) + 1) % 3;
@@ -292,18 +314,74 @@ function renderDun() {
         if (brush === "O" && isShrine(S.cur)) return;
         cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
         if (cur.m === "O" && S.cur !== "9")             // one old man per level 1-8: drawing another moves him
-          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === "O") { delete c.m; if (!c.r) delete d.cells[j]; }
+          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === "O") { delete c.m; if (!c.r && !c.it) delete d.cells[j]; }
       }
-      if (!cur.r && !cur.m) delete d.cells[i]; else d.cells[i] = cur;
-      save(); renderDun(); renderOM();
+      if (!cur.r && !cur.m && !cur.it) delete d.cells[i]; else d.cells[i] = cur;
+      redraw();
     };
-    cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; save(); renderDun(); renderOM(); };
+    cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; redraw(); };
+    cell.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (wheelDir(e) > 0) openRoomItems(i, cell); else closeRoomItems();
+    }, { passive: false });
+    longPress(cell, () => openRoomItems(i, cell));
     g.append(cell);
   }
+  // doors: "h" between a room and the one east of it, "v" between a room and the one south of it
+  for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
+    for (const k of ["h", "v"]) {
+      if ((k === "h" && col === 7) || (k === "v" && row === 7)) continue;
+      const key = `${k}${row * 8 + col}`, v = d.doors[key] || 0;
+      const door = el("button", { type: "button", className: `door ${k}` + (v ? " " + DOORS[v - 1] : ""),
+        title: v ? `Door: ${DOORS[v - 1] === "navy" ? "dark blue" : DOORS[v - 1]}` : "Door" });
+      door.style.gridRow = String(k === "h" ? row * 2 + 1 : row * 2 + 2);
+      door.style.gridColumn = String(k === "h" ? col * 2 + 2 : col * 2 + 1);
+      door.append(el("i"));
+      const set = (n) => { if (n) d.doors[key] = n; else delete d.doors[key]; save(); renderDun(); };
+      door.onclick = () => set(v ? 0 : 1);
+      door.oncontextmenu = (e) => { e.preventDefault(); set(0); };
+      door.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const w = wheelDir(e); if (!w) return;
+        set(v ? ((v - 1 + w + DOORS.length) % DOORS.length) + 1 : (w > 0 ? 1 : DOORS.length));
+      }, { passive: false });
+      longPress(door, () => set(v ? (v % DOORS.length) + 1 : 1));
+      g.append(door);
+    }
+  }
 }
+function openRoomItems(i, cell) {
+  const p = $("rpick"), d = dun(S.cur); rpicking = i; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[i >> 3]}${(i & 7) + 1}: item` }));
+  const grid = el("div", { className: "rgrid" });
+  for (const [id, img, name] of RITEMS) {
+    const cur = (d.cells[i] || {}).it === id;
+    const b = el("button", { type: "button", className: "rpi" + (cur ? " sel" : ""), title: name },
+      [img ? el("img", { src: "img/" + img, className: "px", alt: name, draggable: false }) : el("b", { textContent: "I" })]);
+    b.onclick = () => {
+      const c = d.cells[i] || {};
+      if (c.it === id) delete c.it; else { c.it = id; if (!c.r) c.r = 1; }
+      if (!c.r && !c.m && !c.it) delete d.cells[i]; else d.cells[i] = c;
+      save(); closeRoomItems(); renderDun();
+    };
+    grid.append(b);
+  }
+  const clear = el("button", { type: "button", className: "wide quiet", textContent: "No item" });
+  clear.onclick = () => { const c = d.cells[i]; if (c) { delete c.it; if (!c.r && !c.m) delete d.cells[i]; } save(); closeRoomItems(); renderDun(); };
+  p.append(grid, el("div", { className: "prow" }, [clear]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(260, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function closeRoomItems() { $("rpick").hidden = true; rpicking = null; }
+document.addEventListener("click", (e) => { if (rpicking !== null && !$("rpick").contains(e.target)) closeRoomItems(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRoomItems(); });
 $("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); });
 $("ddone").addEventListener("change", (e) => { dun(S.cur).done = e.target.checked; save(); renderDTabs(); });
-$("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; save(); renderDun(); renderOM(); });
+$("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; dun(S.cur).doors = {}; save(); renderDun(); renderOM(); });
 $("nicknames").append(...NICKNAMES.map((n) => el("option", { value: n })));
 
 // ---------------------------------------------------------------- timer, notes, new run
@@ -325,6 +403,15 @@ $("reset-all").onclick = () => { $("confirm").hidden = false; };
 $("c-no").onclick = () => { $("confirm").hidden = true; };
 $("c-yes").onclick = () => { S = fresh(); save(); $("confirm").hidden = true; $("notes").value = ""; renderAll(); };
 
+// (saves from before 0.355: the 16 x 8 grid -> 8 x 8; the half that was drawn on)
+for (const d of Object.values(S.dun)) {
+  if (d.g8) continue;
+  const keys = Object.keys(d.cells || {}).map(Number);
+  const off = keys.length && keys.every((i) => (i & 15) >= 8) ? 8 : 0;
+  const cells = {};
+  for (const i of keys) { const col = (i & 15) - off; if (col >= 0 && col < 8) cells[(i >> 4) * 8 + col] = d.cells[i]; }
+  d.cells = cells; d.doors = d.doors || {}; d.g8 = true;
+}
 // (saves from before 0.306: no old man in the shrines, one per level 1-8)
 for (const [k, d] of Object.entries(S.dun)) {
   let seen = false;
