@@ -88,3 +88,6 @@ Overworld secrets (2026-11-25):
 
 Fun (2026-11-25):
 57. You always buy the radishes!   [fun]
+
+Digdoggers (2026-11-26):
+58. Music will only make some Digdoggers hangry
