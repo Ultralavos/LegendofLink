@@ -85,3 +85,6 @@ X-ray glasses (2026-11-24):
 
 Overworld secrets (2026-11-25):
 56. Play some music in the forest 2 screens south of the big bridge   (was: ...two screens... - 4 lines; the recorder spot at F9)
+
+Fun (2026-11-25):
+57. You always buy the radishes!   [fun]
