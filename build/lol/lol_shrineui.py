@@ -1,7 +1,7 @@
 """Legend of Link: shrine touches (owner, 2026-11-24).
 
 Roars: in Level 9 and the shrines, a room next to (north, south, east or west of) Ganon's room (Level 9) or a
-shrine's guardian (a boss's room in a shrine) roars as the boss's own room does: its sample when Link comes in, and
+shrine's guardian (the boss beside a shrine's prize room; other bosses there don't) roars as the boss's own room does: its sample when Link comes in, and
 again every 192 frames he stays, while that boss lives (its room's kill count, world flags bits 6-7, not full).
 Samples as the bosses' own: $10 Aquamentus / Gleeok / Ganon, $20 Dodongo / Gohma, $40 Digdogger / Manhandla / Patra.
 roar(rom) gives bank 0's routine, called from lol_upgrades' frame hook (every frame of play).
@@ -23,6 +23,7 @@ WORD_LIFE, WORD_ROAR = bytes([0x15, 0x12, 0x0F, 0x0E]), bytes([0x1B, 0x18, 0x0A,
 ATTR_C, ATTR_D = 0x697E, 0x69FE
 WORLD_FLAGS = 0x6BAF
 LEVEL_NO = 0x6BB1
+PRIZE_ROOM = 0x6B7E + 0x30              # the level info's triforce room: a shrine's prize room (its guardian next door)
 SAMPLE = 0x0601
 EVERY = 192
 SAMPLES = {**{t: 0x20 for t in (0x31, 0x32, 0x33, 0x34)}, **{t: 0x40 for t in (0x38, 0x39, 0x3C, 0x47, 0x48)},
@@ -64,11 +65,16 @@ def roar(rom: bytearray) -> int:
         a.label("n_lo").b(0x85, 0x03).abs(0xB9, ATTR_C).b(0x29, 0x3F, 0x05, 0x03)   # A = its monster
         a.abs(0xAE, LEVEL_NO).b(0xE0, 0x09).br(0xD0, "n_sh")
         a.b(0xC9, GANON).br(0xD0, "n_nx").b(0xA9, 0x10).br(0xD0, "n_alive")       # Level 9: Ganon
-        a.label("n_sh").b(0x38, 0xE9, lo).br(0x90, "n_nx").b(0xC9, hi - lo + 1).br(0xB0, "n_nx")
+        # (owner 2026-11-25) a shrine: only its guardian, the boss beside the prize room (lol_gen's "boss" role)
+        a.label("n_sh").b(0x48, 0x98, 0x38).abs(0xED, PRIZE_ROOM)
+        for v in (0x01, 0xFF, 0x10, 0xF0):
+            a.b(0xC9, v).br(0xF0, "g_ok")
+        a.b(0x68).abs(0x4C, "n_nx")
+        a.label("g_ok").b(0x68, 0x38, 0xE9, lo).br(0x90, "n_nx").b(0xC9, hi - lo + 1).br(0xB0, "n_nx")
         a.b(0xAA).abs(0xBD, "smp").br(0xF0, "n_nx")                               # a shrine: a guardian
         a.label("n_alive").b(0x85, 0x03, 0xB1, 0x00, 0x29, 0xC0, 0xC9, 0xC0).br(0xF0, "n_nx")   # dead: no
         a.b(0xA5, 0x03).abs(0x8D, SAMPLE).b(0xA9, 0x01).abs(0x8D, ROARN).abs(0x4C, "n_end")
-        a.label("n_nx").b(0xC6, 0x02).br(0x10, "n_lp")
+        a.label("n_nx").b(0xC6, 0x02).br(0x30, "n_end").abs(0x4C, "n_lp")
         a.label("n_end")
         for z in (3, 2, 1, 0):
             a.b(0x68, 0x85, z)

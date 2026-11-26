@@ -5,7 +5,8 @@ Encoded: bank 6 $8400-$9CD7 (the five level blocks - overworld, the dungeons' tw
 blocks - and the ten level infos), every byte XORed with a 64-byte key at ((hi << 3) ^ lo) & $3F of its address.
 The key is a hash of the plain data (the same seed: the same patch). The game only ever reads those bytes through
 CopyBlock (bank 6 $80D7, as it loads a level into WRAM), whose LDA ($00),Y / STA ($02),Y becomes JSR dec: a source
-in that range is decoded on the way. Not cheat-proof: the decoder is in the ROM (and this file).
+in that range is decoded on the way; so is lol_genload's own copy of a level's palette (its two LDA ($00),Y /
+STA INFO,Y loops -> JSR dy). Not cheat-proof: the decoder is in the ROM (and this file).
 
 Last step of lol_build (after the seed code, which is of the plain ROM and marked as a Race Rom's: its own code).
 Off by default (spoiler-log seeds stay plain)."""
@@ -16,6 +17,9 @@ from lol_af import Asm, BANK, patch
 LO, HI = 0x8400, 0x9CD8                 # bank 6: the encoded range [LO, HI)
 COPY = 0x80D7                           # CopyBlock
 KEY_AT = 45                             # (dec's code length: the key follows)
+INFO = 0x6B7E
+PAL_COPY = bytes([0xB1, 0x00, 0x99, INFO & 0xFF, INFO >> 8])
+GEN = lambda: os.environ.get("LOL_GEN") == "1"
 DOMAIN = b"Legend of Link level key\x00"
 
 
@@ -48,6 +52,14 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xB1, 0x00).abs(0x5D, "key").b(0x91, 0x02, 0x68, 0xAA, 0x60)
         a.label("pl").b(0xB1, 0x00, 0x91, 0x02, 0x60)
         a.label("key").b(*key)
+        # dy: LDA ($00),Y decoded / STA INFO,Y (lol_genload's palette copy from a level's info: Y not 0). X kept;
+        # $0C / $0D scratch (lol_genload saves $00-$0F around it)
+        a.label("dy").b(0x86, 0x0D, 0x98, 0x18, 0x65, 0x00, 0x85, 0x0C, 0xA5, 0x01, 0x69, 0x00)
+        a.b(0xC9, LO >> 8).br(0x90, "dp").b(0xC9, HI >> 8).br(0x90, "de").br(0xD0, "dp")
+        a.b(0xA6, 0x0C, 0xE0, HI & 0xFF).br(0xB0, "dp")
+        a.label("de").b(0x0A, 0x0A, 0x0A, 0x45, 0x0C, 0x29, 0x3F, 0xAA, 0xB1, 0x00).abs(0x5D, "key").abs(0x4C, "ds")
+        a.label("dp").b(0xB1, 0x00)
+        a.label("ds").abs(0x99, INFO).b(0xA6, 0x0D, 0x60)
         return a
     n = len(dec(0xA000).bytes())
     at = free_in(rom, 6, n, 0xA000, 0xBE00)
@@ -55,6 +67,14 @@ def apply(rom: bytearray, notes: list) -> None:
     assert d.labels["key"] - at == KEY_AT
     assert not (LO <= at < HI)
     rom[base + at:base + at + n] = d.bytes()
+    # lol_genload's palette copy reads a level's info itself (LDA ($00),Y / STA INFO,Y): through dy
+    found = [c for c in range(0x9D00, 0xBF00 - 5) if bytes(rom[base + c:base + c + 5]) == PAL_COPY]
+    # (its two loops, 12 bytes apart: $00-$23 and $7C-$FB; another such copy, in lol_genload's decoder, reads a data
+    # bank and is left alone)
+    copies = [c for c in found if any(0 < abs(c - e) <= 16 for e in found)]
+    assert len(copies) == (2 if GEN() else 0), [hex(c) for c in found]
+    for c in copies:
+        rom[base + c:base + c + 5] = bytes([0x20, d.labels["dy"] & 0xFF, d.labels["dy"] >> 8, 0xEA, 0xEA])
     patch(rom, 6, COPY, bytes.fromhex("a000b1009102"), bytes([0xA0, 0x00, 0x20, at & 0xFF, at >> 8, 0xEA]))
     xor(rom, key)
     notes.append(f"level data: encoded (bank 6 ${LO:04X}-${HI - 1:04X}; decoder ${at:04X}, {n} bytes)")
