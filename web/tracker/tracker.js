@@ -627,8 +627,8 @@ for (const [k, d] of Object.entries(S.dun)) {
 
 
 // ---------------------------------------------------------------- the dungeon map's side column
-// levels 1-8: the triforce piece, the old man, the blue potion; level 1-2's two floor items, the item stairs (two in
-// level 8); level 9: its two item stairs, Ganon, Zelda. What's picked goes into the panels above too.
+// levels 1-8: the triforce piece, the old man, the blue potion; level 1-2's floor item, the item stairs (none in level 2,
+// two in level 8); level 9: its two item stairs, Ganon, Zelda. What's picked goes into the panels above too.
 const BOXOPTS = [["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"],
   ["xp2", "Big XP bag"], ["potion2", "Red potion"]];
 const L9OPTS = [["arrow2", "Silver arrows"], ["ring2", "Red ring"], ["sword3", "Magical sword"], ["boom2", "Magical boomerang"],
@@ -643,8 +643,8 @@ function sideDone(k) {
   const lv = +k, st = sd.st || [], bx = sd.box || [];
   if (lv === 9) return !!(st[0] && st[1] && sd.ganon && sd.zelda);
   const o = S.om[lv] || {};
-  return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (lv > 2 || (bx[0] && bx[1])) &&
-    !!st[0] && (lv !== 8 || !!st[1]);
+  return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (lv > 2 || !!bx[0]) &&
+    (lv === 2 || !!st[0]) && (lv !== 8 || !!st[1]);
 }
 function pickedGive(img) {                        // a card counts up, an item goes into the inventory
   const m = /^card([SDX])$/.exec(img);
@@ -716,8 +716,8 @@ function renderSide() {
       sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + opts.find((x) => x[0] === v)[1] : ""), kids, (b) =>
         sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; pickedGive(img); save(); }, () => { sd[arr][i] = null; save(); }));
     };
-    if (lv <= 2) { slot("box", 0, BOXOPTS, "Floor item"); slot("box", 1, BOXOPTS, "Floor item"); }
-    slot("st", 0, BOXOPTS, "Item stairs", true);
+    if (lv <= 2) slot("box", 0, BOXOPTS, "Floor item");
+    if (lv !== 2) slot("st", 0, BOXOPTS, "Item stairs", true);            // (level 2: no item stairs)
     if (lv === 8) slot("st", 1, BOXOPTS, "Item stairs", true);
   } else {
     const slot = (i) => {
