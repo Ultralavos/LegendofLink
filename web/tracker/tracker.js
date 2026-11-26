@@ -701,7 +701,12 @@ function renderNicknames() {
     : q === "lol" ? QNAMES.lol.filter((n) => (SHAPE_CLASSES[n] || "").includes(cls))
     : QNAMES[q].map((n, i) => `${i + 1} - ${n}`);                        // (a quest: "level - name", in order)
   const rooms = Object.entries(d.cells).filter(([, c]) => c.r || c.m || c.k || c.it || c.en).map(([i]) => +i);
-  const fits = (n) => { const sh = SHAPES[shapeKey(q, n)]; return !sh || rooms.every((r) => sh.includes(r)); };
+  // (the entrance: a room with none of the dungeon's rooms south of it, the way in being from the south)
+  const ent = Object.entries(d.cells).find(([, c]) => c.m === "E");
+  const fits = (n) => {
+    const sh = SHAPES[shapeKey(q, n)];
+    return !sh || (rooms.every((r) => sh.includes(r)) && (!ent || !sh.includes(+ent[0] + 8)));
+  };
   const ok = names.filter(fits);
   const head = !rooms.length ? "Nickname" : ok.length ? `Nickname (${ok.length} of ${names.length} fit your rooms)`
     : "No dungeon fits your rooms";
