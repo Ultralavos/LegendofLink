@@ -329,6 +329,8 @@ def main():
     lol_xray.apply(rom, notes)
     import lol_heavy
     lol_heavy.apply(rom, notes)
+    import lol_secret
+    lol_secret.apply(rom, notes)
     import lol_shrineui
     lol_shrineui.apply(rom, notes)
     import lol_v3core

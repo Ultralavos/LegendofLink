@@ -74,6 +74,8 @@ DEALT2, HINT_MODE2 = _deal(0x5D15, (H16, E4))
 # every cave this seed has: (room, its option, the special's item and bit, the hint's mode)
 CAVES = ([(r, DEALT[r], 0x14, THORN, HINT_MODE) for r in (G6, A10)] if ACTIVE else []) + \
         ([(r, DEALT2[r], 0x05, T.SLEEP, HINT_MODE2) for r in (H16, E4)] if ACTIVE2 else [])
+import lol_secret                       # (owner 2026-11-25: a rare seed's secret spot: a hint cave of its own)
+CAVES += lol_secret.caves()
 
 
 def describe():
@@ -260,10 +262,12 @@ def caves(rom, notes):
     import build_mock as base
 
     # --- bank 0: the wares and the take
-    modes = sorted(HINTS)
+    import lol_secret
+    ALL = {**HINTS, **({"secret": lol_secret.TEXT} if lol_secret.PICK else {})}
+    modes = sorted(ALL)
     texts = b""
     for m in modes:
-        t = bytes(_encode_quote(base.centered(HINTS[m])))
+        t = bytes(_encode_quote(base.centered(ALL[m])))
         texts += t + bytes(80 - len(t))
     stexts = b""
     for lines in (SPECIAL_TEXT[THORN_C], SPECIAL_TEXT["sleep"]):

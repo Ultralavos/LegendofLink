@@ -211,6 +211,10 @@ def apply(rom: bytearray, notes: list) -> None:
             DISC_FRAME[0] = lol_discovery.frame_code(rom) or 0
         if DISC_FRAME[0]:
             a.b(*V.far(3, DISC_FRAME[0]))
+        import lol_secret                                                   # (a rare seed's secret spot)
+        sec = lol_secret.frame_code(rom)
+        if sec:
+            a.b(*V.far(3, sec))
         import lol_ganon                                                    # (the owner's test build only)
         dbg = lol_ganon.debug_frame(rom)
         if dbg:

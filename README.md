@@ -135,6 +135,10 @@ room north of the way in.
 the status bar's -LIFE- reads -ROAR-, for players who can't hear it; back to -LIFE- when the roar stops or Link
 leaves the level.
 
+**Secret spots** (`build/lol/lol_secret.py`): about one seed in 100 hides one hint cave that nothing marks (not the
+X-ray Glasses, the Heavy Bracelet's grey, the Song of Discovery, the tracker or the manual). Which spot and which
+words are the seed's own; `LOL_SECRET="spot,hint"` forces one for tests.
+
 ## Seeded games, upgrade lines and item lines
 
 **Seeded (the norm)** (`build/lol/lol_fixed.py`): the build decides the entrance deal and every level's and shrine's
@@ -172,7 +176,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.338 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.339 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
