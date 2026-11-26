@@ -165,6 +165,13 @@ def build_hud(cpu: int) -> bytes:
     pre = bytes([0xAD, 0xF8, 0x7F, 0xF0, 0x02, 0xA9, 0x30,                   # LDA HARD / BEQ / LDA #$30
                  0x18, 0x6D, 0x6F, 0x06, 0x90, 0x02, 0xA9, 0xFF,              # CLC / ADC HeartValues / BCC / LDA #$FF
                  0x8D, HVE & 0xFF, HVE >> 8])                                 # STA HVE
+    # (owner 2026-11-25) unseeded: lol_names' HVE instead (also a file named IDDQD: as at 16 containers): a JSR to its
+    # bank 5 stub (patched by lol_names.apply)
+    import lol_fixed as _fx
+    if not _fx.FIXED:
+        import lol_names
+        lol_names.HVE_FAR_AT[0] = cpu
+        pre = bytes([0x20, 0xFF, 0xFF])
     # the bait's item palette (WRAM $72EC + 6, its row of the item attribute table): blue (1) with the poison bait
     # upgrade (lol_uptable, UP5 bit 7), else red (2)
     import lol_uptable as UT
@@ -331,6 +338,8 @@ def main():
     lol_heavy.apply(rom, notes)
     import lol_secret
     lol_secret.apply(rom, notes)
+    import lol_names
+    lol_names.apply(rom, notes)
     import lol_shrineui
     lol_shrineui.apply(rom, notes)
     import lol_v3core
