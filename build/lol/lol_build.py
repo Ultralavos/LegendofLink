@@ -327,6 +327,8 @@ def main():
     lol_wizzrobe.apply(rom, notes)
     import lol_gleeok
     lol_gleeok.apply(rom, notes)
+    import lol_digdogger
+    lol_digdogger.apply(rom, notes)
     import lol_gohma
     lol_gohma.apply(rom, notes)
     import lol_patra
