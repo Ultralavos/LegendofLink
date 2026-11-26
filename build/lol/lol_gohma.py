@@ -27,8 +27,9 @@ GLEEOK = 0x43
 HP = 0x60                       # the blue Gohma's ($33)
 COLORS = (0x04, 0x14, 0x30)                  # (owner: purple; green vanished in green levels)
 NECK_X, NECK_Y = (0x0438, 0x0452), (0x0445, 0x045F)     # Gleeok's neck tables (bank 4 $A4C6...): x, y; segment 0
-ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x4E                      # the roots: the north wall, halfway from the middle to
-                                                         #  each side (owner 2026-11-25: less flicker)
+ROOT_X, ROOT_Y = (0x4C, 0xA4), 0x40                      # the roots: the north wall, halfway from the middle to
+                                                         #  each side (owner 2026-11-25: less flicker; 11-26: up to the
+                                                         #  play area's top edge, $40: above it is the status bar)
 GOHMA_INIT = 0xA161
 SOUTH_EXTRA = 0x60              # ($80 + $60 = $E0 of $100 a frame = $38 of $40: blue darknut $28 + 2 x $08)
 TOP_Y, BOT_Y = 0x90, 0xB0      # (its own band is $70-$90: two squares lower)
