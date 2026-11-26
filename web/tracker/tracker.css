@@ -219,3 +219,8 @@ footer a { color: var(--accent); }
 /* found on the overworld: the number / letter lit, the border */
 .tpiece.found span { color: #f5e04a; } .tpiece.found:not(.on) { border-color: #8a7a2a; }
 .shrine.found:not(.on) { color: var(--pink); border-color: var(--pink); }
+/* everything in a level's / shrine's side column marked */
+.dtab.all { background: #2f6b3e; border-color: var(--green); color: #fff; }
+.dtab.all.cur { background: var(--green); color: #0b1a0f; }
+.tpiece.all { border-color: var(--green); background: #1d3a24; }
+.shrine.all { background: var(--green); border-color: var(--green); color: #0b1a0f; }

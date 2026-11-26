@@ -80,7 +80,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ }
   if (!upQueued && typeof renderUps === "function") {
     upQueued = true;
-    queueMicrotask(() => { upQueued = false; renderUps(); renderTri(); renderItems(); renderCounters(); renderSide(); });
+    queueMicrotask(() => { upQueued = false; renderUps(); renderTri(); renderItems(); renderCounters(); renderSide(); renderDTabs(); });
   }
 }
 
@@ -120,7 +120,7 @@ function renderTri() {
   for (let n = 1; n <= 8; n++) {
     const on = S.tri.includes(n);
     const found = Object.values(S.ow).includes(`L${n}`);            // its level marked on the overworld
-    const b = el("button", { type: "button", className: "tpiece" + (on ? " on" : "") + (found ? " found" : ""),
+    const b = el("button", { type: "button", className: "tpiece" + (on ? " on" : "") + (found ? " found" : "") + (sideDone(String(n)) ? " all" : ""),
       title: `Triforce piece ${n}` + (found ? " (level found)" : "") });
     b.append(icon("triforce"), el("span", { textContent: n }));
     b.onclick = () => { S.tri = on ? S.tri.filter((x) => x !== n) : [...S.tri, n]; save(); renderTri(); };
@@ -130,7 +130,7 @@ function renderTri() {
   for (const c of ["A", "B", "C", "D"]) {
     const on = S.shrines.includes(c);
     const found = Object.values(S.ow).includes(`S${c}`);
-    const b = el("button", { type: "button", className: "shrine" + (on ? " on" : "") + (found ? " found" : ""), textContent: c,
+    const b = el("button", { type: "button", className: "shrine" + (on ? " on" : "") + (found ? " found" : "") + (sideDone(c) ? " all" : ""), textContent: c,
       title: `Shrine ${c} prize taken` + (found ? " (found)" : "") });
     b.onclick = () => { S.shrines = on ? S.shrines.filter((x) => x !== c) : [...S.shrines, c]; save(); renderTri(); };
     s.append(b);
@@ -348,7 +348,7 @@ function renderDTabs() {
   const t = $("dtabs"); t.replaceChildren();
   for (const k of DUNGEONS) {
     const d = S.dun[k];
-    const b = el("button", { type: "button", className: "dtab" + (k === S.cur ? " cur" : "") + (d && d.done ? " done" : ""),
+    const b = el("button", { type: "button", className: "dtab" + (k === S.cur ? " cur" : "") + (d && d.done ? " done" : "") + (sideDone(k) ? " all" : ""),
       textContent: k, title: (/\d/.test(k) ? `Level ${k}` : `Shrine ${k}`) + (d && d.name ? `: ${d.name}` : "") });
     b.onclick = () => { S.cur = k; save(); if (brush === "O" && isShrine(k)) brush = "room"; renderBrushes(); renderDun(); };
     t.append(b);
@@ -636,6 +636,16 @@ const L9OPTS = [["arrow2", "Silver arrows"], ["ring2", "Red ring"], ["sword3", "
   ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
 const PRIZEOPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])),
   ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
+// a level / shrine whose side column is all marked: green in the tabs and the Triforce and Shrines panel
+function sideDone(k) {
+  const sd = (S.side || {})[k]; if (!sd) return false;
+  if (/[A-D]/.test(k)) return !!sd.prize;
+  const lv = +k, st = sd.st || [], bx = sd.box || [];
+  if (lv === 9) return !!(st[0] && st[1] && sd.ganon && sd.zelda);
+  const o = S.om[lv] || {};
+  return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (lv > 2 || (bx[0] && bx[1])) &&
+    !!st[0] && (lv !== 8 || !!st[1]);
+}
 function pickedGive(img) {                        // a card counts up, an item goes into the inventory
   const m = /^card([SDX])$/.exec(img);
   if (m) S.cards[m[1]] = Math.min(3, (S.cards[m[1]] || 0) + 1); else giveItem(img);
