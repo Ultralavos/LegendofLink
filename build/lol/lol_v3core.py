@@ -45,12 +45,14 @@ def far(bank, routine, back=HERE):
 
 
 def _alloc(free, n):
-    for r in free:
-        if r[1] - r[0] >= n:
-            at = r[0]
-            r[0] += n
-            return at
-    raise AssertionError(f"no {n} free bytes")
+    # (2026-11-25) best fit: the smallest run that holds it, so the big runs stay for the big code
+    fits = [r for r in free if r[1] - r[0] >= n]
+    if fits:
+        r = min(fits, key=lambda r: r[1] - r[0])
+        at = r[0]
+        r[0] += n
+        return at
+    raise AssertionError(f"no {n} free bytes (free: {[(hex(a), b - a) for a, b in free]})")
 
 
 def alloc0(n):

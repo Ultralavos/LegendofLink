@@ -584,14 +584,48 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         clauses.append(0xFF)
     assert len(clauses) < 256
 
+    def b_pick(org, E):
+        """adpick (bank 6, far-called by the engine; X the cave's CI): A = 0 if not !ADLEZ's G7 cave; else 1, and
+        each tier's pick in WIX: a random upgrade Link may have now and doesn't own (40 tries), else $FF."""
+        E = E or {"uget": 0x8000, "elig": 0x8000}
+        b = Asm(org)
+        b.label("adpick").b(*V3.far(6, NL6["adfree"])).br(0xD0, "p_go").b(0x60)
+        b.label("p_go").b(0xA9, 0x02).abs(0x8D, RANK)
+        b.b(0xA5, 0x15, 0x45, 0x18).abs(0x8D, XS).b(0xA9, 0x00).abs(0x8D, TT)
+        b.label("p_t").b(0xA9, 40).abs(0x8D, P0)
+        b.label("p_r").abs(0xAD, XS).b(0x0A, 0x0A, 0x18).abs(0x6D, XS).b(0x18, 0x69, 0x3B).abs(0x8D, XS)
+        b.abs(0xAE, TT).abs(0xBD, "ptend").b(0x38).abs(0xFD, "ptstart").abs(0x8D, TMP)
+        b.abs(0xAD, XS)
+        b.label("p_m").abs(0xCD, TMP).br(0x90, "p_ok").b(0x38).abs(0xED, TMP).abs(0x4C, "p_m")
+        b.label("p_ok").b(0x18).abs(0xAE, TT).abs(0x7D, "ptstart").b(0xAA).abs(0xBD, "pitems").b(0xAA)
+        b.b(*V3.far(0, E["uget"])).br(0xD0, "p_no")
+        b.b(0x8A, 0xA8).b(*V3.far(0, E["elig"])).br(0xB0, "p_no")
+        b.b(0x8A).abs(0xAE, TT).abs(0x9D, T.WIX).abs(0x4C, "p_nx")
+        b.label("p_no").abs(0xCE, P0).br(0xD0, "p_r")
+        b.abs(0xAE, TT).b(0xA9, 0xFF).abs(0x9D, T.WIX)
+        b.label("p_nx").abs(0xEE, TT).abs(0xAD, TT).b(0xC9, 0x03).br(0xD0, "p_t")
+        b.b(0xA9, 0x01, 0x60)
+        b.label("pitems").b(*[k for tier in T.TIERS for k in tier])
+        b.label("ptstart").b(*[sum(len(x) for x in T.TIERS[:i]) for i in range(3)])
+        b.label("ptend").b(*[sum(len(x) for x in T.TIERS[:i + 1]) for i in range(3)])
+        return b
+
     import lol_fixed as _fx
-    UNSEED_PB, NAMEK = None, None
+    UNSEED_PB, NAMEK, NL = None, None, None
     if not _fx.FIXED:
         import lol_names
-        NAMEK = lol_names.lib(rom)["namek"]
+        NL = lol_names.lib(rom)
+        NL6 = lol_names._LIB6
+        NAMEK = NL["namek"]
         _flat = [k for tier in T.TIERS for k in tier]
         UNSEED_PB = _flat.index(T.index("poison bait"))
         assert UNSEED_PB < len(T.TIERS[0])
+
+    # (owner 2026-11-25) !ADLEZ's G7 cave: its picks come from bank 6 (adpick, after the engine: lol_names.put6), put
+    # in WIX; the engine only places them (no rank taken). Reserved first, so the engine can call it.
+    PICK_AT = []
+    if NL is not None:
+        PICK_AT.append(lol_names.put6(rom, len(b_pick(0x8000, None).bytes())))
 
     def b_engine(org):
         b = Asm(org)
@@ -600,6 +634,14 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("w_find").abs(0xDD, "persons").br(0xF0, "w_got").b(0xE8, 0xE0, 0x03).br(0xD0, "w_find")
         b.b(0x38, 0x60)
         b.label("w_got").abs(0x8E, CI)
+        if NL is not None:
+            # (owner 2026-11-25) a file named !ADLEZ: G7's cave is a free upgrade cave, rolled anew each entry
+            b.b(*V3.far(6, PICK_AT[0])).br(0xF0, "w_nf").b(0xA9, 0xFF).abs(0x8D, P1).b(0xA9, 0x00).abs(0x8D, TT)
+            b.label("w_ft").abs(0xAE, TT).abs(0xBD, T.WIX).abs(0x8D, IDX)
+            b.abs(0xAC, CI).abs(0xB9, "cofs").b(0x18).abs(0x6D, TT).abs(0x8D, TMP)
+            b.abs(0xAE, IDX).b(0xE0, 0xFF).br(0xD0, "w_fp").abs(0x4C, "w_owned")
+            b.label("w_fp").abs(0x4C, "w_put")
+            b.label("w_nf")
         b.abs(0xAD, STORE + SEED_AT).br(0xD0, "w_sd").b(0xA5, 0x15, 0x45, 0x18, 0x09, 0x01)
         b.abs(0x8D, STORE + SEED_AT)
         b.label("w_sd").b(0xA9, 0x00).abs(0x8D, P0)                               # (P0: not a first entry)
@@ -643,7 +685,7 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.abs(0xAE, IDX).b(0xE0, 0xFF).br(0xF0, "w_owned")
         b.abs(0xAD, LINES + 7).abs(0xAC, CI).abs(0x39, "dmask").br(0xD0, "w_owned")   # bought here: all gone
         b.abs(0x20, "uget").br(0xD0, "w_owned")
-        b.abs(0xAE, TT).abs(0xAD, IDX).abs(0x9D, T.WIX)                          # ware slot TT: this upgrade
+        b.label("w_put").abs(0xAE, TT).abs(0xAD, IDX).abs(0x9D, T.WIX)                          # ware slot TT: this upgrade
         b.abs(0xBD, "flags").b(0x09, T.WARE_CODES[0]).b(0x18).abs(0x6D, TT)      # its slot's item code
         b.abs(0xAC, TMP).abs(0x99, CAVE_WARES)
         b.abs(0xAE, IDX).abs(0xBD, "uprices").abs(0x99, CAVE_PRICES).abs(0x4C, "w_nx")
@@ -659,7 +701,12 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("sc_l").b(0x88).br(0x30, "sc_d").b(0x0A, 0x0A).abs(0x4C, "sc_l")
         b.label("sc_d").abs(0x8D, XS).b(0x68, 0x48, 0x4A, 0x4A, 0xA8).abs(0xB9, LINES).abs(0x0D, XS)
         b.abs(0x99, LINES).b(0x68, 0xAA, 0x60)
-        b.label("w_nx").abs(0xEE, TT).abs(0xAD, TT).b(0xC9, 0x03).br(0xF0, "w_done").abs(0x4C, "w_tier")
+        b.label("w_nx").abs(0xEE, TT)
+        if NL is not None:
+            b.abs(0xAD, P1).b(0xC9, 0xFF).br(0xD0, "w_nt").abs(0xAD, TT).b(0xC9, 0x03).br(0xF0, "w_done")
+            b.abs(0x4C, "w_ft")
+            b.label("w_nt")
+        b.abs(0xAD, TT).b(0xC9, 0x03).br(0xF0, "w_done").abs(0x4C, "w_tier")
         b.label("w_done").b(0xA2, 0x01).abs(0x20, PIC.LOAD["load"])                # the wares' (and owned) pictures
         b.b(0x18, 0x60)
         # roll: the LCG (x * 5 + $3B), a full byte walked through this tier's weights (out of 256); A = the pick
@@ -706,8 +753,12 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("us_7").abs(0xB9, 0x7F00).abs(0x1D, "utbits").abs(0x99, 0x7F00).b(0x60)
         # uptake: X = the ware slot. Its upgrade (WIX) gets its bit, and moves to the next owned slot (the pictures
         # stay where they are: the slot's tables and palette are copied); the map master's maps; the item tune
-        b.label("uptake").abs(0xAC, CI).abs(0xB9, "dmask").abs(0x0D, LINES + 7).abs(0x8D, LINES + 7)   # (all 3 go)
-        b.abs(0x8E, TMP).abs(0xBD, T.WIX).b(0xAA)
+        b.label("uptake")
+        if NL is not None:
+            b.b(*V3.far(6, NL6["adfree"])).br(0xF0, "t_nf").b(*V3.far(6, NL6["adinc"])).abs(0x4C, "t_af")
+            b.label("t_nf")
+        b.abs(0xAC, CI).abs(0xB9, "dmask").abs(0x0D, LINES + 7).abs(0x8D, LINES + 7)   # (all 3 go)
+        b.label("t_af").abs(0x8E, TMP).abs(0xBD, T.WIX).b(0xAA)
         b.abs(0x20, "uset").b(0x8A, 0x48)
         b.abs(0xAC, T.OWN_N).b(0xC0, 0x03).br(0xB0, "t_pp").abs(0xAE, TMP)
         b.abs(0xBD, WLW + 11).abs(0x99, WLW + 8).abs(0xBD, WRW + 11).abs(0x99, WRW + 8)
@@ -744,6 +795,11 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.labels["cl2"] = b.labels["cl"] + 2
         return b
     E = V3.put0(rom, b_engine).labels
+    if NL is not None:
+        _p = b_pick(PICK_AT[0], E)
+        _o = BANK(6) + _p.labels["adpick"] - 0x8000
+        assert len(_p.bytes()) == len(b_pick(0x8000, None).bytes())
+        rom[_o:_o + len(_p.bytes())] = _p.bytes()
     # --- bank 1: the cave's hook (InitCave's JSR at $85F9) and the take's (the caves' JSR TakeItem at $891E) ---
     from lol_newups import free_in
     import sys

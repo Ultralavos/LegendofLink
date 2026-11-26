@@ -68,7 +68,7 @@ def put3(rom, bank, build):
     return put3_best(rom, build)
 
 
-def put3_best(rom, build, lo=0xB300, hi=0xBF00):
+def put3_best(rom, build, lo=0xB300, hi=0xBE00):
     """put3, best fit: the smallest free run of bank 3's tail that holds it (keeps the big runs for big code)."""
     n = len(build(0xB300).bytes())
     base = BANK(3) - 0x8000

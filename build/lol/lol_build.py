@@ -228,6 +228,8 @@ def main():
     assert rom[HOOK:HOOK + 10] == HOOK_BYTES, rom[HOOK:HOOK + 10].hex()
     at = BANK4 + (FREE - 0x8000)
     code = build_helper(FREE)
+    import lol_names
+    lol_names.XP_LABELS.update(build_helper.labels, TMP=TMP)
     assert all(x == 0xFF for x in rom[at:at + len(code)]), "bank 4's free run is not free"
     rom[at:at + len(code)] = code
     rom[HOOK:HOOK + 10] = bytes([0x20, FREE & 0xFF, FREE >> 8]) + b"\xEA" * 7
