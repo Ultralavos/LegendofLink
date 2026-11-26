@@ -136,15 +136,16 @@ def apply(rom: bytearray, notes: list) -> None:
             a.label(f"q{lv}").b(0xA5, 0xEB, 0xC9, screen(q2)).br(0xF0, f"ok{lv}")
         a.label(f"v{lv}").abs(0x4C, vanilla[lv])
 
-    import lol_odds
-    lol_odds.register(0, "old_men", CHOICES)
+    import lol_odds, lol_fixed
+    choices = CHOICES + ([("upgrade", 0x2E, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 1)
+    lol_odds.register(0, "old_men", choices)
 
     def old_store(a):                   # the save index: Levels 1-9 0-8, the second quest's 4 (E) 9, 6 (F) 10
         a.b(0xA4, 0x16).abs(0xB9, 0x062D).br(0xD0, "os_q2").b(0xA5, T0, 0x38, 0xE9, 0x01).br(0xB0, "os_st")
         a.label("os_q2").b(0xA5, T0, 0xC9, 0x04).br(0xF0, "os_e").b(0xA9, 0x0A).br(0xD0, "os_st")
         a.label("os_e").b(0xA9, 0x09)
         a.label("os_st").abs(0x8D, lol_odds.CTX)
-    lol_odds.wrappers(a, 0, CHOICES, "", 1, old_store, 2, book=True)
+    lol_odds.wrappers(a, 0, choices, "", 1, old_store, 2, book=True)
     # the choice: A = level
     a.label("choice").b(0x85, T0).abs(0x8E, SAVE_X)                            # (X: the caller's, kept)
     a.abs(0x20, "count").b(0xA5, CNT).br(0xD0, "ch_some")
@@ -283,11 +284,13 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
     a.label("r_cmp").b(0xC9, 0x03, 0x60)
     import lol_odds
     from lol_af import AF_LEVELS
-    lol_odds.register(1, "rewards", REWARDS)
+    import lol_fixed
+    rewards = REWARDS + ([("upgrade", 0x2F, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 3)
+    lol_odds.register(1, "rewards", rewards)
 
     def rew_store(a):                   # the save index: 11 + the letter (A-F)
         a.b(0xA4, 0x10).abs(0xB9, "r_letter").abs(0x8D, lol_odds.CTX)
-    lol_odds.wrappers(a, 1, REWARDS, "r_", 5, rew_store, 1)
+    lol_odds.wrappers(a, 1, rewards, "r_", 5, rew_store, 1)
     a.label("r_letter").b(0, *[11 + AF_LEVELS.index(lv) for lv in range(1, 7)])
     a.label("sub_lv").b(*[s_[0] for s_ in SUBS])
     a.label("sub_rm").b(*[screen(s_[1]) for s_ in SUBS])

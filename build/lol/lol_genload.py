@@ -842,7 +842,7 @@ def finish(rom: bytearray) -> None:
 
 
 def apply(rom: bytearray, notes: list) -> None:
-    import lol_sets
+    import lol_sets, lol_fixed
     expand(rom)
     ds, out = build_variants()
     from zora.generate.shapes.minimap import synthesize_minimap
@@ -934,7 +934,7 @@ def apply(rom: bytearray, notes: list) -> None:
     # cellar items: levels: the record's two; level 9: a red potion and the record's item
     a.abs(0xB9, REC + 4).b(0x85, 0x01)
     a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "nf_lvi")
-    a.b(0xA9, 0x20).abs(0x8D, SUB_IT).b(0xA5, 0x01).abs(0x8D, SUB_IT + 1).br(0xD0, "nf_c")
+    a.b(0xA9, 0xFD if lol_fixed.UPMIX else 0x20).abs(0x8D, SUB_IT).b(0xA5, 0x01).abs(0x8D, SUB_IT + 1).br(0xD0, "nf_c")   # ($FD: lol_upmix's)
     a.label("nf_lvi").b(0xA5, 0x01, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT)
     a.b(0xA5, 0x01, 0x4A, 0x4A, 0x4A, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT + 1)
     if lol_sets.quest_l2():               # (2Q, 3Q, 4Q: level 2 as their other levels)
@@ -974,8 +974,10 @@ def apply(rom: bytearray, notes: list) -> None:
         dk = lol_fixed.deck()
         a.label("dfx").b(0xC9, 0xFF).br(0xF0, "dfx_d")
         if lol_fixed.UPMIX:
+            import lol_upmix as UM, lol_v3core as V3
             a.b(0xC9, 0xFE).br(0xD0, "dfx_f").abs(0x4C, "dfx_u")
-            a.label("dfx_f")
+            a.label("dfx_f").b(0xC9, 0xFD).br(0xD0, "dfx_g").b(*V3.far(14, UM.V_UL9)).abs(0x4C, lol_choice.FIX_AT)   # level 9
+            a.label("dfx_g")
         a.abs(0x4C, lol_choice.FIX_AT)
         a.label("dfx_d").b(0x8A, 0x48, 0x98, 0x48, 0xA5, 0x08, 0x48, 0xA5, 0x0E, 0x48)   # X, the index, $08, $0E
         a.abs(0x20, "find")                                                   # Y = the record

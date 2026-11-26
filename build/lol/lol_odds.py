@@ -60,7 +60,11 @@ def default_rows(items, most_default=16):
 
 
 def load(name, items):
-    """The table for a list: odds/<name>.csv (written from the defaults the first time)."""
+    """The table for a list: odds/<name>.csv (written from the defaults the first time). (lol_upmix) a last entry
+    named "upgrade" isn't in the file: each row takes a point from every item with odds for it."""
+    if items and items[-1][0] == "upgrade":
+        rows = load(name, items[:-1])
+        return [[w - 1 if w > 0 else 0 for w in r] + [sum(1 for w in r if w > 0)] for r in rows]
     path = os.path.join(ODDS_DIR, name + ".csv")
     if not os.path.exists(path):
         os.makedirs(ODDS_DIR, exist_ok=True)
@@ -117,6 +121,10 @@ def wrappers(a, list_id, items, p, ret_bank, store, n_pick, book=False):
         a.label(p + "n_nb")
     a.b(0xA4, K).abs(0xB9, OUT).b(0xC9, 0xFF).br(0xD0, p + "n_ok").b(0xA9, 0x3F, 0x60)
     a.label(p + "n_ok").b(0x49, 0xFF, 0x18, 0x69, n, 0xA8)                       # Y = n - 1 - i
+    if items[-1][0] == "upgrade":       # (lol_upmix: the upgrade entry: this place's upgrade, or an empty place)
+        import lol_upmix as UM, lol_v3core as V
+        a.abs(0xB9, p + "t_item").b(0xC9, items[-1][1]).br(0xD0, p + "n_nu").b(*V.far(14, UM.V_URES)).b(0x60)
+        a.label(p + "n_nu")
     a.abs(0xB9, p + "t_item").b(0xC9, 0x04).br(0xB0, p + "n_r").b(0xC9, 0x02).br(0x90, p + "n_r")
     a.abs(0xAD, 0x7FF7).br(0xF0, p + "n_sw").b(0xA9, 0x24, 0x60)                  # swordless: a bomb upgrade
     a.label(p + "n_sw").abs(0xB9, p + "t_item")
@@ -209,6 +217,14 @@ def apply(rom: bytearray, notes: list) -> None:
     for k in range(3):
         a.abs(0xAD, OUT + k).abs(0xCD, CAND).br(0xD0, f"okp{k}").abs(0x4C, "ok_no").label(f"okp{k}")
     a.abs(0xAD, CAND).b(0x18).abs(0x7D, "bases").b(0xA8)                          # Y = the global entry
+    ups = [g for g, c in enumerate(allitems) if c[0] == "upgrade"]
+    if ups:                             # (lol_upmix: an upgrade entry: its own check)
+        import lol_upmix as UM, lol_v3core as V
+        for k, g in enumerate(ups):
+            kind = 0 if g < len(LISTS[0][1]) else 1             # (old men's, a prize's)
+            a.b(0xC0, g).br(0xD0, f"ok_u{k}").b(0x8A, 0x48, 0xA9, kind)
+            a.b(*V.far(14, UM.V_UCHECK, ENGINE_BANK)).b(0x68, 0xAA).abs(0xAC, CAND).b(0x60)
+            a.label(f"ok_u{k}")
     a.b(0x8A, 0x48)
     # lol_modes' swordless: a sword is a bomb upgrade (the wrappers' nth swaps the item), offered below 32 bombs
     a.abs(0xB9, "isword").br(0xF0, "ok_ns").abs(0xAD, 0x7FF7).br(0xF0, "ok_ns")

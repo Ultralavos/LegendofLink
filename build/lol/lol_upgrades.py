@@ -826,13 +826,19 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     ws_at = [WS_CODE]
     def b_hooks(org):
         b = Asm(org)
-        b.label("wares").b(*V3.far(0, lol_modes.CAVE)).b(*V3.far(0, E["upw"])).br(0xB0, "w_ws")
+        import lol_fixed as _fx3, lol_upmix as _um
+        _upw = V3.far(14, _um.V_UCAVE) if _fx3.UPMIX else V3.far(0, E["upw"])      # (lol_upmix: or a plain shop)
+        b.label("wares").b(*V3.far(0, lol_modes.CAVE)).b(*_upw).br(0xB0, "w_ws")
         b.abs(0xAD, 0x0350).abs(0x4C, fill)
         b.label("w_ws").abs(0x4C, ws_at[0])                                   # (not an upgrade cave)
         b.label("take").b(0x48).abs(0xAD, 0x0350).b(0xA0, 0x00)
         b.label("t_find").abs(0xD9, "persons1").br(0xF0, "t_got").b(0xC8, 0xC0, 0x03).br(0xD0, "t_find")
         b.b(0x68).abs(0x4C, lol_books.TAKE)
-        b.label("t_got").b(0x68).b(*V3.far(0, E["uptake"])).b(0x60)           # (X: the ware slot)
+        if _fx3.UPMIX:                  # (lol_upmix: a cave turned plain shop takes as a shop)
+            b.label("t_got").b(0x68).b(*V3.far(14, _um.V_UTAKE)).br(0x90, "t_up").abs(0x4C, lol_books.TAKE)
+            b.label("t_up").b(0x60)
+        else:
+            b.label("t_got").b(0x68).b(*V3.far(0, E["uptake"])).b(0x60)       # (X: the ware slot)
         b.label("persons1").b(*[p for p, c, w in SHOPS])
         b.label("text").b(*_encode_quote(base.centered(QUOTE_TEXT)))
         return b

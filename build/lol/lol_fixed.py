@@ -36,9 +36,14 @@ def deal(info):
     cont, a15, gated = info
     rng = _rng("deal")
     dun = lambda c: 0x01 <= c <= 0x0D
+    gone = None
+    if UPMIX:                       # (upgrade mix: the gone cave a 30-rupee secret; lol_upgrades' SHOPS order: 12, 11, 8)
+        gone = (0x1C, 0x1B, 0x18)[gone_cave()]
     for _ in range(10000):
         d = cont[:]
         rng.shuffle(d)
+        if gone is not None:
+            d = [E.SECRET30 if c == gone else c for c in d]
         if 1 <= d[a15] <= 8:
             continue
         if not any(dun(d[g]) for g in gated) or not any(d[g] in E.UPGRADES for g in gated):
