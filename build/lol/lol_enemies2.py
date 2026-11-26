@@ -75,12 +75,22 @@ def apply(rom: bytearray, notes: list) -> None:
     for s, at in ((sa, STUB_A), (sb, STUB_B), (si, STUB_I), (sd, STUB_D)):
         place(rom, 4, at, s.bytes())
     assert len(si.bytes()) <= 10 and len(sd.bytes()) <= 11
+    # (2026-11-26, lag: this runs for every monster every frame) the arrow's damage type $04 right here; only
+    # with piercing arrows the trip to bank 2 (Y 8: the types nothing is immune to)
+    from lol_newups import free_in
+
+    def fast(o):
+        q = Asm(o)
+        q.b(0xA9, 0x04, 0x85, 0x09).abs(0xAD, U.PIERCING[0]).b(0x29, U.PIERCING[1]).br(0xD0, "p").b(0x60)
+        q.label("p").b(0xA0, 0x08).abs(0x4C, TR)
+        return q
+    f_at = free_in(rom, 4, len(fast(0x8000).bytes()), 0xB000, 0xBE00)
+    place(rom, 4, f_at, fast(f_at).bytes())
     sw = Asm(STUB_W)
-    sw.b(0xA0, 0x08).abs(0x4C, TR)
+    sw.abs(0x4C, f_at)
     place(rom, 4, STUB_W, sw.bytes())
     # wizzrobes check the sword, not arrows: their LDY #$0D / JSR $7D29 ($A05C) -> Y 9: the sword, then the arrow
     patch(rom, 4, 0xA05C, bytes.fromhex("a00d20297d"), bytes([0xA0, 0x09, 0x20, TR & 0xFF, TR >> 8]))
-    patch(rom, 1, 0xB5E4, bytes.fromhex("a9048509"), bytes([0x20, STUB_W & 0xFF, STUB_W >> 8, 0xEA]))   # the arrow's
     patch(rom, 4, 0x83FC, bytes([0x20, 0x71, 0x83]), bytes([0x20, STUB_A & 0xFF, STUB_A >> 8]))
     patch(rom, 4, 0x83D7, bytes([0x4C, 0xB1, 0xFE]), bytes([0x4C, STUB_B & 0xFF, STUB_B >> 8]))
     patch(rom, 4, 0x9B76, bytes([0x20, 0xDF, 0x77]), bytes([0x20, STUB_D & 0xFF, STUB_D >> 8]))
@@ -355,6 +365,34 @@ def apply(rom: bytearray, notes: list) -> None:
     s2 = Asm(STUB_W)
     s2.b(0xA0, 0x08).abs(0x4C, a.labels["arrow"])
     place(rom, 2, STUB_W, s2.bytes())
+    # (2026-11-26, lag: the arrow check runs for every monster every frame, arrow or not) its setup (WRAM
+    # $7D74-$7D85: the type $04, the damage $20 / $40 by the arrow, the size $0B): no arrow ($AC,Y 0, which never
+    # hits): $06 0 and out of the check at once (in WRAM); else a bank 7 stub (the check runs with bank 1, 2 or 4
+    # in), to bank 0 only with piercing arrows (the arrow hit's type, bank 2), the miser's bow or the bow of greed
+    # (lol_newups)
+    import lol_newups as N
+    m, g = N.bit("misers bow"), N.bit("bow of greed")
+
+    def az2(o):
+        q = Asm(o)
+        q.abs(0xAD, U.PIERCING[0]).b(0x29, U.PIERCING[1]).br(0xF0, "np").b(*V.far(2, a.labels["arrow"]))
+        q.label("np").abs(0xAD, 0x0659).b(0x4A, 0xA9, 0x20).br(0xB0, "w").b(0x0A)    # (the wooden arrow, 1: $20)
+        q.label("w").b(0x48).abs(0xAD, m[0]).b(0x29, m[1]).br(0xD0, "b")
+        q.abs(0xAD, g[0]).b(0x29, g[1]).br(0xD0, "b").b(0x68, 0xA0, 0x0B, 0x84, 0x0D, 0x60)
+        return q.label("b").b(0x68).abs(0x4C, N.ARROW0)
+    z_at = V.put0(rom, az2).cpu
+
+    def aw(o):
+        q = Asm(o)
+        for at, bt in (m, g, U.PIERCING):
+            q.abs(0xAD, at).b(0x29, bt).br(0xD0, "f")
+        q.abs(0xAD, 0x0659).b(0x4A, 0xA9, 0x20).br(0xB0, "w").b(0x0A)
+        q.label("w").b(0xA0, 0x0B, 0x84, 0x0D, 0x60)
+        return q.label("f").b(*V.far(0, z_at)).b(0x60)
+    w_at = V.put7(rom, aw).cpu
+    patch(rom, 1, 0xB5E4, bytes.fromhex("a9048509a920ac5906c001f0010aa00b840d"),
+          bytes([0xA8, 0xD0, 0x03, 0x85, 0x06, 0x60, 0xA9, 0x04, 0x85, 0x09, 0x20, w_at & 0xFF, w_at >> 8, 0x4C, 0x86,
+                 0x7D]) + b"\xEA" * 2)       # (A: the arrow's state; TAY for its Z, Y reloaded after)
     # (2026-11-24) the arrow check runs from WRAM with whatever bank the object's update has in: the persons' (bank
     # 1: the old men in levels) ran into bank 1's empty $BD58 and on into lol_pictures' STUB, loading the pictures
     # (picture off: a black screen) and scribbling RAM (Link hurt) every frame. Bank 1 (the persons' updates; banks
@@ -390,8 +428,11 @@ def late(rom: bytearray, notes: list) -> None:
     ch = charger(cat)
     place(rom, cbank, cat, ch.bytes())
     # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
-    gs = free_in(rom, 4, 13, 0xBE00, 0xBFB0)                              # (bank 4's tail)
-    st = Asm(gs).b(*V.far(cbank, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
+    # (2026-11-26, lag: a far call for every blue goriya every frame) only the charger's slot goes there (its "gor"
+    # starts with that check)
+    gs = free_in(rom, 4, 18, 0xBE00, 0xBFB0)                              # (bank 4's tail)
+    st = Asm(gs).abs(0xEC, CSLOT).br(0xD0, "o").b(*V.far(cbank, ch.labels["gor"])).br(0xB0, "r")
+    st.label("o").abs(0x4C, 0x8119).label("r").b(0x60)
     place(rom, 4, gs, st.bytes())
     ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05
     assert rom[ut:ut + 4] == bytes([0x19, 0x81, 0x19, 0x81])

@@ -117,6 +117,9 @@ def put(rom, bank, build):
     return a
 
 
+ARROW0 = None
+
+
 def apply(rom: bytearray, notes: list) -> None:
     import lol_v3core as V
     # --- bank 7 stubs (called from WRAM code, any bank in) ---
@@ -164,12 +167,15 @@ def apply(rom: bytearray, notes: list) -> None:
     hz = V.put0(rom, holy0).cpu
 
     def holy(o):                        # (Y, the weapon's slot, kept)
+        # (2026-11-26, lag: the fire check runs for each fire slot and monster every frame) only on a hit: the
+        # JSR $7C16 (the hit) after the fire's collision ($7D18) -> here, fire's $10 made $20 for the undead
         a = Asm(o)
         gate(a, "holy fire", "n")
-        a.b(*V.far(0, hz)).b(0x60)
-        return a.label("n").b(0xA9, 0x10, 0x85, 0x07, 0x60)
+        a.b(0xA5, 0x07, 0xC9, 0x10).br(0xD0, "n")
+        a.b(*V.far(0, hz))
+        return a.label("n").abs(0x4C, 0x7C16)
     c = V.put7(rom, holy).cpu
-    patch(rom, 1, 0xB552, bytes([0xA9, 0x10, 0x85, 0x07]), bytes([0x20, c & 0xFF, c >> 8, 0xEA]))
+    patch(rom, 1, 0xB588, bytes([0x20, 0x16, 0x7C]), bytes([0x20, c & 0xFF, c >> 8]))
 
     def arrow0(o):                      # bank 0: A the arrow's damage
         a = Asm(o)
@@ -180,14 +186,9 @@ def apply(rom: bytearray, notes: list) -> None:
         return a.label("t").b(0xA0, 0x0B, 0x84, 0x0D, 0x60)
     az = V.put0(rom, arrow0).cpu
 
-    def arrow(o):
-        a = Asm(o)
-        m, g = bit("misers bow"), bit("bow of greed")
-        a.b(0x48).abs(0xAD, m[0]).b(0x29, m[1]).br(0xD0, "f").abs(0xAD, g[0]).b(0x29, g[1]).br(0xD0, "f")
-        a.b(0x68, 0xA0, 0x0B, 0x84, 0x0D, 0x60)
-        return a.label("f").b(0x68).b(*V.far(0, az)).b(0x60)
-    c = V.put7(rom, arrow).cpu
-    patch(rom, 1, 0xB5F2, bytes([0xA0, 0x0B, 0x84, 0x0D]), bytes([0x20, c & 0xFF, c >> 8, 0xEA]))
+    # (the arrow check's setup, WRAM $7D74-$7D85, and these bows: lol_enemies2's arrow stub, ARROW0 its far call)
+    global ARROW0
+    ARROW0 = az
 
     # --- poison bait. The bait's update (bank 7 $F4A0, run from the object loop with no bank switched) ends with
     # JSR $FA93 / LDA #$02 / LDY #$06 / JMP $790C ($F4D8); that becomes a far call to bank 4 and the JMP. There,

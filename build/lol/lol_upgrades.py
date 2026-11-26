@@ -210,7 +210,12 @@ def apply(rom: bytearray, notes: list) -> None:
         if DISC_FRAME[0] is None:
             DISC_FRAME[0] = lol_discovery.frame_code(rom) or 0
         if DISC_FRAME[0]:
-            a.b(*V.far(3, DISC_FRAME[0]))
+            # (2026-11-26, lag: a far call costs ~200 cycles a frame) only with the Song of Discovery or Sleep
+            import lol_uptable as _UT
+            a.abs(0xAD, lol_discovery.DISC_BIT[0]).b(0x29, lol_discovery.DISC_BIT[1]).br(0xD0, "f_dc")
+            a.abs(0xAD, _UT.SLEEP[0]).b(0x29, _UT.SLEEP[1]).br(0xF0, "f_nd")
+            a.label("f_dc").b(*V.far(3, DISC_FRAME[0]))
+            a.label("f_nd")
         import lol_secret                                                   # (a rare seed's secret spot)
         sec = lol_secret.frame_code(rom)
         if sec:
@@ -228,8 +233,11 @@ def apply(rom: bytearray, notes: list) -> None:
         return a.b(0x60)
     B0["frame"] = V.put0(rom, b_frame).labels["frame"]
     # --- bank 7 stubs ---
-    s_regen = V.put7(rom, lambda o: Asm(o).b(*V.far(0, B0["frame"]))          # (bank 0 checks each upgrade;
-                     .abs(0xAD, 0x066C).b(0x60)).cpu                     #  then the replaced LDA InvClock)                     # (then the replaced LDA InvClock)
+    # (bank 0 checks each upgrade; then the replaced LDA InvClock.) (2026-11-26, lag: every frame) not FAR (~350
+    # cycles) but its own switch: the bank in ($BFF9: each bank's number) kept, bank 0, the hook, back
+    s_regen = V.put7(rom, lambda o: Asm(o).abs(0xAD, 0xBFF9).b(0x48, 0xA9, 0x00).abs(0x20, 0xFFAC)
+                     .abs(0x20, B0["frame"]).b(0x68).abs(0x20, 0xFFAC)
+                     .abs(0xAD, 0x066C).b(0x60)).cpu
     s_boom = V.put7(rom, lambda o: Asm(o).abs(0xAD, UPGRADES).b(0x29, 0x02).br(0xF0, "d").b(*V.far(0, B0["boom"]))
                     .label("d").abs(0x4C, DEACT_LINK_SHOT)).cpu                      # (the shot ends)
     # --- the common area (banks 0-6): what WRAM code calls, and the beams' check ---
