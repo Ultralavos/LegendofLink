@@ -97,6 +97,8 @@ LABEL5 = 0xADB0                         # bank 5 free: the status bar level labe
 FLAGS = (0x00, 0x00, 0xC0)              # as shop A's (pay; show the items and prices)
 QUOTE = 12                              # hint shop 2's second hint (unused now)
 QUOTE_TEXT = ["BUY A NEW UPGRADE!"]
+PLAIN_TEXT = ["BUY SOMETHIN' WILL YA!"]    # (lol_upmix: an upgrade cave turned plain shop)
+TEXTS = None
 SHOP_QUOTE_SELECTOR = 0xC0 | 2 * QUOTE   # shop flags + the quote
 CAVE_WARES, CAVE_PRICES = 0x6A7E, 0x6ABA
 TL, TH, PH, PP = 0x0175, 0x0176, 0x0177, 0x0178   # regen timer, the hearts last frame (stack page, unused)
@@ -908,4 +910,10 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     for person, cave, wares in SHOPS:
         rom[0x45B2 + cave] = SHOP_QUOTE_SELECTOR
     q = t.labels["text"]
+    import lol_fixed as _fx4
+    if _fx4.UPMIX:                      # (lol_upmix: the caves' line from RAM, written as Link walks in: an upgrade
+        from lol_saveblock import HINT_BUF   #  cave's or a plain shop's)
+        global TEXTS
+        TEXTS = (bytes(_encode_quote(base.centered(QUOTE_TEXT))), bytes(_encode_quote(base.centered(PLAIN_TEXT))))
+        q = HINT_BUF
     rom[0x4010 + 2 * QUOTE:0x4010 + 2 * QUOTE + 2] = bytes([q & 0xFF, q >> 8])

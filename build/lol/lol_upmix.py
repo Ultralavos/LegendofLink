@@ -52,6 +52,8 @@ def apply(rom: bytearray, notes: list) -> None:
     import lol_pictures as PIC
     import lol_uptable as UT
     dk = lol_fixed.deck()
+    TX = U.TEXTS
+    from lol_saveblock import HINT_BUF
     from lol_swords import CAVE_WARES as W_ROM
     PW = [rom[W_ROM + 3 * PLAIN_CAVE + k] for k in range(3)]
     PP = [rom[W_ROM + 0x3C + 3 * PLAIN_CAVE + k] for k in range(3)]
@@ -158,9 +160,14 @@ def apply(rom: bytearray, notes: list) -> None:
         from lol_upgrades import SHOPS, CAVE_WARES, CAVE_PRICES
         a.label("ucave").b(0xA9, 0x00).abs(0x8D, UCONV).abs(0xAD, 0x0350).b(0xA2, 0x02)
         a.label("cv_f").abs(0xDD, "cpers").br(0xF0, "cv_g").b(0xCA).br(0x10, "cv_f")
-        a.label("cv_u").b(*f0(E["upw"])).b(0x60)
+        a.label("cv_n").b(*f0(E["upw"])).b(0x60)
+        a.label("cv_u").b(0xA0, 0x00)                                            # its line: the upgrade cave's
+        a.label("cv_t0").abs(0xB9, "text0").abs(0x99, HINT_BUF).b(0xC8, 0xC0, len(TX[0])).br(0xD0, "cv_t0")
+        a.abs(0x4C, "cv_n")
         a.label("cv_g").abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0x90, "cv_u")
         a.abs(0xAD, UT.LINES + 7).abs(0x3D, "cmask").br(0xD0, "cv_u")
+        a.b(0xA0, 0x00)                                                          # a plain shop's line
+        a.label("cv_t1").abs(0xB9, "text1").abs(0x99, HINT_BUF).b(0xC8, 0xC0, len(TX[1])).br(0xD0, "cv_t1")
         a.abs(0xEE, UCONV).abs(0xBC, "cofs")
         for k in range(3):
             a.abs(0xAD, "pw" + str(k)).abs(0x99, CAVE_WARES).abs(0xAD, "pp" + str(k)).abs(0x99, CAVE_PRICES).b(0xC8)
@@ -169,6 +176,8 @@ def apply(rom: bytearray, notes: list) -> None:
         # shop's (take it as a shop's); else the upgrade (the engine's uptake)
         a.label("utake").abs(0xAC, UCONV).br(0xF0, "ut_u").b(0x38, 0x60)
         a.label("ut_u").b(*f0(E["uptake"])).b(0x18, 0x60)
+        a.label("text0").b(*TX[0])
+        a.label("text1").b(*TX[1])
         a.label("cpers").b(*[p for p, c, w in SHOPS])
         a.label("cofs").b(*[3 * c for p, c, w in SHOPS])
         a.label("cmask").b(0x10, 0x20, 0x40)
