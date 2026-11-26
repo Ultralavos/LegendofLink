@@ -17,6 +17,7 @@ Bank 7: FlagFluteUsed ($EFC7: LDA UsedFlute / BNE / INC UsedFlute / RTS) -> far(
   room the bombs instead, else the replaced code.
 RAM (save RAM spare): DGR the room it's in (one is there), BT the bomb timer, LASTF the frame done, SPL 1: a split
 to come (the pink one's minis get their health; the blue one's room counts its dodongo), DGK 0 pink / 1 blue."""
+import os
 from lol_af import Asm, BANK, patch
 
 AT = 0x70                                       # HVE: 8 containers
@@ -133,12 +134,51 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xA5, 0x00, 0x95, 0x70, 0xA5, 0x01, 0x95, 0x84, 0x68, 0xAA)
         a.label("b_r").b(0x60)
         return a
+    global _LATE
+    import lol_fixed
+    if not lol_fixed.FIXED:
+        # (the unseeded build: bank 3 has no room for this and lol_heavy's caves) placed last, in a data bank (it calls
+        # only WRAM and the fixed bank)
+        _LATE = build
+        return
     a = N.put3_best(rom, build)
+    _hook(rom, notes, 3, a)
+
+
+_LATE = None
+
+
+def _hook(rom, notes, bank, a):
+    import lol_v3core as V
+    import lol_newups as N
     L = a.labels
 
     def stub(o):
-        return Asm(o).b(*V.far(3, L["dg"])).abs(0xAD, 0x066C).b(0x60)
+        return Asm(o).b(*V.far(bank, L["dg"])).abs(0xAD, 0x066C).b(0x60)
     s = N.put(rom, 4, stub)
     patch(rom, 4, 0x95F0, bytes([0xAD, 0x6C, 0x06]), bytes([0x20, s.cpu & 0xFF, s.cpu >> 8]))
-    patch(rom, 7, 0xEFC7, bytes.fromhex("ad1b05d003ee1b0560"), bytes(V.far(3, L["fl"])) + bytes([0x60, 0xEA]))
-    notes.append(f"Bomb Digdogger: 8+ containers, {len(a.bytes())} bytes in bank 3 at ${L['dg']:04X}")
+    patch(rom, 7, 0xEFC7, bytes.fromhex("ad1b05d003ee1b0560"), bytes(V.far(bank, L["fl"])) + bytes([0x60, 0xEA]))
+    if bank != 3:                       # (late: the fixed bank's copy, bank 15, is made already: patched there too)
+        o = BANK(15) + 0xEFC7 - 0xC000
+        if rom[o:o + 9] == bytes.fromhex("ad1b05d003ee1b0560"):
+            rom[o:o + 9] = bytes(V.far(bank, L["fl"])) + bytes([0x60, 0xEA])
+    notes.append(f"Bomb Digdogger: 8+ containers, {len(a.bytes())} bytes in bank {bank} at ${L['dg']:04X}")
+
+
+def late(rom: bytearray, notes: list) -> None:
+    """lol_build, once the generated dungeons are in: the code bank 3 had no room for, in a data bank's free space."""
+    if _LATE is None:
+        return
+    from lol_newups import best_in
+    from lol_af import place
+    n = len(_LATE(0x8000).bytes())
+    for bk in (14, 13):
+        try:
+            at = best_in(rom, bk, n, 0x8000, 0xBB80)
+        except AssertionError:
+            continue
+        a = _LATE(at)
+        place(rom, bk, at, a.bytes())
+        _hook(rom, notes, bk, a)
+        return
+    raise AssertionError("no room for the Bomb Digdogger")

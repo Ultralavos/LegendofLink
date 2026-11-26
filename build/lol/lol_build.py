@@ -370,6 +370,7 @@ def main():
     import lol_seedcode
     lol_seedcode.apply(rom, notes)                # the title's version and seed, the file select's code
     import lol_enemies2
+    lol_digdogger.late(rom, notes)                # (unseeded: bank 3 full: a data bank)
     lol_enemies2.late(rom, notes)                 # (the Goriya Charger's code: wherever room is left)
     lol_seedcode.apply_code(rom, notes)           # (last: a hash of the finished ROM)
     import lol_encode
