@@ -331,7 +331,9 @@ P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 1 (CONT.)</h1
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 2</h1>
 <div class="ups">{up_rows(UP[2][:7])}</div></section>''')
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 2 (CONT.)</h1>
-<div class="ups">{up_rows(UP[2][7:])}</div></section>''')
+<div class="ups">{up_rows(UP[2][7:15])}</div></section>''')
+P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 2 (CONT.)</h1>
+<div class="ups">{up_rows(UP[2][15:])}</div></section>''')
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 3</h1>
 <div class="ups">{up_rows(UP[3][:6])}</div></section>''')
 P(f'''<section class="page"><h1 class="band">UPGRADE CATALOG: TIER 3 (CONT.)</h1>
