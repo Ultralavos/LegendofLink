@@ -705,7 +705,9 @@ function renderNicknames() {
   const ent = Object.entries(d.cells).find(([, c]) => c.m === "E");
   const fits = (n) => {
     const sh = SHAPES[shapeKey(q, n)];
-    return !sh || (rooms.every((r) => sh.includes(r)) && (!ent || !sh.includes(+ent[0] + 8)));
+    const e = ent && +ent[0];                     // (level 9: the old man's room and one more north of it too)
+    return !sh || (rooms.every((r) => sh.includes(r)) && (!ent || (!sh.includes(e + 8) &&
+      (k !== "9" || (sh.includes(e - 8) && sh.includes(e - 16))))));
   };
   const ok = names.filter(fits);
   const head = !rooms.length ? "Nickname" : ok.length ? `Nickname (${ok.length} of ${names.length} fit your rooms)`
