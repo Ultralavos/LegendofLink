@@ -9,8 +9,7 @@
     10 health ($A0) and the bombs go on while any is left;
   - the poison bait kills it at once (HandleMonsterDied: no split).
 And the single Digdogger (the one that splits into 1) once the dodongos turn blue (10 containers): blue (BLUE as
-palette 3), and the recorder's tune, while it's whole, makes a blue dodongo on its square (the room counts it) as it
-splits as ever.
+palette 3), and the recorder's tune turns it into a blue dodongo on its square (in its slot), no mini.
 
 Bank 4: UpdateDigdogger's LDA InvClock ($95F0) -> a stub: far(3, dg), then LDA InvClock.
 Bank 7: FlagFluteUsed ($EFC7: LDA UsedFlute / BNE / INC UsedFlute / RTS) -> far(3, fl) / RTS: in a Bomb Digdogger's
@@ -103,18 +102,17 @@ def apply(rom: bytearray, notes: list) -> None:
         for dx in (0x00, 0xF0, 0x10):                                     # under Link, left, right
             a.b(0xA5, 0x70, 0x18, 0x69, dx).abs(0x20, "clx").b(0x85, 0x00, 0xA5, 0x84, 0x85, 0x01).abs(0x20, "bomb")
         a.b(0x68, 0xAA, 0x60)
-        # the blue one: while it's whole ($38 in Y), a blue dodongo on its square; then it splits as ever
+        # the blue one: while it's whole ($38 in Y) it becomes a blue dodongo on its square (its slot: the room
+        # counts it as the digdogger); no split
         a.label("f_blue").abs(0xB9, 0x034F).b(0xC9, 0x38).br(0xD0, "f_v").abs(0xAD, USED_FLUTE).br(0xD0, "f_v")
-        a.b(0x8A, 0x48)
-        a.abs(0xB9, 0x0070).b(0x18, 0x69, 0x08, 0x29, 0xF0).abs(0x20, "clx").b(0x85, 0x00)
-        a.abs(0xB9, 0x0084).b(0x18, 0x69, 0x08, 0x38, 0xE9, Y0).br(0xB0, "f_y1").b(0xA9, 0x00)
+        a.b(0x8A, 0x48, 0x98, 0xAA)
+        a.b(0xB5, 0x70, 0x18, 0x69, 0x08, 0x29, 0xF0).abs(0x20, "clx").b(0x85, 0x00)
+        a.b(0xB5, 0x84, 0x18, 0x69, 0x08, 0x38, 0xE9, Y0).br(0xB0, "f_y1").b(0xA9, 0x00)
         a.label("f_y1").b(0x29, 0xF0, 0xC9, 0x10 * (ROWS - 1)).br(0x90, "f_y2").b(0xA9, 0x10 * (ROWS - 1))
         a.label("f_y2").b(0x18, 0x69, Y0, 0x85, 0x01)
-        a.abs(0x20, FIND_EMPTY).br(0xF0, "f_bx")
-        a.b(0x98, 0xAA, 0xA9, DODONGO).abs(0x20, SET_TYPE)                   # (its init, the spawn cloud)
+        a.b(0xA9, 0x00).abs(0x9D, IS_CHILD).b(0xA9, DODONGO).abs(0x20, SET_TYPE)   # (its init, the spawn cloud)
         a.b(0xA5, 0x00, 0x95, 0x70, 0xA5, 0x01, 0x95, 0x84)
-        a.b(0xA9, 0x01).abs(0x8D, SPL)                                       # (the room counts it after the split)
-        a.label("f_bx").b(0x68, 0xAA).abs(0x4C, "f_v")
+        a.b(0x68, 0xAA, 0x60)
         a.label("clx").b(0xC9, X0).br(0xB0, "c_1").b(0xA9, X0)
         a.label("c_1").b(0xC9, X1 + 1).br(0x90, "c_2").b(0xA9, X1)
         a.label("c_2").b(0x60)
