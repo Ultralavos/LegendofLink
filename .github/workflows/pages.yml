@@ -17,7 +17,7 @@ concurrency:
 env:
   ZORA_REPO: Ultralavos/zora
   ZORA_REF: 8c1ab298b61c7d91fc56bd456abc252212505abd   # the ZORA the build is made against
-  TEST_BRANCH: ""                       # a test build, published at /test/ (not linked from the page); "" for none
+  TEST_BRANCH: upmix                    # a test build, published at /test/ (not linked from the page); "" for none
 
 jobs:
   build:
