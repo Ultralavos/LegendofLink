@@ -70,7 +70,11 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .legend { float: right; text-transform: none; letter-spacing: 0; font-weight: 400; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
 .legend .seen { border: 2px solid var(--blue); } .legend .own { background: var(--green); }
-.upgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; }
+.uptiers { display: flex; flex-direction: column; gap: 4px; }
+.tierhead { font-size: 11px; color: var(--muted); letter-spacing: .5px; margin-top: 2px; }
+.upall { float: right; text-transform: none; letter-spacing: 0; font-weight: 400; display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+.up.locked { opacity: .45; }
+.upgrid { min-height: 34px; display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; }
 .up { aspect-ratio: 1; background: #000; border: 2px solid var(--line); border-radius: 5px; padding: 3px; display: grid; place-items: center; }
 .up img { width: 100%; height: 100%; opacity: .25; filter: grayscale(.8); }
 .up.seen { border-color: var(--blue); } .up.seen img { opacity: .8; filter: none; }

@@ -75,7 +75,11 @@ const fresh = () => ({ items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrine
   ow: {}, owDone: {}, owX: {}, owBuy: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ } }
+let upQueued = false;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ }
+  if (!upQueued && typeof renderUps === "function") { upQueued = true; queueMicrotask(() => { upQueued = false; renderUps(); }); }
+}
 
 // a click advances, a right-click or a long press goes back
 function stepper(node, fn) {
@@ -194,17 +198,43 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOM();
 
 // ---------------------------------------------------------------- upgrades: none -> seen -> bought
 console.assert(UPGRADES.length === PRICE.length);
+// what each upgrade needs to be offered (lol_uptable's conditions, as far as the tracker knows them; "the first /
+// second upgrade cave" ones are left out). An upgrade seen or bought always shows.
+const own = (i) => (S.ups[i] || 0) === 2;
+const has = (id, n = 1) => (S.items[id] || 0) >= n;
+const UP_NEEDS = {
+  0: () => has("sword") && !own(31), 1: () => has("wand") && !own(32), 2: () => !own(34), 4: () => has("sword") && !own(31),
+  11: () => S.bombups >= 1, 12: () => has("potion"), 13: () => has("potion") && !own(35), 14: () => has("bow") && has("arrow"),
+  18: () => (S.items.candle || 0) === 1, 19: () => has("bow") && !own(23), 20: () => S.bombups >= 1, 22: () => S.bombups >= 1,
+  23: () => has("bow") && !own(19), 24: () => has("candle"), 25: () => S.hearts <= 3, 27: () => has("boom"),
+  30: () => has("bait"), 31: () => has("sword") && S.hearts <= 3, 32: () => has("wand") && !own(1),
+  33: () => has("recorder") && S.tri.length >= 1, 34: () => S.hearts === 3 && !has("ring") && !own(2),
+  35: () => own(34) && has("potion") && !own(13), 37: () => has("boom"), 38: () => S.hearts >= 8,
+};
+const TIERS = [["Tier 1", "25-50"], ["Tier 2", "75-125"], ["Tier 3", "150-200"]];
+const tierOf = (i) => (PRICE[i] <= 50 ? 0 : PRICE[i] <= 125 ? 1 : 2);
 function renderUps() {
   const box = $("upgrades"); box.replaceChildren();
-  UPGRADES.forEach((name, i) => {
-    const v = S.ups[i] || 0;
-    const b = el("button", { type: "button", className: "up " + ["", "seen", "own"][v], title: `${name} (${PRICE[i]})` });
-    b.append(el("img", { src: `../manual/img/up_${String(i).padStart(2, "0")}.png`, className: "px", alt: name, draggable: false }));
-    b.onmouseenter = () => { $("up-name").textContent = `${name} · ${PRICE[i]} rupees`; };
-    stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
-    box.append(b);
+  const all = $("up-all").checked;
+  TIERS.forEach(([tname, range], t) => {
+    const row = el("div", { className: "upgrid" });
+    let hidden = 0;
+    UPGRADES.forEach((name, i) => {
+      if (tierOf(i) !== t) return;
+      const v = S.ups[i] || 0;
+      const ok = !UP_NEEDS[i] || UP_NEEDS[i]();
+      if (!ok && !v && !all) { hidden++; return; }
+      const b = el("button", { type: "button", className: "up " + ["", "seen", "own"][v] + (ok ? "" : " locked"),
+        title: `${name} (${PRICE[i]})` + (ok ? "" : ": not offered yet") });
+      b.append(el("img", { src: `../manual/img/up_${String(i).padStart(2, "0")}.png`, className: "px", alt: name, draggable: false }));
+      b.onmouseenter = () => { $("up-name").textContent = `${name} · ${PRICE[i]} rupees` + (ok ? "" : " · not offered yet"); };
+      stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
+      row.append(b);
+    });
+    box.append(el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") }), row);
   });
 }
+$("up-all").addEventListener("change", renderUps);
 
 // ---------------------------------------------------------------- overworld
 const MARK = Object.fromEntries(MARKS.map((m) => [m[0], m]));
