@@ -343,6 +343,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePicke
 
 // ---------------------------------------------------------------- dungeons
 let brush = "room";
+const BAR = ["room", "E", "erase"];   // the brushes above the map (the others: old saves' marks only)
 const dun = (k) => (S.dun[k] = S.dun[k] || { name: "", done: false, cells: {}, doors: {}, g8: true });
 function renderDTabs() {
   const t = $("dtabs"); t.replaceChildren();
@@ -359,6 +360,7 @@ const isShrine = (k) => /[A-D]/.test(k);
 function renderBrushes() {
   const b = $("brushes"); b.replaceChildren();
   for (const [id, label, title] of BRUSHES) {
+    if (!BAR.includes(id)) continue;
     const off = id === "O" && isShrine(S.cur);
     const btn = el("button", { type: "button", className: "brush" + (id === brush ? " cur" : ""), disabled: off,
       title: off ? "Shrines have no old man" : id === "O" && S.cur !== "9" ? "Old man (one per level)" : title });
@@ -378,7 +380,7 @@ const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 // a room's kind (left click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
 const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["chevy", "Chevy moat"],
-  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)])];
+  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["x", "Remove room"]];
 const ART = {
   vmoat: '<rect x="42" y="0" width="16" height="100"/>',
   hmoat: '<rect x="0" y="42" width="100" height="16"/>',
@@ -387,6 +389,7 @@ const ART = {
 };
 function roomArt(kind) {
   if (kind === "O") return el("img", { src: "img/cardD.png", className: "rk px", alt: "Old man", draggable: false });
+  if (kind === "x") return el("b", { className: "rk rx", textContent: "✕" });
   if (/^n\d$/.test(kind)) return el("b", { className: "rk rn c" + kind.slice(1), textContent: kind.slice(1) });
   if (ART[kind]) {
     const w = document.createElement("span"); w.className = "rk art " + kind;
@@ -431,7 +434,7 @@ function renderDun() {
     const kind = c.m === "O" ? "O" : c.k;
     const art = kind && roomArt(kind); if (art) cell.prepend(art);
     if (c.m === "E") cell.append(entArrow("in"));
-    else if (c.m && c.m !== "O") cell.append(el("span", { className: "mk", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    else if (c.m && c.m !== "O") cell.append(el("span", { className: "mk", textContent: (BRUSHES.find((x) => x[0] === c.m) || [, "?"])[1] }));
     cell.onclick = (e) => {
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
       if (!Object.keys(d.cells).length) {                 // an empty map: the first room is the entrance
@@ -523,7 +526,7 @@ function openKinds(i, cell) {
   const grid = el("div", { className: "rgrid kinds" });
   for (const [id, name] of RKINDS) {
     if (id === "O" && isShrine(S.cur)) continue;
-    const cur = id === "O" ? c0.m === "O" : (c0.k || "blank") === id && c0.r;
+    const cur = id === "x" ? false : id === "O" ? c0.m === "O" : (c0.k || "blank") === id && c0.r;
     // a number: two rooms a level at most (a pair of stairs)
     const used = /^n/.test(id) ? Object.entries(d.cells).filter(([j, o]) => +j !== i && o.k === id).length : 0;
     const full = used >= 2;
@@ -532,6 +535,7 @@ function openKinds(i, cell) {
     const pv = el("span", { className: "kpv" }); const a = roomArt(id); if (a) pv.append(a);
     b.append(pv); if (!/^n/.test(id)) b.append(el("small", { textContent: name }));
     b.onclick = () => {
+      if (id === "x") { delete d.cells[i]; save(); closeRoomItems(); renderDun(); renderOM(); return; }
       const c = d.cells[i] || {};
       if (!c.r) c.r = 1;
       if (id === "O") {
