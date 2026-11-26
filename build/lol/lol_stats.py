@@ -223,7 +223,8 @@ def build_show(org, rom, names, items, L):
     a.label("ip_go").abs(0x4C, "pic")
     # upic: X = an upgrade at PR / PC
     a.label("upic").abs(0xBD, L["hlo"]).abs(0x8D, HLL).abs(0xBD, L["hhi"]).abs(0x8D, HLH)
-    a.b(0x8A, 0x48, 0x18, 0x69, N, 0xAA).abs(0xBD, L["hlo"]).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
+    a.b(0x8A, 0x48, 0x18, 0x69, N + 2, 0xAA).abs(0xBD, L["hlo"])     # (right halves: past lol_pictures' NP = N + 2
+                                                                            #  lefts, the Thorn and Sleep pictures too).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
     a.b(0x68, 0xAA).abs(0xBC, L["upal"]).abs(0xB9, "ipal").abs(0x8D, PPAL).b(0xA9, PAIR).abs(0x8D, PMODE)
     a.abs(0x4C, "pic")
     # uown: X = an upgrade; Z clear if owned (X kept)
@@ -415,9 +416,11 @@ def apply(rom: bytearray, notes: list) -> None:
     patch(rom, 7, NMI_SOUND, bytes([0x20, SOUND & 0xFF, SOUND >> 8]),
           bytes([0x20, tick.labels["tick"] & 0xFF, tick.labels["tick"] >> 8]))
     # the credits' Start: the end screen first
-    st = Asm(STUB)
+    from lol_newups import free_in                # (bank 2's tail fills up: wherever it's free)
+    stub = free_in(rom, 2, 10, 0xB300)
+    st = Asm(stub)
     st.b(*V.far(0, show.labels["show"])).abs(0x4C, 0xEBA3)
-    place(rom, 2, STUB, st.bytes())
-    patch(rom, 2, CREDITS_START, bytes([0x20, 0xA3, 0xEB]), bytes([0x20, STUB & 0xFF, STUB >> 8]))
+    place(rom, 2, stub, st.bytes())
+    patch(rom, 2, CREDITS_START, bytes([0x20, 0xA3, 0xEB]), bytes([0x20, stub & 0xFF, stub >> 8]))
     notes.append(f"end screen: {len(show.bytes())} bytes in bank 0 at ${show.labels['show']:04X}; clock at "
                  f"${CLOCK:04X} (tick ${tick.labels['tick']:04X})")

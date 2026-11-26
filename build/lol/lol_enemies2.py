@@ -304,7 +304,11 @@ def apply(rom: bytearray, notes: list) -> None:
         c.label("gor").abs(0xEC, CSLOT).br(0xD0, "g_n")
         c.abs(0xAD, 0x066C).b(0x15, 0x3D).br(0xD0, "g_r")                       # (the clock / stunned: still)
         c.abs(0xAD, CTIME).br(0xD0, "g_mv")
-        c.abs(0xAD, CHG).br(0xF0, "g_n").abs(0xCE, CHG).br(0xD0, "g_n")
+        c.abs(0xAD, CHG).br(0xF0, "g_n").b(0xC9, 0x01).br(0xD0, "g_dc")
+        # (owner 2026-11-25: chargers got stuck) the charge starts only from a square (x & $0F 0, y & $0F $0D), as
+        # the goriya's own walk needs; till then it walks on
+        c.b(0xB5, 0x70, 0x29, 0x0F).br(0xD0, "g_n").b(0xB5, 0x84, 0x29, 0x0F, 0xC9, 0x0D).br(0xD0, "g_n")
+        c.label("g_dc").abs(0xCE, CHG).br(0xD0, "g_n")
         # the charge begins: along the axis Link is nearer lined up on
         c.b(0xA5, 0x70, 0x38, 0xF5, 0x70).br(0xB0, "g_a1").b(0x49, 0xFF, 0x69, 0x01)
         c.label("g_a1").b(0x85, 0x00)
@@ -336,18 +340,18 @@ def apply(rom: bytearray, notes: list) -> None:
         c.label("g_m1").b(0x4A).br(0x90, "g_m2").b(0xD6, 0x70, 0x60)
         c.label("g_m2").b(0x4A).br(0x90, "g_m3").b(0xF6, 0x84, 0x60)
         c.label("g_m3").b(0xD6, 0x84, 0x60)
-        c.label("g_end").b(0xA9, 0x00).abs(0x8D, CTIME).abs(0x8D, CSLOT).b(0x60)
+        # the end: back onto the square it last passed (the way it came is open), so its own walk goes on
+        c.label("g_end").b(0xA9, 0x00).abs(0x8D, CTIME).abs(0x8D, CSLOT)
+        c.b(0xB5, 0x98, 0x4A).br(0x90, "e_1").b(0xB5, 0x70, 0x29, 0xF0, 0x95, 0x70, 0x60)              # right
+        c.label("e_1").b(0x4A).br(0x90, "e_2").b(0xB5, 0x70, 0x18, 0x69, 0x0F, 0x29, 0xF0, 0x95, 0x70, 0x60)  # left
+        c.label("e_2").b(0x4A).br(0x90, "e_3").b(0xB5, 0x84, 0x38, 0xE9, 0x0D, 0x29, 0xF0, 0x18, 0x69, 0x0D)  # down
+        c.b(0x95, 0x84, 0x60)
+        c.label("e_3").b(0xB5, 0x84, 0x18, 0x69, 0x02, 0x29, 0xF0, 0x18, 0x69, 0x0D, 0x95, 0x84, 0x60)     # up
         return c
-    cat = free_in(rom, 2, len(charger(0x8000).bytes()))
-    ch = charger(cat)
-    place(rom, 2, cat, ch.bytes())
-    # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
-    gs = free_in(rom, 4, 13, 0xBE00, 0xBFB0)                              # (bank 4's tail)
-    st = Asm(gs).b(*V.far(2, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
-    place(rom, 4, gs, st.bytes())
-    ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05
-    assert rom[ut:ut + 4] == bytes([0x19, 0x81, 0x19, 0x81])
-    rom[ut:ut + 2] = bytes([gs & 0xFF, gs >> 8])
+    # (2026-11-26) bank 2 fills up: the charger's code is placed last (late(), from lol_build once every other
+    # module's code is in): bank 2's smallest hole that holds it, else bank 3's tail, else bank 6's free runs
+    global _LATE
+    _LATE = charger
     s2 = Asm(STUB_W)
     s2.b(0xA0, 0x08).abs(0x4C, a.labels["arrow"])
     place(rom, 2, STUB_W, s2.bytes())
@@ -361,3 +365,35 @@ def apply(rom: bytearray, notes: list) -> None:
         sf.b(*V.far(2, a.labels["arrow"])).b(0x60)
         place(rom, bank, STUB_W, sf.bytes())
     notes.append(f"brown darknuts at 9 containers, blue Aquamentus at 10 ({len(code)} bytes in bank 2 at ${D.MORE:04X})")
+
+
+_LATE = None
+
+
+def late(rom: bytearray, notes: list) -> None:
+    """The Goriya Charger's code, placed once everything else is (lol_build, before the seed code)."""
+    if _LATE is None:
+        return
+    import lol_v3core as V
+    from lol_newups import best_in, free_in
+    charger = _LATE
+    n_ch = len(charger(0x8000).bytes())
+    cbank = None
+    for bk, lo, hi in ((2, 0x8000, 0xBF00), (3, 0xB300, 0xBE00), (6, 0x9D66, 0xA000), (6, 0xBC10, 0xBD00)):
+        try:
+            cat = best_in(rom, bk, n_ch, lo, hi)
+        except AssertionError:
+            continue
+        cbank = bk
+        break
+    assert cbank is not None, "no room for the Goriya Charger"
+    ch = charger(cat)
+    place(rom, cbank, cat, ch.bytes())
+    # bank 4: UpdateObject's entry for $05 -> a far call (C set: the charger's handled it), else $8119
+    gs = free_in(rom, 4, 13, 0xBE00, 0xBFB0)                              # (bank 4's tail)
+    st = Asm(gs).b(*V.far(cbank, ch.labels["gor"])).br(0xB0, "r").abs(0x4C, 0x8119).label("r").b(0x60)
+    place(rom, 4, gs, st.bytes())
+    ut = BANK(4) + V.TABLES4 + 3 + 2 * 0x05 - 0x8000                      # UpdateObject's entry for $05
+    assert rom[ut:ut + 4] == bytes([0x19, 0x81, 0x19, 0x81])
+    rom[ut:ut + 2] = bytes([gs & 0xFF, gs >> 8])
+    notes.append(f"Goriya Charger: {n_ch} bytes in bank {cbank} at ${cat:04X}")

@@ -8,7 +8,8 @@ see them: HVE $D0) that the room puts in slot 1 (a boss room's).
 
 How: at the Gohma's init (slot 1) the slot becomes a two-headed Gleeok ($43: its init runs instead; Gleeok's code
 owns slots 1-6 and puts cut heads in 7-8), and the Gohma is made in slot GS (11: none of the fields Gleeok borrows),
-with its own init. HYB (stack page) says so; any slot 1 init clears it first. Each frame:
+with its own init. HYB (stack page) says so; a slot 1 init clears it first, unless its Gohma still lives in that
+room (the cut-off Gleeok's own slot 1 init). Each frame:
   Gleeok's update (lol_gleeok's JSR at $A4DE) -> with HYB: no body drawn, no red Gleeok; the two necks' roots
       (their first segment, in Gleeok's WRAM neck tables) set on the north wall
   UpdateObject's $33 / $34 -> with HYB, slot GS: the eye's timer held shut ($78) while a Gleeok is in slot 1, else
@@ -20,6 +21,7 @@ HVE = 0x016F
 AT = 0xD0
 HYB = 0x0160                    # 0 no, 1 made (its Gohma to come), 2 on
 KIND = 0x0161                   # the Gohma's type
+HROOM = 0x016D                  # (stack page, unused) the room it was made in
 GS = 0x0B
 GLEEOK = 0x43
 HP = 0x60                       # the blue Gohma's ($33)
@@ -44,11 +46,17 @@ def apply(rom: bytearray, notes: list) -> None:
     def code(o):
         a = Asm(o)
         # init (X the slot, A / [00] the type), the init chain's end
-        a.label("init").b(0xE0, 0x01).br(0xD0, "i_g").b(0xA8, 0xA9, 0x00).abs(0x8D, HYB).b(0x98)
+        # (owner 2026-11-25: not while its Gohma lives in slot GS - a cut-off Gleeok's slot 1 init came after the heads
+        #  and turned it back into a plain Gohma; a new room's init finds slot GS empty)
+        a.label("init").b(0xE0, 0x01).br(0xD0, "i_g").b(0xA8).abs(0xAD, 0x034F + GS).b(0xC9, 0x33).br(0xF0, "i_k")
+        a.b(0xC9, 0x34).br(0xD0, "i_c")
+        a.b(0xA5, 0xEB).abs(0xCD, HROOM).br(0xF0, "i_k")                          # (the same room: kept)
+        a.label("i_c").b(0xA9, 0x00).abs(0x8D, HYB)
+        a.label("i_k").b(0x98)
         a.label("i_g").b(0xC9, 0x33).br(0xF0, "i_go").b(0xC9, 0x34).br(0xF0, "i_go")
         a.label("i_nx").b(0x60, 0xEA, 0xEA)                                # (lol_patra: JMP its init)
         a.label("i_go").b(0xE0, 0x01).br(0xD0, "i_r").abs(0xAD, HVE).b(0xC9, AT).br(0x90, "i_r")
-        a.b(0xA5, 0x00).abs(0x8D, KIND).b(0xA9, 0x01).abs(0x8D, HYB)               # (its Gohma: Gleeok's first frame)
+        a.b(0xA5, 0x00).abs(0x8D, KIND).b(0xA9, 0x01).abs(0x8D, HYB).b(0xA5, 0xEB).abs(0x8D, HROOM)               # (its Gohma: Gleeok's first frame)
         # this slot: a two-headed Gleeok (InitObject goes on with [00])
         a.b(0xA9, GLEEOK, 0x85, 0x00).abs(0x9D, 0x034F).b(0xA9, ATTR(GLEEOK)).abs(0x9D, 0x04BF)
         # sprite palette 3: purple (the transfer buffer)
@@ -145,4 +153,15 @@ def apply(rom: bytearray, notes: list) -> None:
         ut = b4 + V.TABLES4 + 3 + 2 * t
         assert rom[ut:ut + 2] == bytes([0x16, 0xA3]), rom[ut:ut + 2].hex()
         rom[ut:ut + 2] = bytes([s.labels["go"] & 0xFF, s.labels["go"] >> 8])
+    # (owner 2026-11-25: it lagged in a room of four shooting statues) the statues hold their fire while it's on:
+    # UpdateStatues' LDY #2 / LDA PersonFireballsEnabled (bank 4 $8650) -> JSR st: HYB -> leave UpdateStatues
+    def st(o):
+        q = Asm(o)
+        q.abs(0xAD, HYB).br(0xF0, "s_n").b(0x68, 0x68, 0x60)
+        q.label("s_n").b(0xA0, 0x02).abs(0xAD, 0x04CC).b(0x60)
+        return q
+    n_st = len(st(0xB000).bytes())
+    a_st = free_in(rom, 4, n_st, 0xB000, 0xBE00)
+    place(rom, 4, a_st, st(a_st).bytes())
+    patch(rom, 4, 0x8650, bytes.fromhex("a002adcc04"), bytes([0x20, a_st & 0xFF, a_st >> 8, 0xEA, 0xEA]))
     notes.append(f"Hydra Gohma at 14 containers (bank 2 ${at:04X} / ${at2:04X}, stubs bank 4 ${s4:04X})")

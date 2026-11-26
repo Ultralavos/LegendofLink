@@ -53,6 +53,25 @@ def gate(a, name, skip):
     a.abs(0xAD, addr).b(0x29, b).br(0xF0, skip)
 
 
+def best_in(rom, bank, size, lo=0x8000, hi=0xBF00):
+    """free_in, best fit: the start of the smallest free run in [lo, hi) that holds size (with free_in's margins)."""
+    base = BANK(bank) - 0x8000
+    best, c = None, lo
+    while c < hi:
+        if rom[base + c] != 0xFF:
+            c += 1
+            continue
+        e = c
+        while e < hi and rom[base + e] == 0xFF:
+            e += 1
+        if e - c - 4 >= size and (best is None or e - c < best[1]):
+            best = (c + 2, e - c)
+        c = e
+    if best is None:
+        raise AssertionError(f"no {size} bytes free in bank {bank}")
+    return best[0]
+
+
 def free_in(rom, bank, size, lo=0x8000, hi=0xBF00):
     base = BANK(bank) - 0x8000
     for c in range(lo, hi):

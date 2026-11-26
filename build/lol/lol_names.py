@@ -61,20 +61,23 @@ _LIB = {}
 _LIB6 = {}                              # (bank 6: !ADLEZ's parts)
 
 
-def put6(rom, n, lo=0x9D66, hi=0xA000):
-    """Reserve n bytes in bank 6's free run (best fit, $FF margins of 2); the caller places the code."""
+def put6(rom, n, ranges=((0x9D66, 0xA000), (0xBC10, 0xBD00))):
+    """Reserve n bytes in bank 6's free runs ($9D66-$9FFF, and $BC10-$BCFF: past lol_bombup's common code, free in every finished ROM; best fit,
+    $FF margins of 2); the caller places the code."""
     base = BANK(6) - 0x8000
-    best, c = None, lo
-    while c < hi:
-        if rom[base + c] != 0xFF:
-            c += 1
-            continue
-        e = c
-        while e < hi and rom[base + e] == 0xFF:
-            e += 1
-        if e - c - 4 >= n and (best is None or e - c < best[1]):
-            best = (c + 2, e - c)
-        c = e
+    best = None
+    for lo, hi in ranges:
+        c = lo
+        while c < hi:
+            if rom[base + c] != 0xFF:
+                c += 1
+                continue
+            e = c
+            while e < hi and rom[base + e] == 0xFF:
+                e += 1
+            if e - c - 4 >= n and (best is None or e - c < best[1]):
+                best = (c + 2, e - c)
+            c = e
     assert best, f"no {n} bytes free in bank 6"
     rom[base + best[0]:base + best[0] + n] = bytes(n)        # (taken: placed over by the caller)
     return best[0]

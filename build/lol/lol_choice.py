@@ -210,6 +210,12 @@ REWARDS = [    # shrine prizes (the user's v2.02 sheet: odds/rewards.csv)
 SUBS = [(1, "E5", 0x29), (2, "E16", 0x29),
         (1, "H16", 0x28), (3, "A16", 0x28), (4, "G1", 0x27), (5, "A5", 0x2A), (6, "H6", 0x26),
         (7, "E11", 0x27), (8, "A16", 0x27), (8, "G16", 0x26), (9, "A1", 0x20), (9, "E16", 0x2A)]
+# (item, its inventory byte, owned at, the next tier): a cellar's stale roll, or a shrine's kept reward (apply_rewards'
+# fix: owner 2026-11-25, a second blue book in a shrine Link had first seen before he got one)
+FIX = ((0x11, BOOK, 1, 0x25), (0x25, BOOK, 2, 0x20), (0x12, RING, 1, 0x13), (0x13, RING, 2, 0x20),
+       (0x02, SWORD, 2, 0x03), (0x03, SWORD, 3, 0x20), (0x08, ARROWS, 1, 0x09), (0x09, ARROWS, 2, 0x20),
+       (0x0B, MAGIC_KEY, 1, 0x20), (0x06, CANDLE, 1, 0x07), (0x07, CANDLE, 2, 0x20), (0x0A, BOW, 1, 0x20),
+       (0x10, WAND, 1, 0x20), (0x1C, SHIELD, 1, 0x20), (0x24, MAX_BOMBS, 20, 0x20))
 REWARD_NONE = 0x20                      # nothing left to give: a red potion
 REWARD_HOOK = 0xB84C                    # bank 5: the room item's AND #$1F / CMP #$03 (then STA RoomItem $AB)
 REWARD_FREE = 0xB8A0                    # bank 5's free run (PRG1)
@@ -219,6 +225,29 @@ REWARD_ROOM = 0x0170                    # $80 | the room whose item is A-F's rew
 
 def apply_rewards(rom: bytearray, notes: list) -> None:
     from lol_af import patch
+
+    def fixer(o):
+        f = Asm(o)
+        # (owner 2026-11-25) a generated cellar's item was rolled when the level loaded: one Link has since got (a book,
+        # a ring, a sword, arrows, the magical key) gives way to its next tier, else a red potion. In: A; out: A and
+        # SAVE_X; X, Y kept
+        f.label("fix").abs(0x8D, SAVE_X).b(0x8A, 0x48, 0x98, 0x48)
+        f.label("fx_lp").abs(0xAD, SAVE_X).b(0xA0, len(FIX) - 1)
+        f.label("fx_s").abs(0xD9, "fx_it").br(0xF0, "fx_m").b(0x88).br(0x10, "fx_s").br(0x30, "fx_o")
+        f.label("fx_m").abs(0xBE, "fx_ad").abs(0xBD, 0x0600).abs(0xD9, "fx_th").br(0x90, "fx_o")
+        f.abs(0xB9, "fx_nx").abs(0x8D, SAVE_X).abs(0x4C, "fx_lp")
+        f.label("fx_o").b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, SAVE_X).b(0x60)
+        f.label("fx_it").b(*[f[0] for f in FIX])
+        f.label("fx_ad").b(*[f[1] & 0xFF for f in FIX])
+        f.label("fx_th").b(*[f[2] for f in FIX])
+        f.label("fx_nx").b(*[f[3] for f in FIX])
+        return f
+    import lol_names                    # (bank 5 is full: bank 6's free run, far-called)
+    import lol_v3core as V
+    n_fx = len(fixer(0x8000).bytes())
+    fx_at = lol_names.put6(rom, n_fx)
+    o6 = BANK(6) + fx_at - 0x8000
+    rom[o6:o6 + n_fx] = fixer(fx_at).bytes()
     a = Asm(REWARD_FREE)
     # first: the first quest's rooms whose item is one the room tables can't hold (SUBS)
     a.label("reward").b(0x29, 0x1F, 0x48, 0x98, 0x48)                          # item, Y kept
@@ -227,7 +256,7 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
         from lol_genload import CUR_GEN, SUB_RM, SUB_IT
         a.abs(0xAD, CUR_GEN).br(0x30, "g_static").b(0xA0, 0x01)
         a.label("g_lp").abs(0xB9, SUB_RM).b(0xC5, 0xEB).br(0xD0, "g_nx")
-        a.abs(0xB9, SUB_IT).abs(0x8D, SAVE_X).b(0x68, 0xA8, 0x68).abs(0xAD, SAVE_X).abs(0x4C, "r_cmp")
+        a.abs(0xB9, SUB_IT).b(*V.far(6, fx_at)).b(0x68, 0xA8, 0x68).abs(0xAD, SAVE_X).abs(0x4C, "r_cmp")
         a.label("g_nx").b(0x88).br(0x10, "g_lp").abs(0x4C, "s_none")
         a.label("g_static")
     a.b(0xA4, 0x16).abs(0xB9, 0x062D).br(0xD0, "s_none").b(0xA0, len(SUBS) - 1)
@@ -245,7 +274,7 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
     a.abs(0x20, "r_count").b(0xA5, CNT).br(0xF0, "r_none")
     a.b(0xA9, 0x00, 0x85, K).abs(0x20, "r_nth").br(0xD0, "r_have")             # the first (an item is never 0)
     a.label("r_none").b(0xA9, REWARD_NONE)
-    a.label("r_have").abs(0x8D, SAVE_X)
+    a.label("r_have").b(*V.far(6, fx_at))                                        # (and SAVE_X)
     for z in (K, CNT, T1, T0):
         a.b(0x68, 0x85, z)
     a.b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, SAVE_X).br(0xD0, "r_cmp")

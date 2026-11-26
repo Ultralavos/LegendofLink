@@ -364,6 +364,8 @@ def main():
     lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
     import lol_seedcode
     lol_seedcode.apply(rom, notes)                # the title's version and seed, the file select's code
+    import lol_enemies2
+    lol_enemies2.late(rom, notes)                 # (the Goriya Charger's code: wherever room is left)
     lol_seedcode.apply_code(rom, notes)           # (last: a hash of the finished ROM)
     import lol_encode
     lol_encode.apply(rom, notes)                  # (after the code: Race Rom, LOL_RACE=1: the level data encoded)

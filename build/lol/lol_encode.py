@@ -62,7 +62,8 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("ds").abs(0x99, INFO).b(0xA6, 0x0D, 0x60)
         return a
     n = len(dec(0xA000).bytes())
-    at = free_in(rom, 6, n, 0xA000, 0xBE00)
+    from lol_newups import best_in
+    at = best_in(rom, 6, n, 0x9D00, 0xBE00)            # (last: any room left; never in the encoded range)
     d = dec(at)
     assert d.labels["key"] - at == KEY_AT
     assert not (LO <= at < HI)

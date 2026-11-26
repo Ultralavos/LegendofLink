@@ -20,7 +20,7 @@ LASTR, RT = 0x01BD, 0x01BE
 ROARF, ROARN = 0x0164, 0x0165           # (stack page, untouched) -ROAR- up; this check's answer
 HUD_AT = 0x2078                         # the status bar's LIFE (between its dashes at $2077 / $207C)
 WORD_LIFE, WORD_ROAR = bytes([0x15, 0x12, 0x0F, 0x0E]), bytes([0x1B, 0x18, 0x0A, 0x1B])
-ATTR_C, ATTR_D = 0x697E, 0x69FE
+ATTR_A, ATTR_B, ATTR_C, ATTR_D = 0x687E, 0x68FE, 0x697E, 0x69FE
 WORLD_FLAGS = 0x6BAF
 LEVEL_NO = 0x6BB1
 PRIZE_ROOM = 0x6B7E + 0x30              # the level info's triforce room: a shrine's prize room (its guardian next door)
@@ -40,6 +40,27 @@ def roar(rom: bytearray) -> int:
     lo, hi = 0x31, 0x48
     tbl = [SAMPLES.get(t, 0) for t in range(lo, hi + 1)]
 
+    # gchk (bank 6, far-called; Y the neighbour, kept): C set if it is the guardian - beside the prize room, its door
+    # into it a shutter. (X: 0 east of it / 1 south: the neighbour's west / north door, bits 7-5; 2 west / 3 north:
+    # its east / south door, bits 4-2; ATTR_B the west-east byte, ATTR_A the north-south one)
+    def gchk(o):
+        q = Asm(o)
+        q.label("gchk").b(0x98, 0x38).abs(0xED, PRIZE_ROOM).b(0xA2, 0x03)
+        q.label("g_lp").abs(0xDD, "gdif").br(0xF0, "g_f").b(0xCA).br(0x10, "g_lp")
+        q.label("g_n").b(0x18, 0x60)
+        q.label("g_f").b(0x8A, 0x4A).br(0xB0, "g_a").abs(0xB9, ATTR_B).br(0x90, "g_b")
+        q.label("g_a").abs(0xB9, ATTR_A)
+        q.label("g_b").b(0x4A, 0x4A, 0xE0, 0x02).br(0xB0, "g_ck").b(0x4A, 0x4A, 0x4A)
+        q.label("g_ck").b(0x29, 0x07, 0xC9, 0x07).br(0xD0, "g_n").b(0x38, 0x60)    # (7: a shutter)
+        q.label("gdif").b(0x01, 0x10, 0xFF, 0xF0)
+        return q
+    import lol_names
+    n_g = len(gchk(0x8000).bytes())
+    g_at = lol_names.put6(rom, n_g)
+    o6 = BANK(6) + g_at - 0x8000
+    rom[o6:o6 + n_g] = gchk(g_at).bytes()
+    GCHK = [g_at]
+
     def build(org):
         a = Asm(org)
         # (owner 2026-11-25) out of the levels with -ROAR- still up: -LIFE- back (in play)
@@ -58,21 +79,24 @@ def roar(rom: bytearray) -> int:
         a.b(0xA9, 0x03, 0x85, 0x02)                                              # $02: the direction (E W S N)
         a.label("n_lp").b(0xA6, 0x02, 0xA5, 0xEB, 0x18).abs(0x7D, "dofs").b(0xA8)   # Y = the neighbour
         a.b(0xE0, 0x02).br(0xB0, "n_v")
-        a.b(0x45, 0xEB, 0x29, 0xF0).br(0xD0, "n_nx")                              # east / west: the same row
+        a.b(0x45, 0xEB, 0x29, 0xF0).br(0xD0, "nx0")                              # east / west: the same row
         a.abs(0x4C, "n_in")
-        a.label("n_v").b(0x98, 0xC9, 0x80).br(0xB0, "n_nx")                       # north / south: inside
+        a.label("n_v").b(0x98, 0xC9, 0x80).br(0xB0, "nx0")                       # north / south: inside
         a.label("n_in").abs(0xB9, ATTR_D).b(0x29, 0x80).br(0xF0, "n_lo").b(0xA9, 0x40)
         a.label("n_lo").b(0x85, 0x03).abs(0xB9, ATTR_C).b(0x29, 0x3F, 0x05, 0x03)   # A = its monster
         a.abs(0xAE, LEVEL_NO).b(0xE0, 0x09).br(0xD0, "n_sh")
-        a.b(0xC9, GANON).br(0xD0, "n_nx").b(0xA9, 0x10).br(0xD0, "n_alive")       # Level 9: Ganon
-        # (owner 2026-11-25) a shrine: only its guardian, the boss beside the prize room (lol_gen's "boss" role)
-        a.label("n_sh").b(0x48, 0x98, 0x38).abs(0xED, PRIZE_ROOM)
-        for v in (0x01, 0xFF, 0x10, 0xF0):
-            a.b(0xC9, v).br(0xF0, "g_ok")
-        a.b(0x68).abs(0x4C, "n_nx")
-        a.label("g_ok").b(0x68, 0x38, 0xE9, lo).br(0x90, "n_nx").b(0xC9, hi - lo + 1).br(0xB0, "n_nx")
-        a.b(0xAA).abs(0xBD, "smp").br(0xF0, "n_nx")                               # a shrine: a guardian
-        a.label("n_alive").b(0x85, 0x03, 0xB1, 0x00, 0x29, 0xC0, 0xC9, 0xC0).br(0xF0, "n_nx")   # dead: no
+        a.b(0xC9, GANON).br(0xD0, "nx0").b(0xA9, 0x10).br(0xD0, "n_alive")       # Level 9: Ganon
+        a.label("nx0").abs(0x4C, "n_nx")                                       # (a long way down)
+        # (owner 2026-11-25) a shrine: only its guardian, the boss beside the prize room whose door into it is the
+        # prize room is its shutter (lol_gen's "boss" role; another dungeon's room may lie beside it on the shared grid)
+        # (X: 0 east of it / 1 south: the neighbour's west / north door, bits 7-5; 2 west / 3 north: its east / south
+        #  door, bits 4-2; B the west-east byte, A the north-south one)
+        a.label("n_sh").b(0x48).b(*V.far(6, GCHK[0])).br(0xB0, "g_ok")         # (bank 6: gchk)
+        a.label("g_no").b(0x68)
+        a.label("g_x").abs(0x4C, "n_nx")
+        a.label("g_ok").b(0x68, 0x38, 0xE9, lo).br(0x90, "g_x").b(0xC9, hi - lo + 1).br(0xB0, "g_x")
+        a.b(0xAA).abs(0xBD, "smp").br(0xF0, "g_x")                               # a shrine: a guardian
+        a.label("n_alive").b(0x85, 0x03, 0xB1, 0x00, 0x29, 0xC0, 0xC9, 0xC0).br(0xF0, "g_x")   # dead: no
         a.b(0xA5, 0x03).abs(0x8D, SAMPLE).b(0xA9, 0x01).abs(0x8D, ROARN).abs(0x4C, "n_end")
         a.label("n_nx").b(0xC6, 0x02).br(0x30, "n_end").abs(0x4C, "n_lp")
         a.label("n_end")
@@ -112,6 +136,27 @@ def apply(rom: bytearray, notes: list) -> None:
     spots = tuple(15 + x for x in (3, 4, 15, 16))           # A B ... C D in the record
     b5 = BANK(5) - 0x8000
     assert rom[b5 + ROW_SITE:b5 + ROW_SITE + 5] == bytes([0xB9, 0x25, 0xB2, 0x85, 0x14])
+
+    # gchk (bank 6, far-called; Y the neighbour, kept): C set if it is the guardian - beside the prize room, its door
+    # into it a shutter. (X: 0 east of it / 1 south: the neighbour's west / north door, bits 7-5; 2 west / 3 north:
+    # its east / south door, bits 4-2; ATTR_B the west-east byte, ATTR_A the north-south one)
+    def gchk(o):
+        q = Asm(o)
+        q.label("gchk").b(0x98, 0x38).abs(0xED, PRIZE_ROOM).b(0xA2, 0x03)
+        q.label("g_lp").abs(0xDD, "gdif").br(0xF0, "g_f").b(0xCA).br(0x10, "g_lp")
+        q.label("g_n").b(0x18, 0x60)
+        q.label("g_f").b(0x8A, 0x4A).br(0xB0, "g_a").abs(0xB9, ATTR_B).br(0x90, "g_b")
+        q.label("g_a").abs(0xB9, ATTR_A)
+        q.label("g_b").b(0x4A, 0x4A, 0xE0, 0x02).br(0xB0, "g_ck").b(0x4A, 0x4A, 0x4A)
+        q.label("g_ck").b(0x29, 0x07, 0xC9, 0x07).br(0xD0, "g_n").b(0x38, 0x60)    # (7: a shutter)
+        q.label("gdif").b(0x01, 0x10, 0xFF, 0xF0)
+        return q
+    import lol_names
+    n_g = len(gchk(0x8000).bytes())
+    g_at = lol_names.put6(rom, n_g)
+    o6 = BANK(6) + g_at - 0x8000
+    rom[o6:o6 + n_g] = gchk(g_at).bytes()
+    GCHK = [g_at]
 
     def build(org):
         a = Asm(org)
