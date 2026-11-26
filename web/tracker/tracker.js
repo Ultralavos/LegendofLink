@@ -366,7 +366,7 @@ function renderBrushes() {
 // brush says; the wheel (down) opens its item list (map, compass, key, bomb, triforce, potion, I).
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
-  ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
+  ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["rupee5", "rupee.png", "5 rupees"], ["I", null, "I"]];
 const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 // a room's kind (left click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
