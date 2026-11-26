@@ -161,6 +161,28 @@ function giveItem(img) {
     if (k >= 0) { S.items[id] = Math.max(S.items[id] || 0, k + 1); return; }
   }
 }
+// what each pick gave (S.grants: where it was picked -> {img, prev}), so a pick changed or cleared takes back what
+// the wrong one gave (the item back to where it was, a card or bomb upgrade off) and the upgrades follow
+function grant(src, img) {
+  S.grants = S.grants || {};
+  if (S.grants[src] && S.grants[src].img === img) return;
+  revoke(src);
+  const it = ITEMS.find(([, steps]) => steps.includes(img));
+  S.grants[src] = { img, prev: it ? S.items[it[0]] || 0 : null };
+  if (/^card[SDX]$/.test(img)) S.cards[img[4]] = Math.min(3, (S.cards[img[4]] || 0) + 1); else giveItem(img);
+}
+function revoke(src) {
+  const g = (S.grants || {})[src]; if (!g) return;
+  delete S.grants[src];
+  const m = /^card([SDX])$/.exec(g.img);
+  if (m) { S.cards[m[1]] = Math.max(0, (S.cards[m[1]] || 0) - 1); return; }
+  if (g.img === "bombs") { S.bombups = Math.max(0, (S.bombups || 0) - 1); return; }
+  const it = ITEMS.find(([, steps]) => steps.includes(g.img)); if (!it) return;
+  const [id, steps] = it, lvl = steps.indexOf(g.img) + 1;
+  if ((S.items[id] || 0) !== lvl) return;                 // (changed by hand since: left as it is)
+  const others = Object.values(S.grants).filter((x) => steps.includes(x.img)).map((x) => steps.indexOf(x.img) + 1);
+  S.items[id] = Math.max(g.prev || 0, ...others);
+}
 const omDrawn = (n) => Object.values((S.dun[String(n)] || {}).cells || {}).some((c) => c.m === "O");
 let omOpen = null;
 function renderOM() {
@@ -184,13 +206,13 @@ function openOM(n, btn) {
   const g = el("div", { className: "omgrid" });
   for (const [img, name] of OM_ITEMS) {
     const b = el("button", { type: "button", className: "omi" + (o.item === img ? " sel" : ""), title: name }, [icon(img)]);
-    b.onclick = () => { o.item = img; o.found = true; giveItem(img); save(); closeOM(); renderAll(); };
+    b.onclick = () => { o.item = img; o.found = true; grant("om:" + n, img); save(); closeOM(); renderAll(); };
     g.append(b);
   }
   const found = el("button", { type: "button", className: "wide", textContent: o.found && !o.item ? "Not found" : "Found, nothing taken" });
-  found.onclick = () => { o.found = !(o.found && !o.item); o.item = null; save(); closeOM(); renderOM(); };
+  found.onclick = () => { o.found = !(o.found && !o.item); o.item = null; revoke("om:" + n); save(); closeOM(); renderAll(); };
   const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.om[n]; save(); closeOM(); renderOM(); };
+  clear.onclick = () => { delete S.om[n]; revoke("om:" + n); save(); closeOM(); renderAll(); };
   p.append(g, el("div", { className: "prow" }, [found, clear]));
   p.hidden = false;
   const r = btn.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
@@ -300,7 +322,7 @@ function openPicker(s, cell) {
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
   const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; save(); closePicker(); renderMap(); };
+  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
   p.append(grid, el("div", { className: "prow" }, [done, clear]));
   p.hidden = false;
   // place it under the tile, inside the panel
@@ -319,7 +341,7 @@ function openShop(s, cell) {
     const b = el("button", { type: "button", className: "omi" + (S.owBuy[s] === img ? " sel" : ""), title: name }, [icon(img)]);
     const buy = (e) => {
       if (e) e.preventDefault();
-      S.owBuy[s] = img; S.owX[s] = 1; if (gives) giveItem(gives);
+      S.owBuy[s] = img; S.owX[s] = 1; if (gives) grant("shop:" + s, gives); else revoke("shop:" + s);
       save(); closePicker(); renderAll();
     };
     b.onclick = buy; b.oncontextmenu = buy;
@@ -328,7 +350,7 @@ function openShop(s, cell) {
   const change = el("button", { type: "button", className: "wide", textContent: "Change mark" });
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "Not bought" });
-  undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; save(); closePicker(); renderMap(); };
+  undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
   p.append(grid, el("div", { className: "prow" }, [change, undo]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
@@ -572,11 +594,11 @@ function openOMRoom(n, cell) {
   const grid = el("div", { className: "omgrid" });
   for (const [img, name] of OM_ITEMS) {
     const b = el("button", { type: "button", className: "omi" + (o.item === img ? " sel" : ""), title: name }, [icon(img)]);
-    b.onclick = () => { o.item = img; o.found = true; giveItem(img); save(); closeRoomItems(); renderAll(); };
+    b.onclick = () => { o.item = img; o.found = true; grant("om:" + n, img); save(); closeRoomItems(); renderAll(); };
     grid.append(b);
   }
   const none = el("button", { type: "button", className: "wide quiet", textContent: "Nothing taken" });
-  none.onclick = () => { o.item = null; o.found = true; save(); closeRoomItems(); renderOM(); };
+  none.onclick = () => { o.item = null; o.found = true; revoke("om:" + n); save(); closeRoomItems(); renderAll(); };
   const row = [none];
   if (cell.parentElement && cell.parentElement.id === "dgrid") {
     const kind = el("button", { type: "button", className: "wide", textContent: "Room type" });
@@ -777,10 +799,6 @@ function sideDone(k) {
   return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (!flr || !!bx[0]) &&
     st.slice(0, nst).filter(Boolean).length === nst;
 }
-function pickedGive(img) {                        // a card counts up, an item goes into the inventory
-  const m = /^card([SDX])$/.exec(img);
-  if (m) S.cards[m[1]] = Math.min(3, (S.cards[m[1]] || 0) + 1); else giveItem(img);
-}
 function sidePick(btn, title, opts, cur, pick, clear) {
   const p = $("rpick"); rpicking = -2; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: title }));
@@ -818,8 +836,8 @@ function renderSide() {
     b.onclick = (e) => {
       e.stopPropagation();
       sidePick(b, `Shrine ${k} prize`, PRIZEOPTS, v, (img) => {
-        sd.prize = img; pickedGive(img); if (!S.shrines.includes(k)) S.shrines = [...S.shrines, k]; save();
-      }, () => { sd.prize = null; S.shrines = S.shrines.filter((x) => x !== k); save(); });
+        sd.prize = img; grant(`side:${k}:prize`, img); if (!S.shrines.includes(k)) S.shrines = [...S.shrines, k]; save();
+      }, () => { sd.prize = null; revoke(`side:${k}:prize`); S.shrines = S.shrines.filter((x) => x !== k); save(); });
     };
     box.append(b);
     return;
@@ -838,14 +856,15 @@ function renderSide() {
     sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + OM_ITEMS.find((x) => x[0] === o.item)[1] : ""),
       [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
     sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
-      sd.pot = !sd.pot; if (sd.pot) giveItem("potion1"); save();
+      sd.pot = !sd.pot; if (sd.pot) grant(`side:${k}:pot`, "potion1"); else revoke(`side:${k}:pot`); save();
     });
     const slot = (arr, i, opts, title, stairs) => {
       const v = sd[arr][i];
       const kids = stairs ? [stairArt()] : [];
       if (v) kids.push(icon(v, stairs ? "over" : ""));
       sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + opts.find((x) => x[0] === v)[1] : ""), kids, (b) =>
-        sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; pickedGive(img); save(); }, () => { sd[arr][i] = null; save(); }));
+        sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; grant(`side:${k}:${arr}:${i}`, img); save(); },
+          () => { sd[arr][i] = null; revoke(`side:${k}:${arr}:${i}`); save(); }));
     };
     const [nst, flr] = layoutOf(lv);                                     // (the map's set: LAYOUT)
     if (flr) slot("box", 0, BOXOPTS, "Floor item");
@@ -854,7 +873,8 @@ function renderSide() {
     const slot = (i) => {
       const v = sd.st[i];
       sbtn("st" + (v ? " on" : ""), "Item stairs" + (v ? ": " + L9OPTS.find((x) => x[0] === v)[1] : ""), [stairArt(), ...(v ? [icon(v, "over")] : [])], (b) =>
-        sidePick(b, "Level 9 item stairs", L9OPTS, v, (img) => { sd.st[i] = img; pickedGive(img); save(); }, () => { sd.st[i] = null; save(); }));
+        sidePick(b, "Level 9 item stairs", L9OPTS, v, (img) => { sd.st[i] = img; grant(`side:9:st:${i}`, img); save(); },
+          () => { sd.st[i] = null; revoke(`side:9:st:${i}`); save(); }));
     };
     slot(0); slot(1);
     sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
