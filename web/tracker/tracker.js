@@ -420,6 +420,7 @@ function renderDun() {
   d.doors = d.doors || {};
   $("dname").value = d.name; $("ddone").checked = d.done;
   renderQuest(); renderNicknames();
+  $("dlabel").textContent = (isShrine(S.cur) ? "SHRINE-" : "LEVEL-") + S.cur;     // (as the game's map screen)
   const g = $("dgrid"); g.replaceChildren();
   const redraw = () => { save(); renderDun(); renderOM(); };
   for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
