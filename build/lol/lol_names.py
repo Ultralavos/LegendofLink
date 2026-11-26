@@ -7,10 +7,12 @@ name changes things:
   !ADLEZ  (lol_names' later parts) the hero's start
 
 The name is the file's own (NAMES $0638 + slot * 8, saved with it), read when needed: nothing else is stored.
-namek (bank 3, far-called): A = 0 none, 1 UNSEED, 2 ZELDA, 3 IDDQD, 4 !ADLEZ (always 0 on a seeded game).
+namek (bank 3, far-called): A = 0 none, 1 UNSEED, 2 ZELDA, 3 IDDQD, 4 !ADLEZ (always 0 on a seeded game, and
+without Race Rom: LOL_RACE=1).
 Old men: InitCave's fill (bank 1 $85F9, after lol_heavy's) -> for those names, an old man's ($0350 one of OLD_MEN)
 words are the name's (HINT_BUF, QOVR). IDDQD's levels: unseeded, lol_build's status bar code (bank 5, every frame) sets HVE
 through hve (bank 3): HeartValues + 3 containers in hard mode, $FF for a file named IDDQD."""
+import os
 from lol_af import Asm, BANK, place
 
 NAMES = 0x0638
@@ -153,7 +155,7 @@ def lib(rom):
 
     def namek(a):
         a.label("namek").b(0x8A, 0x48, 0x98, 0x48)
-        if lol_fixed.FIXED:
+        if lol_fixed.FIXED or os.environ.get("LOL_RACE") != "1":    # (owner 2026-11-25: only on a Race Rom)
             a.b(0xA9, 0x00).br(0xF0, "k_out")
         else:
             a.b(0xA9, len(order), 0x85, 0x0E)                   # (k, from the last)

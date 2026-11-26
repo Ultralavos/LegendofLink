@@ -21,7 +21,7 @@ const TUNIC_CHOICES = [["", "From your ROM"], ["29", "Green"], ["1A", "Dark gree
   ["21", "Sky blue"], ["32", "Light blue"], ["12", "Blue"], ["02", "Navy"], ["13", "Purple"], ["24", "Violet"],
   ["25", "Pink"], ["14", "Magenta"], ["16", "Red"], ["06", "Dark red"], ["27", "Orange"], ["17", "Brown"],
   ["28", "Gold"], ["38", "Yellow"], ["30", "White"], ["10", "Grey"], ["00", "Dark grey"], ["0F", "Black"]];
-const VERSION = "0.343";   // (owner: Beta 0.343, bumped with every change set; lol_seedcode.VERSION shows it on the title)
+const VERSION = "0.344";   // (owner: Beta 0.344, bumped with every change set; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
 const NES_PALETTE = [   // (ZORA's page's)
@@ -136,7 +136,7 @@ $("build").addEventListener("click", () => {
   worker.postMessage({ type: "build", rom: rom.slice().buffer, original: original.slice().buffer, seed,
                        start: $("start").value, dset: $("dset").value, setSeed,
                        mix: $("mix").checked, fixed: !$("unseeded").checked, tunic: tunicSetting(),
-                       noflash: $("noflash").checked });
+                       noflash: $("noflash").checked, race: $("race").checked });
 });
 
 worker.onmessage = (ev) => {

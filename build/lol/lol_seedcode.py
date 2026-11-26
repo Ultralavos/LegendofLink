@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.343"
+VERSION = "0.344"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -130,7 +130,8 @@ def apply_code(rom: bytearray, notes: list) -> None:
     for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES + FLASH_BYTES:  # (and Link's
         # colors, and the flashes)
         plain[at:at + n] = bytes(n)
-    digest = hashlib.sha256(DOMAIN + bytes(plain)).digest()
+    race = b"race rom\x00" if os.environ.get("LOL_RACE") == "1" else b""   # (owner 2026-11-25: a Race Rom's
+    digest = hashlib.sha256(DOMAIN + race + bytes(plain)).digest()       #  code is its own)
     items = [ITEMS[b % len(ITEMS)] for b in digest[:4]]
     tbl = BANK(1) + SLOT_TABLE + WRAM_DELTA - 0x8000
     for k, it in enumerate(items):

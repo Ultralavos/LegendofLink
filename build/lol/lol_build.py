@@ -364,6 +364,8 @@ def main():
     import lol_seedcode
     lol_seedcode.apply(rom, notes)                # the title's version and seed, the file select's code
     lol_seedcode.apply_code(rom, notes)           # (last: a hash of the finished ROM)
+    import lol_encode
+    lol_encode.apply(rom, notes)                  # (after the code: Race Rom, LOL_RACE=1: the level data encoded)
     print("\n".join(notes))
     open(sys.argv[2], "wb").write(make_ips(src, bytes(rom)))
     if len(sys.argv) > 3:

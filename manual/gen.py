@@ -161,6 +161,7 @@ P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME</h1>
 <dt>Dungeon set</dt><dd>Where the dungeon shapes come from: Legend of Link's own maps, the 1st, 2nd, 3rd or 4th Quest shapes, random shapes, Random (any four grids) or Mixed (each level from any set). Shrines always use Legend of Link maps or random shapes.</dd>
 <dt>Link's colors</dt><dd>His tunic color with no ring, the blue ring and the red ring. "From your ROM" keeps your ROM's colors.</dd>
 <dt>Reduce flashing</dt><dd>Turns off the screen flashes: a bomb's blast, picking up a triforce, the Triforce of Power and the ending. It only changes how the game looks: the seed and its code stay the same.</dd>
+<dt>Race Rom</dt><dd>Scrambles the map, dungeon and cave data inside the ROM, so map viewers and ROM tools can't show the seed. Race Roms get their own seed code.</dd>
 <dt>Mix enemy groups</dt><dd>Deals the enemies into new groups, so new mixes of enemies meet in dungeons and on the overworld.</dd>
 <dt>Unseeded</dt><dd>The old way: each new file deals its own dungeons and caves inside the game.</dd>
 </dl>

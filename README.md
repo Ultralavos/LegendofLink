@@ -22,6 +22,10 @@ leaves the sprite tiles out, so players with different sprites and the same sett
 - **Reduce flashing** (LOL_NOFLASH=1): ZORA's four flashes off (the bomb's grayscale, the triforce pickup's and the
   Triforce of Power's flashes, the ending's flash colors; lol_seedcode.FLASH_BYTES, 10 bytes). Cosmetic: the seed is
   the same game and its icon code ignores those bytes.
+- **Race Rom** (LOL_RACE=1; lol_encode): the level data (bank 6 $8400-$9CD7: the five level blocks and ten level
+  infos) XORed with a 64-byte key (a hash of the plain data), decoded by CopyBlock as the game loads a level, so map
+  viewers and ROM tools can't read the seed. Its icon code is its own (the hash is marked). Not cheat-proof: the
+  decoder is in the ROM.
 - **Mode**: (hidden for now: always normal; the secret modes can still be found in the game. The build still takes
   LOL_START=swordless|hard.)
 - **Mix enemy groups**: the dungeon and overworld enemies dealt into new groups (ZORA's Shuffle Enemy Groups with its
@@ -176,7 +180,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.343 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.344 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).

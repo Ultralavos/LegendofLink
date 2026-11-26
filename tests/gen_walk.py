@@ -11,10 +11,12 @@ if os.environ.get('LOL_SOURCE'):           # the clean ROM (1Q / 2Q sets read th
     lolpaths.SOURCE_ROM = open(os.environ['LOL_SOURCE'], 'rb').read()
 import lol_genload as GL
 rom = open(sys.argv[1], 'rb').read()
+import lol_encode
+prom = lol_encode.decode(rom)              # (a Race ROM's level data, plain: for the reads below)
 seed = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 OW = 0x18410
 nm = lambda s: "ABCDEFGH"[s // 16] + str(s % 16 + 1)
-ents = [s for s in range(128) if rom[OW + 0x80 + s] >> 2 and rom[OW + 0x280 + s] >> 6 != 2 and rom[OW + 0x80 + s] >> 2 != 0x14 and nm(s) != 'H8']
+ents = [s for s in range(128) if prom[OW + 0x80 + s] >> 2 and prom[OW + 0x280 + s] >> 6 != 2 and prom[OW + 0x80 + s] >> 2 != 0x14 and nm(s) != 'H8']
 ds, out = GL.build_variants()
 g = Emulator(rom); g.new_game(); g.run(30)
 g[0x66F] = 0x99; g[0x671] = 0xFF
