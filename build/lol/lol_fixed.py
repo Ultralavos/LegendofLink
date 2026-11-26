@@ -91,9 +91,10 @@ def records():
             seed = rng.randrange(1, 256)
             if dst == 9:
                 items = 0
-            else:
+            else:               # (owner 2026-11-26) both drawn from the item deck when Link first comes to them
                 cel = lambda: rng.choices(range(5), weights=(13, 13, 13, 13, 12))[0]
-                items = cel() | cel() << 3
+                cel(), cel()    # (the old rolls kept, so the rest of the seed stays as it was)
+                items = UNDRAWN | UNDRAWN << 3
             recs.append([d + 1, b1, boss, seed, items])
         if mix_ok(recs, dests):
             break
@@ -104,6 +105,46 @@ def records():
 
 
 MIN_EACH = 3
+UNDRAWN = 7                             # a record's cellar item not drawn yet (lol_genload's citems: $FF)
+CARD_EACH = 3
+
+
+def spots():
+    """The item spots of levels 1-8 this seed: each level's cellars, then its floor item room, at most two (lol_genload's
+    nf code); level 2 outside 2Q-4Q only its floor item."""
+    import lol_genload as GL, lol_sets
+    ds, out = GL.build_variants()
+    fl = GL.floor_levels()
+    n = 0
+    for dst, r in zip(GL.DESTS, records()):
+        if not 1 <= dst <= 8:
+            continue
+        var = out[(r[0] - 1, GL.SLOT_CLASS[dst])][r[1] & 3]
+        if dst == 2 and not lol_sets.quest_l2():
+            n += 1
+        else:
+            n += min(2, len(var.get("item_stairs", ())) + (1 if dst in fl else 0))
+    return n
+
+
+def deck():
+    """(owner 2026-11-26) The item deck: every item spot of levels 1-8 takes its next card the first time Link comes to it
+    (its cellar, its room). One to three (the seed's) of each card S / D / X, then XP bags (+15, +25, +15, ...) to one a spot; shuffled
+    with the seed. Values: lol_genload's citems indexes (0-2 cards S / D / X, 3 the +15 bag, 4 the +25)."""
+    if "deck" in _CACHE:
+        return _CACHE["deck"]
+    n = spots()
+    rng = _rng("deck")
+    # (owner 2026-11-26) each card 1-3 of (the seed's), the rest XP bags
+    cards = [c for c in range(3) for _ in range(rng.randint(1, CARD_EACH))]
+    if n < len(cards):
+        rng.shuffle(cards)
+        d = cards[:n]
+    else:
+        d = cards + [3 + (k & 1) for k in range(n - len(cards))]
+    rng.shuffle(d)
+    _CACHE["deck"] = d
+    return d
 
 
 def mix_ok(recs, dests):

@@ -61,6 +61,7 @@ NC = len(CLASS_LIST)
 K = 3
 
 REC = 0x7FAD
+DECK_PTR = 0x7FFF                       # the item deck's next card (battery RAM's last byte; cleared for a new file)
 NSLOT = 13
 CUR_GEN, GEN_CHOICE, SUB_RM, SUB_IT = 0x0168, 0x0169, 0x016A, 0x016C   # RAM (stack page, unused)
 SCR = 0x0150                            # scratch (stack page, unused)
@@ -961,10 +962,36 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("slot_class").b(*SLOT_CLASS)
     a.label("sidx").b(*SLOT_INDEX)
     a.label("letter").b(0, *[0x0A + AF_LEVELS.index(lv) for lv in range(1, 7)], 0, 0, 0)
-    a.label("citems").b(*CELLAR_ITEMS, 0x19, 0x19, 0x19)
+    a.label("citems").b(*CELLAR_ITEMS, 0x19, 0x19, 0xFF)              # (7: not drawn yet: $FF, the draw's)
+    import lol_choice, lol_fixed
+    if lol_fixed.FIXED and lol_choice.DECK_FAR is not None:
+        # (owner 2026-11-26) the item deck's draw (far-called by the reward hook for a generated level's item room, in
+        # place of the fixer; A = SUB_IT[Y], Y the room's index 0 / 1): $FF, not drawn yet: the deck's next card, kept
+        # in the level's record (bits 0-2 / 3-5) and SUB_IT; then the fixer as before
+        from lol_choice import SAVE_X
+        dk = lol_fixed.deck()
+        a.label("dfx").b(0xC9, 0xFF).br(0xF0, "dfx_d").abs(0x4C, lol_choice.FIX_AT)
+        a.label("dfx_d").b(0x8A, 0x48, 0x98, 0x48, 0xA5, 0x08, 0x48, 0xA5, 0x0E, 0x48)   # X, the index, $08, $0E
+        a.abs(0x20, "find")                                                   # Y = the record
+        a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0x90, "dfx_k").b(0xA9, 0x03).br(0xD0, "dfx_h")   # (none left: +15)
+        a.label("dfx_k").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
+        a.label("dfx_h").b(0x48, 0xBA).abs(0xBD, 0x0104).br(0xD0, "dfx_1")          # the room's index
+        a.abs(0xB9, REC + 4).b(0x29, 0xF8).abs(0x1D, 0x0101).abs(0x99, REC + 4).abs(0x4C, "dfx_s")
+        a.label("dfx_1").abs(0xBD, 0x0101).b(0x0A, 0x0A, 0x0A, 0x85, 0x0E)
+        a.abs(0xB9, REC + 4).b(0x29, 0xC7, 0x05, 0x0E).abs(0x99, REC + 4)
+        a.label("dfx_s").b(0x68, 0xAA).abs(0xBD, "citems").abs(0x8D, SAVE_X)
+        a.b(0x68, 0x85, 0x0E, 0x68, 0x85, 0x08, 0x68, 0xA8).abs(0xAD, SAVE_X).abs(0x99, SUB_IT)
+        a.b(0x68, 0xAA).abs(0xAD, SAVE_X).abs(0x4C, lol_choice.FIX_AT)
+        a.label("deck").b(*dk)
     code = a.bytes()
     assert B6 + len(code) <= TRAMPD, hex(B6 + len(code))
     place(rom, 6, B6, code)
+    if "dfx" in a.labels:                       # the reward hook's far call: to the draw
+        import lol_v3core as V
+        o = BANK(5) + lol_choice.DECK_FAR - 0x8000
+        assert bytes(rom[o:o + 7]) == V.far(6, lol_choice.FIX_AT)
+        rom[o:o + 7] = V.far(6, a.labels["dfx"])
+        notes.append(f"item deck: {len(lol_fixed.deck())} cards {lol_fixed.deck()}")
     patch(rom, 6, 0x8109, bytes.fromhex("a416b9"), bytes([0x4C, a.labels["newfull"] & 0xFF, a.labels["newfull"] >> 8]))
 
     # ---------------- bank 3: the enemy and boss pattern sets ----------------

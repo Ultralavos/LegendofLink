@@ -47,6 +47,7 @@ INIT_CAVE = 0x85D0
 WARES, PRICES = 0x6A81, 0x6ABD          # cave 1's three items and prices (RAM), as InitCave reads them
 TABLE = 0x4A17                          # file offset of InitUnderworldPerson's jump table (entry = level)
 FREE = 0xB770                           # bank 1's free run (after $B751-$B76F, which runs from WRAM)
+DECK_FAR = FIX_AT = None
 SAVE_X = 0x0174                         # scratch (RAM: the stack page's unused bottom)
 T0, T1, CNT, K = 0x00, 0x01, 0x02, 0x03  # zero page scratch (before InitCave)
 
@@ -256,7 +257,7 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
         from lol_genload import CUR_GEN, SUB_RM, SUB_IT
         a.abs(0xAD, CUR_GEN).br(0x30, "g_static").b(0xA0, 0x01)
         a.label("g_lp").abs(0xB9, SUB_RM).b(0xC5, 0xEB).br(0xD0, "g_nx")
-        a.abs(0xB9, SUB_IT).b(*V.far(6, fx_at)).b(0x68, 0xA8, 0x68).abs(0xAD, SAVE_X).abs(0x4C, "r_cmp")
+        a.abs(0xB9, SUB_IT).label("g_far").b(*V.far(6, fx_at)).b(0x68, 0xA8, 0x68).abs(0xAD, SAVE_X).abs(0x4C, "r_cmp")
         a.label("g_nx").b(0x88).br(0x10, "g_lp").abs(0x4C, "s_none")
         a.label("g_static")
     a.b(0xA4, 0x16).abs(0xB9, 0x062D).br(0xD0, "s_none").b(0xA0, len(SUBS) - 1)
@@ -293,6 +294,8 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
     a.label("sub_it").b(*[s_[2] for s_ in SUBS])
     code = a.bytes()
     place(rom, 5, REWARD_FREE, code)
+    global DECK_FAR, FIX_AT                 # (lol_genload's item deck: the far call into the fixer, re-aimed at its draw)
+    DECK_FAR, FIX_AT = a.labels.get("g_far"), fx_at
     patch(rom, 5, REWARD_HOOK, bytes([0x29, 0x1F, 0xC9, 0x03]), bytes([0x20, REWARD_FREE & 0xFF, REWARD_FREE >> 8]))
     # The triforce's exit (mode $12, bank 5 $A850: LDA #$1B / STA HeldItem) holds up the room's item ($AB) instead:
     # the triforce in the first quest's levels, the reward in A-F
