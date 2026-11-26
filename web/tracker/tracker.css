@@ -181,3 +181,19 @@ footer a { color: var(--accent); }
   .mapwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
   .owmap { min-width: 760px; }
 }
+/* room kinds */
+.room .rk { position: absolute; }
+.rk.art { inset: 0; pointer-events: none; }
+.rk.art svg { display: block; width: 100%; height: 100%; fill: #2f6fe0; opacity: .85; }
+.rk.art.stair svg { fill: #d8d4c8; opacity: 1; }
+.rk.art.stair { inset: 12% 18%; }
+.room img.rk { width: 46%; height: 60%; object-fit: contain; left: 27%; top: 20%; }
+.room .rn { inset: 0; display: grid; place-items: center; font: bold clamp(12px, 1.9vw, 22px)/1 ui-monospace, monospace; color: #fff; text-shadow: 0 1px 0 #000; }
+.room .mk { position: absolute; top: 2px; right: 3px; left: auto; font-size: 10px; }
+.rgrid.kinds { grid-template-columns: repeat(4, 1fr); }
+.rpi.kind { aspect-ratio: auto; display: flex; flex-direction: column; gap: 3px; padding: 4px; }
+.rpi.kind small { font-size: 10px; color: var(--muted); line-height: 1.1; text-align: center; }
+.kpv { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; background: #565670; border: 1px solid #6c6c88; border-radius: 3px; }
+.kpv .rk { position: absolute; }
+.kpv img.rk { width: 46%; height: 60%; object-fit: contain; left: 27%; top: 20%; }
+.kpv .rn { inset: 0; display: grid; place-items: center; font: bold 16px/1 ui-monospace, monospace; color: #fff; }

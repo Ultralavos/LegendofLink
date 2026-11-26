@@ -49,7 +49,7 @@ const MARKS = [   // value, label on the map, class, picker text
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 const BRUSHES = [   // id, label, title
-  ["room", "", "Room: click again to mark it cleared, again to erase"],
+  ["room", "", "Room: click for its kind (moats, old man, stairs, numbers); right-click: a room, again cleared"],
   ["E", "↑", "Entrance (the first room you click; one per map)"], ["S", "S", "Stairs"], ["O", "O", "Old man"], ["B", "B", "Boss"],
   ["T", "▲", "Triforce or prize"], ["I", "★", "Item"], ["K", "K", "Locked door"], ["X", "✸", "Bomb wall"],
   ["?", "?", "Something to check"], ["erase", "✕", "Remove: click a room to clear it"],
@@ -369,6 +369,25 @@ const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"]
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
 const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
+// a room's kind (left click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
+const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["chevy", "Chevy moat"],
+  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)])];
+const ART = {
+  vmoat: '<rect x="42" y="0" width="16" height="100"/>',
+  hmoat: '<rect x="0" y="42" width="100" height="16"/>',
+  chevy: '<path d="M0 38 H32 V26 H68 V38 H100 V62 H68 V74 H32 V62 H0 Z"/>',
+  stair: '<path class="st" d="M20 80 H40 V62 H58 V44 H76 V26 H86 V80 Z"/>',
+};
+function roomArt(kind) {
+  if (kind === "O") return el("img", { src: "img/cardD.png", className: "rk px", alt: "Old man", draggable: false });
+  if (/^n\d$/.test(kind)) return el("b", { className: "rk rn", textContent: kind.slice(1) });
+  if (ART[kind]) {
+    const w = document.createElement("span"); w.className = "rk art " + kind;
+    w.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${ART[kind]}</svg>`;
+    return w;
+  }
+  return null;
+}
 let rpicking = null;
 // the entrance: an arrow from the south, over the room's south door
 function entArrow(cls) {
@@ -401,28 +420,34 @@ function renderDun() {
       : el("b", { className: "rit ri", textContent: "I" }));
     const en = RENEMIES.find((x) => x[0] === c.en);
     if (en) cell.append(el("img", { src: "img/" + en[1], className: "ren px", alt: en[2], title: en[2], draggable: false }));
+    const kind = c.m === "O" ? "O" : c.k;
+    const art = kind && roomArt(kind); if (art) cell.prepend(art);
     if (c.m === "E") cell.append(entArrow("in"));
-    else if (c.m) cell.append(el("span", { textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    else if (c.m && c.m !== "O") cell.append(el("span", { className: "mk", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
     cell.onclick = (e) => {
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
-      if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
-        e.stopPropagation(); openOMRoom(+S.cur, cell); return;                // his room again: what did you take?
-      }
-      const cur = d.cells[i] || {};
       if (!Object.keys(d.cells).length) {                 // an empty map: the first room is the entrance
         d.cells[i] = { r: 1, m: "E" }; redraw(); return;
       }
-      if (brush === "room") cur.r = ((cur.r || 0) + 1) % 3;
-      else {
-        if (brush === "O" && isShrine(S.cur)) return;
-        cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
-        if ((cur.m === "O" && S.cur !== "9") || cur.m === "E")   // one old man per level 1-8, one entrance: drawing another moves it
-          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === cur.m) { delete c.m; if (!c.r && !c.it && !c.en) delete d.cells[j]; }
+      if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
+        e.stopPropagation(); openOMRoom(+S.cur, cell); return;                // his room again: what did you take?
       }
-      if (!cur.r && !cur.m && !cur.it && !cur.en) delete d.cells[i]; else d.cells[i] = cur;
+      if (brush === "room") { e.stopPropagation(); openKinds(i, cell); return; }
+      const cur = d.cells[i] || {};
+      if (brush === "O" && isShrine(S.cur)) return;
+      cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
+      if ((cur.m === "O" && S.cur !== "9") || cur.m === "E")   // one old man per level 1-8, one entrance: drawing another moves it
+        for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === cur.m) { delete c.m; if (!c.r && !c.it && !c.en && !c.k) delete d.cells[j]; }
+      if (!cur.r && !cur.m && !cur.it && !cur.en && !cur.k) delete d.cells[i]; else d.cells[i] = cur;
       redraw();
     };
-    cell.oncontextmenu = (e) => { e.preventDefault(); delete d.cells[i]; redraw(); };
+    // right-click: a plain room; again, cleared; again, not cleared
+    cell.oncontextmenu = (e) => {
+      e.preventDefault();
+      if (!Object.keys(d.cells).length) { d.cells[i] = { r: 1, m: "E" }; redraw(); return; }
+      const cur = d.cells[i] || {};
+      cur.r = cur.r === 1 ? 2 : 1; d.cells[i] = cur; redraw();
+    };
     cell.addEventListener("wheel", (e) => {
       e.preventDefault();
       const w = wheelDir(e);
@@ -483,6 +508,39 @@ function openRoomItems(i, cell, enemies = false) {
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
 }
+function openKinds(i, cell) {
+  const p = $("rpick"), d = dun(S.cur); rpicking = i; p.replaceChildren();
+  const c0 = d.cells[i] || {};
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[i >> 3]}${(i & 7) + 1}: room` }));
+  const grid = el("div", { className: "rgrid kinds" });
+  for (const [id, name] of RKINDS) {
+    if (id === "O" && isShrine(S.cur)) continue;
+    const cur = id === "O" ? c0.m === "O" : (c0.k || "blank") === id && c0.r;
+    const b = el("button", { type: "button", className: "rpi kind" + (cur ? " sel" : ""), title: name });
+    const pv = el("span", { className: "kpv" }); const a = roomArt(id); if (a) pv.append(a);
+    b.append(pv); if (!/^n/.test(id)) b.append(el("small", { textContent: name }));
+    b.onclick = () => {
+      const c = d.cells[i] || {};
+      if (!c.r) c.r = 1;
+      if (id === "O") {
+        c.m = "O";
+        if (S.cur !== "9") for (const [j, o] of Object.entries(d.cells)) if (+j !== i && o.m === "O") { delete o.m; if (!o.r && !o.it && !o.en && !o.k) delete d.cells[j]; }
+      } else {
+        if (c.m === "O") delete c.m;
+        if (id === "blank") delete c.k; else c.k = id;
+      }
+      d.cells[i] = c; save(); closeRoomItems(); renderDun(); renderOM();
+    };
+    grid.append(b);
+  }
+  p.append(grid);
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
 function openOMRoom(n, cell) {
   const p = $("rpick"); rpicking = -1; p.replaceChildren();
   const o = (S.om[n] = S.om[n] || {});
@@ -495,7 +553,10 @@ function openOMRoom(n, cell) {
   }
   const none = el("button", { type: "button", className: "wide quiet", textContent: "Nothing taken" });
   none.onclick = () => { o.item = null; o.found = true; save(); closeRoomItems(); renderOM(); };
-  p.append(grid, el("div", { className: "prow" }, [none]));
+  const kind = el("button", { type: "button", className: "wide", textContent: "Room type" });
+  const ci = [...cell.parentElement.children].indexOf(cell);
+  kind.onclick = (e) => { e.stopPropagation(); openKinds(ci, cell); };
+  p.append(grid, el("div", { className: "prow" }, [kind, none]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
