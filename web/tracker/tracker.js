@@ -419,6 +419,7 @@ function renderDun() {
   const d = dun(S.cur);
   d.doors = d.doors || {};
   $("dname").value = d.name; $("ddone").checked = d.done;
+  renderQuest(); renderNicknames();
   const g = $("dgrid"); g.replaceChildren();
   const redraw = () => { save(); renderDun(); renderOM(); };
   for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
@@ -590,7 +591,48 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRoomI
 $("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); });
 $("ddone").addEventListener("change", (e) => { dun(S.cur).done = e.target.checked; save(); renderDTabs(); });
 $("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; dun(S.cur).doors = {}; save(); renderDun(); renderOM(); });
-$("nicknames").append(...NICKNAMES.map((n) => el("option", { value: n })));
+// the dungeon set (LoL, 1Q-4Q, or Mix: each map its own): which nicknames the box offers and the side column's
+// layout (floor item, item stairs). A map's own set (the buttons under its side column) makes the set Mix.
+const QUESTS = [["lol", "LoL"], ["1q", "1Q"], ["2q", "2Q"], ["3q", "3Q"], ["4q", "4Q"]];
+const QNAMES = {
+  lol: NICKNAMES.slice(0, NICKNAMES.indexOf("The Eagle")),
+  "1q": ["The Eagle", "The Moon", "The Manji", "The Snake", "The Lizard", "The Dragon", "The Demon", "The Lion", "The Skull"],
+  "2q": ["The E", "The A", "The L", "The D", "The Z", "The Cap", "The Flail", "The Whip", "The Pig"],
+  "3q": ["The Sword", "The Kite", "The Islands", "The Candle", "The Crane", "The Dancer", "The Lock Picks", "The Vire", "The Serpent"],
+  "4q": ["The Bow and Arrow", "The Rabbit", "The Broken Boomerang", "The Whirlwind", "The Hammer", "The Scorpion", "The Armos",
+    "The Crown", "The Swiss Cheese"],
+};
+// levels 1-8: [item stairs, floor item] (level 9: two item stairs in every set)
+const LAYOUT = {
+  lol: { 1: [1, 1], 2: [0, 1], 3: [1, 0], 4: [1, 0], 5: [1, 0], 6: [1, 0], 7: [1, 0], 8: [2, 0] },
+  "2q": { 1: [0, 1], 2: [1, 0], 3: [0, 1], 4: [2, 0], 5: [1, 0], 6: [1, 0], 7: [1, 0], 8: [2, 0] },
+  "3q": { 1: [1, 1], 2: [1, 0], 3: [1, 0], 4: [1, 1], 5: [1, 0], 6: [1, 1], 7: [0, 1], 8: [1, 1] },
+  "4q": { 1: [0, 1], 2: [0, 1], 3: [0, 1], 4: [1, 0], 5: [0, 1], 6: [1, 1], 7: [0, 1], 8: [1, 1] },
+};
+LAYOUT["1q"] = LAYOUT.lol;
+const qset = () => S.qset || "lol";
+const mapQuest = (k) => (/[A-D]/.test(k) ? "lol" : qset() === "mix" ? (S.mq || {})[k] || "lol" : qset());
+const layoutOf = (lv) => LAYOUT[mapQuest(String(lv))][lv];
+function renderQuest() {
+  const box = $("dquest"); box.replaceChildren();
+  for (const [q, name] of [...QUESTS, ["mix", "Mix"]]) {
+    const b = el("button", { type: "button", className: "qbtn" + (qset() === q ? " cur" : ""), textContent: name,
+      title: q === "mix" ? "Mix: each map its own set (the buttons under its column)" : `Every map: ${name}`,
+      ariaPressed: String(qset() === q) });
+    b.onclick = () => {
+      if (q === "mix") { if (qset() !== "mix") S.mq = Object.fromEntries(DUNGEONS.filter((k) => /\d/.test(k)).map((k) => [k, qset()])); }
+      else S.mq = {};
+      S.qset = q; save(); renderAll();
+    };
+    box.append(b);
+  }
+}
+function renderNicknames() {
+  const q = mapQuest(S.cur), lv = /^\d$/.test(S.cur) ? +S.cur : 0;
+  let names = QNAMES[q];
+  if (q !== "lol" && lv) names = [names[lv - 1], ...names.filter((_, i) => i !== lv - 1)];   // (its own level's first)
+  $("nicknames").replaceChildren(...names.map((n) => el("option", { value: n })));
+}
 
 // ---------------------------------------------------------------- timer, notes, new run
 function fmt(ms) {
@@ -647,8 +689,9 @@ function sideDone(k) {
   const lv = +k, st = sd.st || [], bx = sd.box || [];
   if (lv === 9) return !!(st[0] && st[1] && sd.ganon && sd.zelda);
   const o = S.om[lv] || {};
-  return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (lv > 2 || !!bx[0]) &&
-    (lv === 2 || !!st[0]) && (lv !== 8 || !!st[1]);
+  const [nst, flr] = layoutOf(lv);
+  return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (!flr || !!bx[0]) &&
+    st.slice(0, nst).filter(Boolean).length === nst;
 }
 function pickedGive(img) {                        // a card counts up, an item goes into the inventory
   const m = /^card([SDX])$/.exec(img);
@@ -720,9 +763,9 @@ function renderSide() {
       sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + opts.find((x) => x[0] === v)[1] : ""), kids, (b) =>
         sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; pickedGive(img); save(); }, () => { sd[arr][i] = null; save(); }));
     };
-    if (lv <= 2) slot("box", 0, BOXOPTS, "Floor item");
-    if (lv !== 2) slot("st", 0, BOXOPTS, "Item stairs", true);            // (level 2: no item stairs)
-    if (lv === 8) slot("st", 1, BOXOPTS, "Item stairs", true);
+    const [nst, flr] = layoutOf(lv);                                     // (the map's set: LAYOUT)
+    if (flr) slot("box", 0, BOXOPTS, "Floor item");
+    for (let i = 0; i < nst; i++) slot("st", i, BOXOPTS, "Item stairs", true);
   } else {
     const slot = (i) => {
       const v = sd.st[i];
@@ -733,7 +776,21 @@ function renderSide() {
     sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
     sbtn("boss" + (sd.zelda ? " on" : ""), "Zelda", [icon("en_zelda")], () => { sd.zelda = !sd.zelda; save(); });
   }
+  // this map's own set (picking one makes the set above Mix)
+  const mq = el("div", { className: "mapq", role: "group", ariaLabel: `Level ${lv} set` });
+  for (const [q, name] of QUESTS) {
+    const b = el("button", { type: "button", className: "mqb" + (mapQuest(k) === q ? " cur" : ""), textContent: name,
+      title: `Level ${lv}: ${name}`, ariaPressed: String(mapQuest(k) === q) });
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (qset() !== "mix") S.mq = Object.fromEntries(DUNGEONS.filter((x) => /\d/.test(x)).map((x) => [x, qset()]));
+      S.qset = "mix"; S.mq[k] = q; save(); renderAll();
+    };
+    mq.append(b);
+  }
+  box.append(mq);
 }
+
 function renderCounters() {
   counter("hearts", "heart", "Hearts", () => S.hearts, (v) => { S.hearts = v; }, 1, 16);
   counter("bombups", "bombs", "Bomb upgrades", () => S.bombups, (v) => { S.bombups = v; }, 0, 3);

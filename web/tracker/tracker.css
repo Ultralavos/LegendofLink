@@ -225,3 +225,10 @@ footer a { color: var(--accent); }
 .dtab.all.cur { background: var(--green); color: #0b1a0f; }
 .tpiece.all { border-color: var(--green); background: #1d3a24; }
 .shrine.all { background: var(--green); border-color: var(--green); color: #0b1a0f; }
+/* the dungeon set row (LoL, 1Q-4Q, Mix) and each map's own set under its side column */
+.dquest { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.qbtn { min-width: 44px; padding: 4px 10px; border-radius: 6px; background: #0b0b10; border: 1px solid var(--line); font: bold 13px ui-monospace, monospace; color: var(--muted); }
+.qbtn.cur { background: #2a2414; border-color: var(--accent); color: var(--accent); }
+.mapq { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.mqb { width: 52px; padding: 3px 0; border-radius: 5px; background: #0b0b10; border: 1px solid var(--line); font: bold 11px ui-monospace, monospace; color: var(--muted); }
+.mqb.cur { border-color: var(--accent); color: var(--accent); background: #2a2414; }

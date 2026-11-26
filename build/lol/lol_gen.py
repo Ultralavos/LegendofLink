@@ -419,7 +419,10 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     item_stairs = []
     n_items = ITEM_STAIRS[cls] if rule is None or (lvcls == "L2" and not _quest_l2()) else rule[0]
     for _ in range(n_items):
-        c = rng.choice([x for x in free() if x not in hidden]); roles[c] = "item_stairs"; item_stairs.append(c)
+        pool = [x for x in free() if x not in hidden]
+        if not pool:
+            raise Fail("no item stairs room")
+        c = rng.choice(pool); roles[c] = "item_stairs"; item_stairs.append(c)
 
     # more boss rooms (level 9: the Patra rooms), shutters on their own side
     nb_ = (N_BOSS[lvcls] if n_boss is None else n_boss) - (0 if cls == "L9" else 1)
@@ -528,9 +531,13 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         if rooms[b]["layout"] != la:            # both ends: the same stairs position
             rooms[b]["layout"] = la
             rooms[b]["trigger"] = rooms[a]["trigger"]
+        if la not in STAIR_EXIT:
+            raise Fail("transport layout")
         x, y = STAIR_EXIT[la]
         stairs.append((sq, "transport", a, b, x, y))
     for c, sq in zip(item_stairs, free_item_cellars):
+        if rooms[c]["layout"] not in STAIR_EXIT:
+            raise Fail("item stairs layout")
         x, y = STAIR_EXIT[rooms[c]["layout"]]
         stairs.append((sq, "item", c, c, x, y))
 

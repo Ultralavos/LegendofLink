@@ -557,6 +557,35 @@ def _deal(cands, rng):
     return {cls: nm for nm, cls in who.items()}
 
 
+_CAN = {}
+
+
+def _can_be(nm, cls, g):
+    """Can design nm (of grid g) be level / shrine cls? Three of its first 100 tries make one (make_variants takes
+    three in 400)."""
+    import lol_gen as G
+    cells = g["des"][nm]
+    key = (tuple(cells), cls, nm)
+    if key not in _CAN:
+        r = g["rules"].get(nm) if cls == "L" + nm.rsplit("L", 1)[-1] else None
+        rule = (quest_counts(cls, r) + tuple(r[2:])) if r else None
+        rng, ok = random.Random(sum(cells) * 31 + NEEDED.index(cls)), 0
+        free = list(range(128, 140))
+        for _ in range(100):
+            try:
+                G.generate(cells, cls, rng, free, free, g["hidden"].get(nm, ()), None, rule)
+                ok += 1
+                if ok == 3:
+                    break
+            except (G.Fail, IndexError, KeyError):
+                pass
+        _CAN[key] = ok == 3
+    return _CAN[key]
+
+
+CHAOS_BIG = 25                          # (Chaos: the fewest rooms levels 7-9 take)
+
+
 def random_grids_set(rng):
     import lol_genload as GL
     lol = lol_grids()
@@ -571,8 +600,22 @@ def random_grids_set(rng):
     pool.append("shapes")
     for attempt in range(500):
         pick = [p if p != "shapes" else _shape_grid(rng) for p in rng.sample(pool, 4)]
-        cands = {nm: [c for c in g["cls"][nm] if c in NEEDED] for g in pick for nm in g["des"]}
-        got = _deal(cands, rng)
+        # Chaos (owner, 2026-11-26): any design can be any level or shrine, whatever its shape or size, but levels 7-9
+        # take 25 rooms or more
+        cands = {nm: [c for c in NEEDED if c not in ("L7", "L8", "L9") or len(g["des"][nm]) >= CHAOS_BIG]
+                 for g in pick for nm in g["des"]}
+        for _ in range(40):               # (Chaos: a design that can't be the level it was dealt: deal again)
+            got = _deal(cands, rng)
+            if got is None:
+                break
+            bad = [(c, nm) for c, nm in got.items()
+                   if not _can_be(nm, c, next(g for g in pick if nm in g["des"]))]
+            if not bad:
+                break
+            for c, nm in bad:
+                cands[nm] = [x for x in cands[nm] if x != c]
+        else:
+            got = None
         if got is None:
             continue
         cls_of = {nm: cls for cls, nm in got.items()}
@@ -583,7 +626,9 @@ def random_grids_set(rng):
             occ = {c: nm for nm in used for c in g["des"][nm]}
             rows = ["".join(letters[occ[r * COLS + c]] if r * COLS + c in occ else "." for c in range(COLS))
                     for r in range(ROWS)]
-            rules = {nm: list(g["rules"][nm]) for nm in used if nm in g["rules"] and cls_of[nm][0] == "L"}
+            # a quest level's own stair rules only as its own level (as another level: LoL's counts for it)
+            rules = {nm: list(g["rules"][nm]) for nm in used
+                     if nm in g["rules"] and cls_of[nm] == "L" + nm.rsplit("L", 1)[1]}
             free = sum(ch == "." for r in rows for ch in r)
             def need_of(nm):
                 return cellar_need(cls_of[nm], g["des"][nm], rules.get(nm))
@@ -608,4 +653,4 @@ def random_grids_set(rng):
                        "rules": {nm: tuple(r) for nm, r in rules.items()}}
         if ok:
             return out
-    raise RuntimeError("Random: no four grids took every level")
+    raise RuntimeError("Chaos: no four grids took every level")
