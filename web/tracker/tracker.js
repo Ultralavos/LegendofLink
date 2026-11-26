@@ -72,7 +72,7 @@ const OM_ITEMS = [["boom1", "Boomerang"], ["candle1", "Blue candle"], ["raft", "
   ["sword2", "White sword"], ["wand", "Wand"], ["bow", "Bow"], ["arrow2", "Silver arrows"], ["shield", "Magical shield"],
   ["candle2", "Red candle"], ["sword3", "Magical sword"], ["potion2", "Red potion"]];
 const fresh = () => ({ items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
-  ow: {}, owDone: {}, owX: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
+  ow: {}, owDone: {}, owX: {}, owBuy: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ } }
@@ -135,6 +135,21 @@ function renderTri() {
 }
 
 // ---------------------------------------------------------------- old men (levels 1-8)
+// the shops' wares (lol_choice SHOP_ITEMS, the bookworm's red book, the potion shop's potions): icon, name, gives
+const SHOP_WARES = [["key", "Key", null], ["bombs", "Bombs", null], ["bait", "Bait", "bait"], ["candle1", "Blue candle", "candle1"],
+  ["boom1", "Boomerang", "boom1"], ["arrow1", "Arrows", "arrow1"], ["heart", "Heart", null], ["raft", "Raft", "raft"],
+  ["recorder", "Recorder", "recorder"], ["bracelet", "Power bracelet", "bracelet"], ["bow", "Bow", "bow"],
+  ["ladder", "Ladder", "ladder"], ["candle2", "Red candle", "candle2"], ["boom2", "Magical boomerang", "boom2"],
+  ["shield", "Magical shield", "shield"], ["book1", "Red book", "book1"], ["potion1", "Blue potion", "potion1"],
+  ["potion2", "Red potion", "potion2"]];
+// an item picked in a shop or from an old man: into the inventory (a higher tier only; "bombs": a bomb upgrade)
+function giveItem(img) {
+  if (img === "bombs") { S.bombups = Math.min(3, (S.bombups || 0) + 1); return; }
+  for (const [id, steps] of ITEMS) {
+    const k = steps.indexOf(img);
+    if (k >= 0) { S.items[id] = Math.max(S.items[id] || 0, k + 1); return; }
+  }
+}
 const omDrawn = (n) => Object.values((S.dun[String(n)] || {}).cells || {}).some((c) => c.m === "O");
 let omOpen = null;
 function renderOM() {
@@ -158,7 +173,7 @@ function openOM(n, btn) {
   const g = el("div", { className: "omgrid" });
   for (const [img, name] of OM_ITEMS) {
     const b = el("button", { type: "button", className: "omi" + (o.item === img ? " sel" : ""), title: name }, [icon(img)]);
-    b.onclick = () => { o.item = img; o.found = true; save(); closeOM(); renderOM(); };
+    b.onclick = () => { o.item = img; o.found = true; giveItem(img); save(); closeOM(); renderAll(); };
     g.append(b);
   }
   const found = el("button", { type: "button", className: "wide", textContent: o.found && !o.item ? "Not found" : "Found, nothing taken" });
@@ -216,11 +231,13 @@ function renderMap() {
       if (m) cell.append(el("span", { className: "tag " + m[2], textContent: m[1] }));
       else cell.classList.add("open");
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
+      if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
       // left click: an X ("don't need it"), again to take it off; right-click / long press: what's here
       cell.onclick = (e) => { e.stopPropagation(); if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
-      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openPicker(s, cell); };
-      longPress(cell, () => openPicker(s, cell));
+      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : openPicker(s, cell));
+      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); menu(); };
+      longPress(cell, menu);
     }
     map.append(cell);
   }
@@ -246,12 +263,39 @@ function openPicker(s, cell) {
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
   const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; save(); closePicker(); renderMap(); };
+  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; save(); closePicker(); renderMap(); };
   p.append(grid, el("div", { className: "prow" }, [done, clear]));
   p.hidden = false;
   // place it under the tile, inside the panel
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(320, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+// a shop's square, right-clicked: its wares; the one bought: an X on the map and into the inventory
+function openShop(s, cell) {
+  const p = $("picker"); picking = s; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: shop, what did you buy?` }));
+  const grid = el("div", { className: "omgrid" });
+  for (const [img, name, gives] of SHOP_WARES) {
+    const b = el("button", { type: "button", className: "omi" + (S.owBuy[s] === img ? " sel" : ""), title: name }, [icon(img)]);
+    const buy = (e) => {
+      if (e) e.preventDefault();
+      S.owBuy[s] = img; S.owX[s] = 1; if (gives) giveItem(gives);
+      save(); closePicker(); renderAll();
+    };
+    b.onclick = buy; b.oncontextmenu = buy;
+    grid.append(b);
+  }
+  const change = el("button", { type: "button", className: "wide", textContent: "Change mark" });
+  change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
+  const undo = el("button", { type: "button", className: "wide quiet", textContent: "Not bought" });
+  undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; save(); closePicker(); renderMap(); };
+  p.append(grid, el("div", { className: "prow" }, [change, undo]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
@@ -325,8 +369,11 @@ function renderDun() {
       : el("b", { className: "rit ri", textContent: "I" }));
     if (c.m === "E") cell.append(entArrow("in"));
     else if (c.m) cell.append(el("span", { className: it ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
-    cell.onclick = () => {
+    cell.onclick = (e) => {
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
+      if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
+        e.stopPropagation(); openOMRoom(+S.cur, cell); return;                // his room again: what did you take?
+      }
       const cur = d.cells[i] || {};
       if (!Object.keys(d.cells).length) {                 // an empty map: the first room is the entrance
         d.cells[i] = { r: 1, m: "E" }; redraw(); return;
@@ -394,6 +441,26 @@ function openRoomItems(i, cell) {
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(260, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function openOMRoom(n, cell) {
+  const p = $("rpick"); rpicking = -1; p.replaceChildren();
+  const o = (S.om[n] = S.om[n] || {});
+  p.append(el("div", { className: "ptitle", textContent: `Level ${n} old man: what did you take?` }));
+  const grid = el("div", { className: "omgrid" });
+  for (const [img, name] of OM_ITEMS) {
+    const b = el("button", { type: "button", className: "omi" + (o.item === img ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = () => { o.item = img; o.found = true; giveItem(img); save(); closeRoomItems(); renderAll(); };
+    grid.append(b);
+  }
+  const none = el("button", { type: "button", className: "wide quiet", textContent: "Nothing taken" });
+  none.onclick = () => { o.item = null; o.found = true; save(); closeRoomItems(); renderOM(); };
+  p.append(grid, el("div", { className: "prow" }, [none]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
