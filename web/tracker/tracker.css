@@ -127,6 +127,10 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .room .rit { width: 55%; height: auto; }
 .room .ri { width: auto; font: bold clamp(12px, 1.8vw, 20px)/1 ui-monospace, monospace; color: #fff; }
 .room .mk { position: absolute; top: 1px; left: 3px; font-size: 10px; }
+.ent svg { display: block; width: 100%; height: 100%; fill: #3fc45f; filter: drop-shadow(0 1px 0 #000); }
+.room .ent { position: absolute; left: 50%; bottom: -12px; width: 14px; height: 26px; transform: translateX(-50%); z-index: 3; pointer-events: none; }
+.room { overflow: visible; }
+.brush .ent { width: 9px; height: 14px; }
 .door { padding: 0; border: 0; background: transparent; display: grid; place-items: center; min-width: 0; min-height: 0; }
 .door i { display: block; border-radius: 2px; background: #22222c; }
 .door.h i { width: 6px; height: 55%; }

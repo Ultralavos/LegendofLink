@@ -50,9 +50,9 @@ const MARKS = [   // value, label on the map, class, picker text
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 const BRUSHES = [   // id, label, title
   ["room", "", "Room: click again to mark it cleared, again to erase"],
-  ["E", "E", "Entrance"], ["S", "S", "Stairs"], ["O", "O", "Old man"], ["B", "B", "Boss"],
+  ["E", "↑", "Entrance (the first room you click; one per map)"], ["S", "S", "Stairs"], ["O", "O", "Old man"], ["B", "B", "Boss"],
   ["T", "▲", "Triforce or prize"], ["I", "★", "Item"], ["K", "K", "Locked door"], ["X", "✸", "Bomb wall"],
-  ["?", "?", "Something to check"],
+  ["?", "?", "Something to check"], ["erase", "✕", "Remove: click a room to clear it"],
 ];
 const NICKNAMES = ["The Serpent", "The Bell", "The Face", "The Rook", "The Bat", "The Stallion", "The Giraffe",
   "The Unicorn", "The Pompadour", "The Whale", "The Ghost", "The Gecko", "The Balloon", "The Anteater", "The Robber",
@@ -270,8 +270,8 @@ function renderBrushes() {
     const off = id === "O" && isShrine(S.cur);
     const btn = el("button", { type: "button", className: "brush" + (id === brush ? " cur" : ""), disabled: off,
       title: off ? "Shrines have no old man" : id === "O" && S.cur !== "9" ? "Old man (one per level)" : title });
-    btn.append(id === "room" ? el("i", { className: "sw" }) : el("span", { textContent: label }),
-      el("small", { textContent: id === "room" ? "Room" : title.split(" ")[0] }));
+    btn.append(id === "room" ? el("i", { className: "sw" }) : id === "E" ? entArrow("bar") : el("span", { textContent: label }),
+      el("small", { textContent: id === "room" ? "Room" : id === "erase" ? "Remove" : title.split(" ")[0] }));
     btn.onclick = () => { brush = id; renderBrushes(); };
     b.append(btn);
   }
@@ -283,6 +283,12 @@ const DOORS = ["green", "yellow", "navy", "red", "purple"];
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["I", null, "I"]];
 let rpicking = null;
+// the entrance: an arrow from the south, over the room's south door
+function entArrow(cls) {
+  const w = document.createElement("span"); w.className = "ent " + cls;
+  w.innerHTML = '<svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 0 L10 6 H6.5 V16 H3.5 V6 H0 Z"/></svg>';
+  return w;
+}
 function wheelDir(e) { return e.deltaY > 0 ? 1 : e.deltaY < 0 ? -1 : 0; }
 // (touch screens have no wheel: a long press does the wheel-down step; the click after it is dropped)
 function longPress(node, fn) {
@@ -306,15 +312,20 @@ function renderDun() {
     const it = RITEMS.find((x) => x[0] === c.it);
     if (it) cell.append(it[1] ? el("img", { src: "img/" + it[1], className: "rit px", alt: it[2], draggable: false })
       : el("b", { className: "rit ri", textContent: "I" }));
-    if (c.m) cell.append(el("span", { className: it ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    if (c.m === "E") cell.append(entArrow("in"));
+    else if (c.m) cell.append(el("span", { className: it ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
     cell.onclick = () => {
+      if (brush === "erase") { delete d.cells[i]; redraw(); return; }
       const cur = d.cells[i] || {};
+      if (!Object.keys(d.cells).length) {                 // an empty map: the first room is the entrance
+        d.cells[i] = { r: 1, m: "E" }; redraw(); return;
+      }
       if (brush === "room") cur.r = ((cur.r || 0) + 1) % 3;
       else {
         if (brush === "O" && isShrine(S.cur)) return;
         cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
-        if (cur.m === "O" && S.cur !== "9")             // one old man per level 1-8: drawing another moves him
-          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === "O") { delete c.m; if (!c.r && !c.it) delete d.cells[j]; }
+        if ((cur.m === "O" && S.cur !== "9") || cur.m === "E")   // one old man per level 1-8, one entrance: drawing another moves it
+          for (const [j, c] of Object.entries(d.cells)) if (+j !== i && c.m === cur.m) { delete c.m; if (!c.r && !c.it) delete d.cells[j]; }
       }
       if (!cur.r && !cur.m && !cur.it) delete d.cells[i]; else d.cells[i] = cur;
       redraw();
