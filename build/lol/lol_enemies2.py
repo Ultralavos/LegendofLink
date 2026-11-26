@@ -417,7 +417,10 @@ def late(rom: bytearray, notes: list) -> None:
     charger = _LATE
     n_ch = len(charger(0x8000).bytes())
     cbank = None
-    for bk, lo, hi in ((2, 0x8000, 0xBF00), (3, 0xB300, 0xBE00), (6, 0x9D66, 0xA000), (6, 0xBC10, 0xBD00)):
+    # (2026-11-26: the unseeded build's bank 6 holds the in-game roller: none of those has room) then the data banks'
+    # free space below their trampoline (the charger calls only the fixed bank)
+    for bk, lo, hi in ((2, 0x8000, 0xBF00), (3, 0xB300, 0xBE00), (6, 0x9D66, 0xA000), (6, 0xBC10, 0xBD00),
+                       (14, 0x8000, 0xBB80), (13, 0x8000, 0xBB80)):
         try:
             cat = best_in(rom, bk, n_ch, lo, hi)
         except AssertionError:
