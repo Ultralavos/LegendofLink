@@ -349,7 +349,17 @@ def enemy_groups():
                 if (m, r.enemy_info.count_index, trap) not in ent:
                     ent.append((m, r.enemy_info.count_index, trap))
         lists.append(ent)
+        # (owner 2026-11-26) the group's rooms hold lanmolas (their graphics loaded with it): a boss room may too
+        LAN_GROUPS[gi] = any(r.enemy_info.enemy.value in (0x3A, 0x3B) or
+                             (r.enemy_info.enemy.value >= 0x62 and any(t in (0x3A, 0x3B) for t in rom[
+                                 BANK(5) + (rom[b5 + la - 0x8000 + 2 * (r.enemy_info.enemy.value - 0x62)] |
+                                            rom[b5 + la - 0x8000 + 2 * (r.enemy_info.enemy.value - 0x62) + 1] << 8)
+                                 - 0x8000:][:8]))
+                             for lv in lvs for r in w.levels[lv - 1].rooms if r.enemy_info.enemy.value < 0x80)
     return lists
+
+
+LAN_GROUPS = [False] * 4
 
 
 GATED = ("B2", "B12", "E6", "C16", "E3", "B10")      # screens behind the ladder / raft / recorder / bracelet
@@ -485,8 +495,11 @@ def decoder(groups, ptr_table, maps, info):
     a.abs(0xAD, S_BX).br(0xF0, "en_dem").abs(0xCE, S_BX)
     a.label("en_bs").b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "en_b1")
     a.abs(0x20, "prng").b(0x29, 0x01, 0x18, 0x69, 0x47).br(0xD0, "en_b2")              # level 9: a Patra
+    # (owner 2026-11-26) a boss room other than a shrine's guardian: 1 in 4 lanmolas (the enemy group's: their
+    # graphics) or triple dodongos (the boss group 1's), either at random when both are loaded
+    a.label("en_b1").abs(0x4C, "en_xb")
     # any boss of the group that fits this room's layout
-    a.label("en_b1").abs(0xAD, S_LAY).b(0x29, 0x3F, 0xA8).abs(0xB9, "blrow").br(0xF0, "en_b0")
+    a.label("en_b1n").abs(0xAD, S_LAY).b(0x29, 0x3F, 0xA8).abs(0xB9, "blrow").br(0xF0, "en_b0")
     a.b(0x0A).abs(0x0D, S_G).b(0xA8).abs(0xB9, "blen").br(0xF0, "en_b0").abs(0x8D, S_T)
     a.label("en_br").abs(0x20, "prng").b(0x29, 0x07).abs(0xCD, S_T).br(0xB0, "en_br")
     a.b(0x18).abs(0x79, "bofs").b(0xA8).abs(0xB9, "bfl").br(0xD0, "en_b2")
@@ -620,11 +633,19 @@ def decoder(groups, ptr_table, maps, info):
     a.label("roar").b(0xAA).abs(0x20, "mine").br(0x90, "rr_n").abs(0xBD, ATTR[4]).b(0x29, 0x9F, 0x09, 0x20)
     a.abs(0x9D, ATTR[4])
     a.label("rr_n").b(0x60)
+    a.label("en_xb").b(0xA5, 0x0E, 0xC9, 10).br(0x90, "en_x1").b(0xE4, 0x02).br(0xF0, "en_xn")
+    a.label("en_x1").abs(0x20, "prng").b(0x29, 0x03).br(0xD0, "en_xn")
+    a.b(0xA4, 0x0A).abs(0xB9, "lanok").br(0xF0, "en_dd").abs(0xAD, S_G).br(0xF0, "en_ln")
+    a.abs(0x20, "prng").b(0x29, 0x01).br(0xF0, "en_dd")
+    a.label("en_ln").abs(0x20, "prng").b(0x29, 0x01, 0x18, 0x69, 0x3A).abs(0x4C, "en_b2")
+    a.label("en_dd").abs(0xAD, S_G).br(0xF0, "en_xn").b(0xA9, 0x31).abs(0x4C, "en_b2")
+    a.label("en_xn").abs(0x4C, "en_b1n")
     a.label("bxmin").b(0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 1, 1, 1, 1, 1, 1)
     a.label("bxspan").b(1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 1, 1, 1, 1, 1, 1)
     # bosses: group 1 (Aquamentus, Dodongos, Digdogger) or 0 (Manhandla, Gleeok, Gohma); per boss layout, the ones
     # of each group it can hold
     GA = {0x3D, 0x31, 0x32, 0x38, 0x39}
+    a.label("lanok").b(*[1 if x else 0 for x in LAN_GROUPS])
     a.label("bgrp").b(*[1 if 0x31 + i in GA else 0 for i in range(0x15)])
     lays = sorted(G.BOSS_OF)
     row = [0] * 64

@@ -32,7 +32,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a = Asm(org)
         # entry (bank 0, far-called after the Gleeok's own JSR $A825)
         a.label("entry")
-        a.abs(0xAD, HVE).b(0xC9, RED_GLEEOK_AT).br(0xB0, "e_red").b(0x60)
+        a.abs(0xAD, HVE).b(0xC9, RED_GLEEOK_AT).br(0xB0, "e_red").b(0xA9, 0x00).abs(0x8D, PEND).b(0x60)   # (not red: none)
         a.label("e_red")
         # red: every 16 frames sprite palette 3 (the level's, which the boss uses) is sent turned red (each color's
         # brightness kept; black stays), through the transfer buffer
@@ -88,10 +88,14 @@ def apply(rom: bytearray, notes: list) -> None:
         a.b(0xA9, 0x40).abs(0x9D, 0x034F).b(0xA9, 0x00).abs(0x20, 0x77DF)
         a.b(0x68).abs(0x9D, 0x04BF)
         a.b(0xA9, FLAME).abs(0x9D, 0x034F).b(0x60)
+        # (2026-11-26: a flame from the spawn cloud on entering) InitGleeok ($A08D): no heads picked, a new wait
+        # (FT / PEND are the decoder's scratch: whatever it left); then the replaced roar
+        a.label("init").b(0xA9, 0x00).abs(0x8D, PEND).abs(0x8D, FT).b(0xA9, 0x10).abs(0x8D, 0x0601).b(0x60)
         return a
     a = put(rom, 4, build)
     L = a.labels
     patch(rom, 4, 0xA4DE, bytes([0x20, 0x25, 0xA8]), bytes([0x20, L["entry"] & 0xFF, L["entry"] >> 8]))
+    patch(rom, 4, 0xA08D, bytes([0xA9, 0x10, 0x8D, 0x01, 0x06]), bytes([0x20, L["init"] & 0xFF, L["init"] >> 8, 0xEA, 0xEA]))
     patch(rom, 4, 0xA517, bytes([0x20, 0x76, 0xA5]), bytes([0x20, L["neck"] & 0xFF, L["neck"] >> 8]))
     t = BANK(4) + TABLE + 2 * FLAME - 0x8000
     assert rom[t:t + 2] == bytes([0x94, 0xFC]), rom[t:t + 2].hex()           # (unused: the RTS at $FC94)
