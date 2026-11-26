@@ -71,14 +71,17 @@ const OM_ITEMS = [["boom1", "Boomerang"], ["candle1", "Blue candle"], ["raft", "
   ["bracelet", "Power bracelet"], ["ladder", "Ladder"], ["arrow1", "Arrows"], ["bombs", "Bomb upgrade"],
   ["sword2", "White sword"], ["wand", "Wand"], ["bow", "Bow"], ["arrow2", "Silver arrows"], ["shield", "Magical shield"],
   ["candle2", "Red candle"], ["sword3", "Magical sword"], ["potion2", "Red potion"]];
-const fresh = () => ({ items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
+const fresh = () => ({ side: {}, items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
   ow: {}, owDone: {}, owX: {}, owBuy: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
 let upQueued = false;
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ }
-  if (!upQueued && typeof renderUps === "function") { upQueued = true; queueMicrotask(() => { upQueued = false; renderUps(); }); }
+  if (!upQueued && typeof renderUps === "function") {
+    upQueued = true;
+    queueMicrotask(() => { upQueued = false; renderUps(); renderTri(); renderItems(); renderCounters(); renderSide(); });
+  }
 }
 
 // a click advances, a right-click or a long press goes back
@@ -116,7 +119,9 @@ function renderTri() {
   const t = $("triforce"); t.replaceChildren();
   for (let n = 1; n <= 8; n++) {
     const on = S.tri.includes(n);
-    const b = el("button", { type: "button", className: "tpiece" + (on ? " on" : ""), title: `Triforce piece ${n}` });
+    const found = Object.values(S.ow).includes(`L${n}`);            // its level marked on the overworld
+    const b = el("button", { type: "button", className: "tpiece" + (on ? " on" : "") + (found ? " found" : ""),
+      title: `Triforce piece ${n}` + (found ? " (level found)" : "") });
     b.append(icon("triforce"), el("span", { textContent: n }));
     b.onclick = () => { S.tri = on ? S.tri.filter((x) => x !== n) : [...S.tri, n]; save(); renderTri(); };
     t.append(b);
@@ -124,7 +129,9 @@ function renderTri() {
   const s = $("shrines"); s.replaceChildren();
   for (const c of ["A", "B", "C", "D"]) {
     const on = S.shrines.includes(c);
-    const b = el("button", { type: "button", className: "shrine" + (on ? " on" : ""), textContent: c, title: `Shrine ${c} prize taken` });
+    const found = Object.values(S.ow).includes(`S${c}`);
+    const b = el("button", { type: "button", className: "shrine" + (on ? " on" : "") + (found ? " found" : ""), textContent: c,
+      title: `Shrine ${c} prize taken` + (found ? " (found)" : "") });
     b.onclick = () => { S.shrines = on ? S.shrines.filter((x) => x !== c) : [...S.shrines, c]; save(); renderTri(); };
     s.append(b);
   }
@@ -405,7 +412,7 @@ function longPress(node, fn) {
   node.addEventListener("click", (e) => { if (longed) { longed = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 }
 function renderDun() {
-  renderDTabs();
+  renderDTabs(); renderSide();
   const d = dun(S.cur);
   d.doors = d.doors || {};
   $("dname").value = d.name; $("ddone").checked = d.done;
@@ -558,10 +565,14 @@ function openOMRoom(n, cell) {
   }
   const none = el("button", { type: "button", className: "wide quiet", textContent: "Nothing taken" });
   none.onclick = () => { o.item = null; o.found = true; save(); closeRoomItems(); renderOM(); };
-  const kind = el("button", { type: "button", className: "wide", textContent: "Room type" });
-  const ci = [...cell.parentElement.children].indexOf(cell);
-  kind.onclick = (e) => { e.stopPropagation(); openKinds(ci, cell); };
-  p.append(grid, el("div", { className: "prow" }, [kind, none]));
+  const row = [none];
+  if (cell.parentElement && cell.parentElement.id === "dgrid") {
+    const kind = el("button", { type: "button", className: "wide", textContent: "Room type" });
+    const ci = [...cell.parentElement.children].indexOf(cell);
+    kind.onclick = (e) => { e.stopPropagation(); openKinds(ci, cell); };
+    row.unshift(kind);
+  }
+  p.append(grid, el("div", { className: "prow" }, row));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -614,11 +625,108 @@ for (const [k, d] of Object.entries(S.dun)) {
   }
 }
 
-function renderAll() {
-  renderItems();
+
+// ---------------------------------------------------------------- the dungeon map's side column
+// levels 1-8: the triforce piece, the blue potion, the old man; level 1-2's two floor items, the item stairs (two in
+// level 8); level 9: its two item stairs, Ganon, Zelda. What's picked goes into the panels above too.
+const BOXOPTS = [["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"],
+  ["xp2", "Big XP bag"], ["potion2", "Red potion"]];
+const L9OPTS = [["arrow2", "Silver arrows"], ["ring2", "Red ring"], ["sword3", "Magical sword"], ["boom2", "Magical boomerang"],
+  ["candle2", "Red candle"], ["book2", "Blue book"], ["shield", "Magical shield"], ["potion2", "Red potion"],
+  ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
+const PRIZEOPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])),
+  ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
+function pickedGive(img) {                        // a card counts up, an item goes into the inventory
+  const m = /^card([SDX])$/.exec(img);
+  if (m) S.cards[m[1]] = Math.min(3, (S.cards[m[1]] || 0) + 1); else giveItem(img);
+}
+function sidePick(btn, title, opts, cur, pick, clear) {
+  const p = $("rpick"); rpicking = -2; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: title }));
+  const grid = el("div", { className: "omgrid" });
+  for (const [img, name] of opts) {
+    const b = el("button", { type: "button", className: "omi" + (cur === img ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = () => { pick(img); closeRoomItems(); };
+    grid.append(b);
+  }
+  const none = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
+  none.onclick = () => { clear(); closeRoomItems(); };
+  p.append(grid, el("div", { className: "prow" }, [none]));
+  p.hidden = false;
+  const r = btn.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left - w + r.width, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function stairArt() {
+  const a = roomArt("stair"); a.classList.add("sstair"); return a;
+}
+function renderSide() {
+  const box = $("dside"); if (!box) return;
+  box.replaceChildren();
+  const k = S.cur, lv = /^\d$/.test(k) ? +k : 0;
+  box.hidden = false;
+  S.side = S.side || {};
+  const sd = (S.side[k] = S.side[k] || { box: [], st: [] });
+  if (!lv) {                                   // a shrine: its prize (taken: lit in the shrines row above)
+    const v = sd.prize;
+    box.append(el("div", { className: "slabel", textContent: "Prize" }));
+    const b = el("button", { type: "button", className: "sbox blank" + (v ? " on" : ""),
+      title: "Shrine prize" + (v ? ": " + PRIZEOPTS.find((x) => x[0] === v)[1] : "") }, v ? [icon(v)] : []);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      sidePick(b, `Shrine ${k} prize`, PRIZEOPTS, v, (img) => {
+        sd.prize = img; pickedGive(img); if (!S.shrines.includes(k)) S.shrines = [...S.shrines, k]; save();
+      }, () => { sd.prize = null; S.shrines = S.shrines.filter((x) => x !== k); save(); });
+    };
+    box.append(b);
+    return;
+  }
+  const sbtn = (cls, title, kids, click) => {
+    const b = el("button", { type: "button", className: "sbox " + cls, title }, kids);
+    b.onclick = (e) => { e.stopPropagation(); click(b); };
+    box.append(b); return b;
+  };
+  if (lv <= 8) {
+    const on = S.tri.includes(lv);
+    sbtn("tri" + (on ? " on" : ""), `Triforce piece ${lv}`, [icon("triforce"), el("span", { className: "sn", textContent: lv })], () => {
+      S.tri = on ? S.tri.filter((x) => x !== lv) : [...S.tri, lv]; save();
+    });
+    sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
+      sd.pot = !sd.pot; if (sd.pot) giveItem("potion1"); save();
+    });
+    const o = S.om[lv] || {};
+    sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + OM_ITEMS.find((x) => x[0] === o.item)[1] : ""),
+      [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
+    const slot = (arr, i, opts, title, stairs) => {
+      const v = sd[arr][i];
+      const kids = stairs ? [stairArt()] : [];
+      if (v) kids.push(icon(v, stairs ? "over" : ""));
+      sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + opts.find((x) => x[0] === v)[1] : ""), kids, (b) =>
+        sidePick(b, title, opts, v, (img) => { sd[arr][i] = img; pickedGive(img); save(); }, () => { sd[arr][i] = null; save(); }));
+    };
+    if (lv <= 2) { slot("box", 0, BOXOPTS, "Floor item"); slot("box", 1, BOXOPTS, "Floor item"); }
+    slot("st", 0, BOXOPTS, "Item stairs", true);
+    if (lv === 8) slot("st", 1, BOXOPTS, "Item stairs", true);
+  } else {
+    const slot = (i) => {
+      const v = sd.st[i];
+      sbtn("st" + (v ? " on" : ""), "Item stairs" + (v ? ": " + L9OPTS.find((x) => x[0] === v)[1] : ""), [stairArt(), ...(v ? [icon(v, "over")] : [])], (b) =>
+        sidePick(b, "Level 9 item stairs", L9OPTS, v, (img) => { sd.st[i] = img; pickedGive(img); save(); }, () => { sd.st[i] = null; save(); }));
+    };
+    slot(0); slot(1);
+    sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
+    sbtn("boss" + (sd.zelda ? " on" : ""), "Zelda", [icon("en_zelda")], () => { sd.zelda = !sd.zelda; save(); });
+  }
+}
+function renderCounters() {
   counter("hearts", "heart", "Hearts", () => S.hearts, (v) => { S.hearts = v; }, 1, 16);
   counter("bombups", "bombs", "Bomb upgrades", () => S.bombups, (v) => { S.bombups = v; }, 0, 3);
-  renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); tick();
+}
+function renderAll() {
+  renderItems(); renderCounters();
+  renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;

@@ -202,3 +202,20 @@ footer a { color: var(--accent); }
 .rn.c1 { color: #ff5a4a; } .rn.c2 { color: #ffa53a; } .rn.c3 { color: #ffe14a; } .rn.c4 { color: #5ee36a; }
 .rn.c5 { color: #4ad6ff; } .rn.c6 { color: #9db0ff; } .rn.c7 { color: #c26bff; } .rn.c8 { color: #ff70c8; }
 .rpi.kind:disabled { opacity: .3; cursor: not-allowed; }
+/* the dungeon map's side column */
+.dwrap { display: flex; gap: 8px; align-items: flex-start; }
+.dwrap .dgrid { flex: 1 1 auto; min-width: 0; }
+.dside { flex: 0 0 52px; display: flex; flex-direction: column; gap: 6px; }
+.dside[hidden] { display: none; }
+.sbox { position: relative; width: 52px; height: 52px; padding: 0; background: #0b0b10; border: 2px solid var(--line); border-radius: 6px; display: grid; place-items: center; }
+.sbox img { width: 70%; height: 70%; object-fit: contain; opacity: .3; filter: grayscale(1); }
+.sbox.on img { opacity: 1; filter: none; } .sbox.on { border-color: var(--accent); }
+.sbox.blank img, .sbox.st img.over { opacity: 1; filter: none; }
+.sbox .sn { position: absolute; top: 1px; left: 4px; font: bold 11px ui-monospace, monospace; color: var(--muted); }
+.sbox.tri.on .sn { color: var(--accent); }
+.sbox .sstair { position: absolute; inset: 22% 18% 22% 34%; }
+.sbox.st img.over { position: absolute; right: 2px; bottom: 2px; width: 55%; height: 55%; }
+.slabel { font-size: 11px; color: var(--muted); text-align: center; letter-spacing: .5px; }
+/* found on the overworld: the number / letter lit, the border */
+.tpiece.found span { color: #f5e04a; } .tpiece.found:not(.on) { border-color: #8a7a2a; }
+.shrine.found:not(.on) { color: var(--pink); border-color: var(--pink); }
