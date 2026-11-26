@@ -627,7 +627,7 @@ for (const [k, d] of Object.entries(S.dun)) {
 
 
 // ---------------------------------------------------------------- the dungeon map's side column
-// levels 1-8: the triforce piece, the blue potion, the old man; level 1-2's two floor items, the item stairs (two in
+// levels 1-8: the triforce piece, the old man, the blue potion; level 1-2's two floor items, the item stairs (two in
 // level 8); level 9: its two item stairs, Ganon, Zelda. What's picked goes into the panels above too.
 const BOXOPTS = [["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"],
   ["xp2", "Big XP bag"], ["potion2", "Red potion"]];
@@ -703,12 +703,12 @@ function renderSide() {
     sbtn("tri" + (on ? " on" : ""), `Triforce piece ${lv}`, [icon("triforce"), el("span", { className: "sn", textContent: lv })], () => {
       S.tri = on ? S.tri.filter((x) => x !== lv) : [...S.tri, lv]; save();
     });
-    sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
-      sd.pot = !sd.pot; if (sd.pot) giveItem("potion1"); save();
-    });
     const o = S.om[lv] || {};
     sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + OM_ITEMS.find((x) => x[0] === o.item)[1] : ""),
       [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
+    sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
+      sd.pot = !sd.pot; if (sd.pot) giveItem("potion1"); save();
+    });
     const slot = (arr, i, opts, title, stairs) => {
       const v = sd[arr][i];
       const kids = stairs ? [stairArt()] : [];
