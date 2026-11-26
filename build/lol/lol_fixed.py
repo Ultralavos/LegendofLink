@@ -75,24 +75,43 @@ def records():
     order = sorted(dests, key=lambda t: (len(opts[t]), rng.random()))
     pick = solve(order, frozenset())
     assert pick is not None, "no design assignment"
-    recs = []
-    for dst in dests:
-        d = pick[dst]
-        ci = GL.SLOT_CLASS[dst]
-        v = rng.randrange(GL.K)
-        g = rng.randrange(3)
-        b1 = v | g << 2 | ((0x80) if dst == 9 else rng.randrange(9) << 4)
-        bosses = tuple(out[(d, ci)][v].get("bosses", ()))
-        boss = rng.choice(bosses) if bosses else 0
-        seed = rng.randrange(1, 256)
-        if dst == 9:
-            items = 0
-        else:
-            cel = lambda: rng.choices(range(5), weights=(13, 13, 13, 13, 12))[0]
-            items = cel() | cel() << 3
-        recs.append([d + 1, b1, boss, seed, items])
+    # (owner 2026-11-26) among the 12 levels 1-8 and shrines: each enemy group (3) and each boss graphics set (2:
+    # Aquamentus / Dodongos / Digdogger, or Manhandla / Gleeok / Gohma, which a record without a boss loads) in at
+    # least 3; the variants, groups and bosses rolled again until so
+    for attempt in range(10000):
+        recs = []
+        for dst in dests:
+            d = pick[dst]
+            ci = GL.SLOT_CLASS[dst]
+            v = rng.randrange(GL.K)
+            g = rng.randrange(3)
+            b1 = v | g << 2 | ((0x80) if dst == 9 else rng.randrange(9) << 4)
+            bosses = tuple(out[(d, ci)][v].get("bosses", ()))
+            boss = rng.choice(bosses) if bosses else 0
+            seed = rng.randrange(1, 256)
+            if dst == 9:
+                items = 0
+            else:
+                cel = lambda: rng.choices(range(5), weights=(13, 13, 13, 13, 12))[0]
+                items = cel() | cel() << 3
+            recs.append([d + 1, b1, boss, seed, items])
+        if mix_ok(recs, dests):
+            break
+    else:
+        raise AssertionError("no records with every enemy group and boss set in 3")
     _CACHE["rec"] = recs
     return recs
+
+
+MIN_EACH = 3
+
+
+def mix_ok(recs, dests):
+    import lol_gen as G
+    rest = [r for dst, r in zip(dests, recs) if dst != 9]
+    groups = [r[1] >> 2 & 3 for r in rest]
+    sets = [1 if r[2] in G.BOSS_GROUP_A else 0 for r in rest]
+    return all(groups.count(k) >= MIN_EACH for k in range(3)) and all(sets.count(k) >= MIN_EACH for k in range(2))
 
 
 def describe():
