@@ -229,7 +229,14 @@ function openPicker(s, cell) {
   for (const [v, label, cls, text] of MARKS) {
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : ""), title: text },
       [el("span", { className: "tag " + cls, textContent: label }), el("small", { textContent: text })]);
-    b.onclick = () => { S.ow[s] = v; save(); closePicker(); renderMap(); };
+    b.onclick = () => {
+      S.ow[s] = v; save(); closePicker(); renderMap();
+      if (/^[LS]/.test(v)) {                       // a level or shrine: its map below
+        S.cur = v.slice(1); save();
+        if (brush === "O" && isShrine(S.cur)) brush = "room";
+        renderBrushes(); renderDun();
+      }
+    };
     grid.append(b);
   }
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });

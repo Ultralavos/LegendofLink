@@ -91,7 +91,10 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .tag.lvl { background: #f5e04a; } .tag.shr { background: var(--pink); color: #fff; } .tag.shop { background: #fff; }
 .tag.up { background: var(--accent); } .tag.hint { background: #9ad0ff; } .tag.misc { background: #c8c8c8; }
 .tag.tri { background: #f39a2c; } .tag.fixed { background: #333; color: #ddd; } .tag.road { background: #6d4bd8; color: #fff; }
-.check { position: absolute; right: 4%; bottom: 4%; font: bold clamp(10px, 1.2vw, 16px)/1 sans-serif; color: #fff; background: var(--green); border-radius: 50%; padding: 1px 3px; }
+.cell .tag { position: absolute; inset: 5%; display: grid; place-items: center; padding: 0; border-radius: 4px;
+  font-size: clamp(9px, 1.5vw, 22px); overflow: hidden; }
+.cell.fixed .tag { font-size: clamp(7px, 0.95vw, 13px); }
+.check { z-index: 1; position: absolute; right: 4%; bottom: 4%; font: bold clamp(10px, 1.2vw, 16px)/1 sans-serif; color: #fff; background: var(--green); border-radius: 50%; padding: 1px 3px; }
 .picker { position: absolute; z-index: 10; background: #23232f; border: 1px solid #44445a; border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
 .ptitle { font-weight: 600; margin-bottom: 8px; }
 .pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
