@@ -207,6 +207,7 @@ def main():
     src = open(sys.argv[1], "rb").read()
     import lolpaths
     import lol_seedcode as _sc                            # (a ROM with Link's own colors: identified as PRG1's)
+    src = _sc.blank_unused(src)                           # (custom tiles: PRG1's blank ones blank again)
     lolpaths.SOURCE_ROM = _sc.vanilla_colors(bytes(src))
     rom = bytearray(src)
     # (owner 2026-11-25) the page's tunic colors (no ring, blue ring, red ring; LOL_TUNIC "29,32,16" in hex): both
@@ -260,7 +261,7 @@ def main():
     assert all(x == 0xFF for x in rom[h_at:h_at + len(hud)])
     rom[h_at:h_at + len(hud)] = hud
     rom[HUD_HOOK:HUD_HOOK + 3] = bytes([0x20, hud_cpu & 0xFF, hud_cpu >> 8])
-    assert rom[XP_ICON_CHR:XP_ICON_CHR + 16] == bytes(16)
+    # (blank in PRG1; a ROM with custom background tiles may have drawn there: LoL's icon wins)
     rom[XP_ICON_CHR:XP_ICON_CHR + 16] = icon_bytes(XP_ICON)
     # The bosses' heart containers become blue potions (every dungeon, both quests' room tables)
     potions = 0

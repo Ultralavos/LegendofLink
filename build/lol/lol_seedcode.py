@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.345"
+VERSION = "0.346"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -31,6 +31,23 @@ DOMAIN = b"Legend of Link seed code\x00"
 # same list): Link and the items, the overworld's and the dungeons' enemies, the bosses
 SPRITE_BLOCKS = tuple((16 + o, n) for o, n in ((32895, 1792), (53595, 1824), (55419, 544), (55963, 544), (56507, 256),
                                                (56763, 544), (57307, 1024), (58331, 1024), (59355, 1024)))
+# (owner 2026-11-25) and the background pattern blocks (custom tiles: bushes, Armos statues...): the common one, the
+# dungeons' and the overworld's (bank 3's PatternBlockUWBG / OWBG; file offsets, header included)
+BG_BLOCKS = ((16 + 0x877F, 0x700), (16 + 0xC11B, 0x820), (16 + 0xC93B, 0x820))
+# the tiles blank in PRG1 in those blocks (and the sprite blocks): (block's file offset, [(first tile, count)]). The
+# game never draws them, so a custom ROM's are made blank again before the build (LoL puts its own pictures there)
+BLANK_TILES = ((32911, ((28, 2), (63, 1))), (53611, ((46, 1), (48, 1))), (55435, ((0, 2),)), (57323, ((8, 1),)),
+               (59371, ((42, 1), (44, 1))), (34703, ((36, 1), (49, 48))))
+
+
+def blank_unused(rom: bytes) -> bytes:
+    out = bytearray(rom)
+    for o, runs in BLANK_TILES:
+        for t, c in runs:
+            out[o + t * 16:o + (t + c) * 16] = bytes(c * 16)
+    return bytes(out)
+
+
 # (owner 2026-11-25) Link's colors a player's ROM may change too (file offsets): the two copies of the three tunic
 # colors (no ring, blue ring, red ring: LinkColors, LinkColors_CommonCode) and his colors 2 and 3 in the ten level
 # palettes, the title story's and the file-select screen's three (ZORA's player_settings offsets)
@@ -127,7 +144,7 @@ def apply_code(rom: bytearray, notes: list) -> None:
     assert not any(rom[s_at:s_at + 8])
     import lol_bombup
     plain = bytearray(rom)              # (custom sprites don't change the code: the same game, other pictures)
-    for at, n in SPRITE_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES + FLASH_BYTES:  # (and Link's
+    for at, n in SPRITE_BLOCKS + BG_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES + FLASH_BYTES:  # (and Link's
         # colors, and the flashes)
         plain[at:at + n] = bytes(n)
     race = b"race rom\x00" if os.environ.get("LOL_RACE") == "1" else b""   # (owner 2026-11-25: a Race Rom's

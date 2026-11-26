@@ -10,18 +10,21 @@ const KNOWN = {   // SHA-1 of the ROM without its 16-byte header
 // prg0-to-prg1.ips for a PRG0, which touches none of them) it must match clean PRG1's.
 const SPRITE_BLOCKS = [[32895, 1792], [53595, 1824], [55419, 544], [55963, 544], [56507, 256], [56763, 544],
                        [57307, 1024], [58331, 1024], [59355, 1024]];
+// (2026-11-25) and the background tiles (lol_seedcode.BG_BLOCKS: the common block, the dungeons' and the
+// overworld's: bushes, Armos statues...), graphics only
+const BG_BLOCKS = [[34687, 1792], [49435, 2080], [51515, 2080]];
 // (2026-11-25) and Link's colors (lol_seedcode.LINK_COLOR_BYTES: the tunic colors' two copies, his colors 2 and 3
 // in every palette that has them): a palette hack is taken too, its colors kept.
 const LINK_COLOR_BYTES = [[41607, 3], [27541, 3], [103189, 2], [103441, 2], [103693, 2], [103945, 2], [104197, 2],
                           [104449, 2], [104701, 2], [104953, 2], [105205, 2], [105457, 2], [38244, 2], [105709, 2],
                           [105713, 2], [105717, 2]];
-const MASKED_PRG1 = "b4e3536988095f75cd221aa25587ef17c3558e0c";
+const MASKED_PRG1 = "7b6f93f7dae0aecaf21b8691c4c0fce9dbf20f1c";
 // the page's tunic colors (NES colors), "" = the ROM's own
 const TUNIC_CHOICES = [["", "From your ROM"], ["29", "Green"], ["1A", "Dark green"], ["2A", "Lime"], ["2C", "Teal"],
   ["21", "Sky blue"], ["32", "Light blue"], ["12", "Blue"], ["02", "Navy"], ["13", "Purple"], ["24", "Violet"],
   ["25", "Pink"], ["14", "Magenta"], ["16", "Red"], ["06", "Dark red"], ["27", "Orange"], ["17", "Brown"],
   ["28", "Gold"], ["38", "Yellow"], ["30", "White"], ["10", "Grey"], ["00", "Dark grey"], ["0F", "Black"]];
-const VERSION = "0.345";   // (owner: Beta 0.345, bumped with every change set; lol_seedcode.VERSION shows it on the title)
+const VERSION = "0.346";   // (owner: Beta 0.346, bumped with every change set; lol_seedcode.VERSION shows it on the title)
 
 const $ = (id) => document.getElementById(id);
 const NES_PALETTE = [   // (ZORA's page's)
@@ -95,17 +98,17 @@ $("rom").addEventListener("change", async () => {
     // custom sprites? (PRG1, or PRG0 made PRG1; with the sprite blocks zeroed it must be clean PRG1)
     for (const [cand, name] of [[bytes, "PRG1"], [await toPrg1(bytes), "PRG0"]]) {
       const m = cand.slice(16);
-      for (const [o, n] of [...SPRITE_BLOCKS, ...LINK_COLOR_BYTES]) m.fill(0, o, o + n);
+      for (const [o, n] of [...SPRITE_BLOCKS, ...BG_BLOCKS, ...LINK_COLOR_BYTES]) m.fill(0, o, o + n);
       if (await sha1(m) === MASKED_PRG1) { v = name; rom = cand; custom = true; break; }
     }
     if (!v) {
-      bad("That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM. Custom sprites and Link's colors are fine, " +
-          "but only the sprites of Link, the items and the enemies and Link's colors may be changed.");
+      bad("That isn't a clean Legend of Zelda (USA) PRG0 or PRG1 ROM. Custom graphics and Link's colors are fine, " +
+          "but only the sprites, the background tiles and Link's colors may be changed.");
       return;
     }
   }
   original = bytes; version = v;
-  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}${custom ? " with custom sprites or colors" : ""}.`;
+  $("romstatus").textContent = `Found The Legend of Zelda (USA) ${v}${custom ? " with custom graphics or colors" : ""}.`;
   $("romstatus").className = "hint ok";
   refresh();
 });

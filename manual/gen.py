@@ -166,7 +166,7 @@ P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME</h1>
 <dt>Unseeded</dt><dd>The old way: each new file deals its own dungeons and caves inside the game.</dd>
 </dl>
 <p>Press <b>Build</b> and download either the finished game or an IPS patch.</p>
-<div class="hint"><b>CUSTOM SPRITES</b> A ROM whose only changes are the sprites of Link, the items and the enemies, or Link's colors, works too: your sprites and colors are kept. Anything else changed (other colors included) and the page turns it down.</div>
+<div class="hint"><b>CUSTOM GRAPHICS</b> A ROM whose only changes are the sprites of Link, the items and the enemies, the background tiles (bushes, Armos statues, walls...), or Link's colors, works too: your graphics and colors are kept. Anything else changed (other colors included) and the page turns it down.</div>
 </section>''')
 
 # ---------------- title & file
