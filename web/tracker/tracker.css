@@ -135,12 +135,11 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
   font: bold clamp(10px, 1.4vw, 15px)/1 ui-monospace, monospace; color: #fff; }
 .room.r1 { background: #565670; border-color: #6c6c88; }
 .room.r2 { background: #2f6b3e; border-color: var(--green); }
-.room .rit { width: 55%; height: auto; }
-.room .ren { width: 82%; height: 82%; object-fit: contain; }
-.room .ren.small { position: absolute; right: 2px; bottom: 2px; width: 45%; height: 45%; }
+.room .rit { position: absolute; right: 2px; bottom: 2px; width: 42%; height: 48%; object-fit: contain; }
+.room .ren { position: absolute; left: 2px; top: 2px; width: 42%; height: 48%; object-fit: contain; }
 .room { overflow: visible; }
 .rpi.en img { object-fit: contain; }
-.room .ri { width: auto; font: bold clamp(12px, 1.8vw, 20px)/1 ui-monospace, monospace; color: #fff; }
+.room .ri { width: auto; height: auto; right: 4px; font: bold clamp(10px, 1.3vw, 15px)/1 ui-monospace, monospace; color: #fff; }
 .room .mk { position: absolute; top: 1px; left: 3px; font-size: 10px; }
 .ent svg { display: block; width: 100%; height: 100%; fill: #3fc45f; filter: drop-shadow(0 1px 0 #000); }
 .room .ent { position: absolute; left: 50%; bottom: -12px; width: 14px; height: 26px; transform: translateX(-50%); z-index: 3; pointer-events: none; }

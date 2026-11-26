@@ -400,9 +400,9 @@ function renderDun() {
     if (it) cell.append(it[1] ? el("img", { src: "img/" + it[1], className: "rit px", alt: it[2], draggable: false })
       : el("b", { className: "rit ri", textContent: "I" }));
     const en = RENEMIES.find((x) => x[0] === c.en);
-    if (en) cell.append(el("img", { src: "img/" + en[1], className: "ren px" + (it ? " small" : ""), alt: en[2], title: en[2], draggable: false }));
+    if (en) cell.append(el("img", { src: "img/" + en[1], className: "ren px", alt: en[2], title: en[2], draggable: false }));
     if (c.m === "E") cell.append(entArrow("in"));
-    else if (c.m) cell.append(el("span", { className: it || en ? "mk" : "", textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
+    else if (c.m) cell.append(el("span", { textContent: BRUSHES.find((x) => x[0] === c.m)[1] }));
     cell.onclick = (e) => {
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
       if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
