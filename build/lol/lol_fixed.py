@@ -8,8 +8,8 @@ items). With it the build rolls them here, from the seed, with the same rules, a
     upgrade cave;
   - the 13 records (Levels 1-9, shrines A-D): a design each that may take that slot (lol_genload's masks; no design
     twice), the variant, the enemy group (any of 3), the palette (Level 9: its own), a boss from the variant's list,
-    the seed (the rooms' enemies, read by the decoder: fixed with it), and the two cellar items (old men cards S /
-    D / X or XP bags, as gen_make's weights).
+    the seed (the rooms' enemies, read by the decoder: fixed with it), and the two cellar items: not drawn yet (deck():
+    levels 1-8's stairs and floor items take the item deck's next card when Link first comes to them).
 Still rolled in the game: Level 9's stair item (from what Link has then), the old men's choices and the shrine prizes.
 A card Link already holds three of comes as an orange XP bag (lol_bombup).
 """
