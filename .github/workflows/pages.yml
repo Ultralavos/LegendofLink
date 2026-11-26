@@ -17,6 +17,7 @@ concurrency:
 env:
   ZORA_REPO: Ultralavos/zora
   ZORA_REF: 8c1ab298b61c7d91fc56bd456abc252212505abd   # the ZORA the build is made against
+  TEST_BRANCH: test-deck-digdogger      # a test build, published at /test/ (not linked from the page); "" for none
 
 jobs:
   build:
@@ -33,6 +34,22 @@ jobs:
           python-version: "3.13"
       - name: Pack the build for the page
         run: python3 scripts/package_build.py zora
+      - name: Fetch the test branch
+        if: env.TEST_BRANCH != ''
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TEST_BRANCH }}
+          path: testbranch
+      - name: Pack the test branch's page at /test/
+        if: env.TEST_BRANCH != ''
+        run: |
+          if [ -f testbranch/scripts/package_build.py ]; then
+            python3 testbranch/scripts/package_build.py zora
+            rm -rf web/test && cp -r testbranch/web web/test
+            sed -i 's|<body\([^>]*\)>|<body\1><div style="background:#7a1d1d;color:#fff;padding:8px 16px;font:bold 14px system-ui,sans-serif;text-align:center">TEST BUILD (branch ${{ env.TEST_BRANCH }}, not live)</div>|' web/test/index.html
+            sed -i 's#<title>[^<]*</title>#<title>LoL Test Build</title>#' web/test/index.html
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
