@@ -109,6 +109,13 @@ def _shuffle_overworld(gw, rng):
     for x, p in zip(cand, pairs):
         ow.screens[x].enemy_spec = p.spec
         ow.screens[x].enemy_quantity = p.quantity
+    # (owner 2026-11-26, lag) blue goriyas alone: at most 5 (the largest of the overworld's counts that is, as
+    # lol_genload's dungeon rooms)
+    from zora.model.enums import Enemy
+    ok = [q for q in ow.qty_table if q <= 5] or [min(ow.qty_table)]
+    for sc in ow.screens:
+        if not sc.enemy_spec.is_group and sc.enemy_spec.enemy == Enemy.BLUE_GORIYA and sc.enemy_quantity > 5:
+            sc.enemy_quantity = max(ok)
 
 
 def source():
