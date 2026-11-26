@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.346"
+VERSION = "0.347"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -33,7 +33,9 @@ SPRITE_BLOCKS = tuple((16 + o, n) for o, n in ((32895, 1792), (53595, 1824), (55
                                                (56763, 544), (57307, 1024), (58331, 1024), (59355, 1024)))
 # (owner 2026-11-25) and the background pattern blocks (custom tiles: bushes, Armos statues...): the common one, the
 # dungeons' and the overworld's (bank 3's PatternBlockUWBG / OWBG; file offsets, header included)
-BG_BLOCKS = ((16 + 0x877F, 0x700), (16 + 0xC11B, 0x820), (16 + 0xC93B, 0x820))
+BG_BLOCKS = ((16 + 0x877F, 0x700), (16 + 0xC11B, 0x820), (16 + 0xC93B, 0x820),
+             (16 + 0x4DB4, 0x900), (16 + 0x56B4, 0x820))     # (and the title screen's: bank 1's DemoSprite /
+                                                              #  DemoBackgroundPatterns; LoL leaves them as they are)
 # the tiles blank in PRG1 in those blocks (and the sprite blocks): (block's file offset, [(first tile, count)]). The
 # game never draws them, so a custom ROM's are made blank again before the build (LoL puts its own pictures there)
 BLANK_TILES = ((32911, ((28, 2), (63, 1))), (53611, ((46, 1), (48, 1))), (55435, ((0, 2),)), (57323, ((8, 1),)),

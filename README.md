@@ -8,7 +8,7 @@ data is stored in this repository.
 
 **Custom sprites**: a ROM whose only changes are in the sprite pattern blocks (Link and the items, the overworld's
 and the dungeons' enemies, the bosses) and the background pattern blocks (lol_seedcode.BG_BLOCKS: the common one,
-bank 3's dungeon and overworld ones: bushes, Armos statues...) is taken too, PRG0 or PRG1 (`web/app.js` zeroes those
+bank 3's dungeon and overworld ones: bushes, Armos statues...; and bank 1's two title screen blocks) is taken too, PRG0 or PRG1 (`web/app.js` zeroes those
 blocks and checks the rest against clean PRG1). The build first blanks the tiles blank in PRG1 (never drawn; LoL puts
 its own pictures there: lol_seedcode.BLANK_TILES). Anything else changed, colors included, and the page turns it
 down. The file-select code leaves those tiles out, so players with different graphics and the same settings see the
@@ -183,7 +183,7 @@ bag in a cellar keeps Link lifting the bag (not a heart container).
 
 ## Title and seed code
 
-The title screen reads LEGEND OF LINK / BETA 0.346 and the seed below it (NEW SEED EACH FILE without one;
+The title screen reads LEGEND OF LINK / BETA 0.347 and the seed below it (NEW SEED EACH FILE without one;
 `build/lol/lol_seedcode.py`). The file-select heading shows CODE and four item icons: a hash of the finished ROM, so
 players whose four icons match have the same game (same seed and settings). The page shows the same four icons
 with their names under the download buttons, drawn from the built ROM's own graphics (ZORA's `seed_code_icons`).
