@@ -490,6 +490,7 @@ function renderDun() {
       g.append(door);
     }
   }
+  drawShape();
 }
 function openRoomItems(i, cell, enemies = false) {
   const p = $("rpick"), d = dun(S.cur); rpicking = i; p.replaceChildren();
@@ -588,11 +589,37 @@ function openOMRoom(n, cell) {
 function closeRoomItems() { $("rpick").hidden = true; rpicking = null; }
 document.addEventListener("click", (e) => { if (rpicking !== null && !$("rpick").contains(e.target)) closeRoomItems(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRoomItems(); });
-$("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); });
+$("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); drawShape(); });
+// the chosen nickname's outline: a faint line around its rooms on this map (SHAPES: shapes.js)
+function drawShape() {
+  const g = $("dgrid"); if (!g) return;
+  g.querySelector(".shape")?.remove();
+  const name = (dun(S.cur).name || "").trim().toLowerCase();
+  const key = Object.keys(SHAPES).find((x) => x.startsWith(mapQuest(S.cur) + ":") && x.split(":")[1].toLowerCase() === name);
+  if (!key) return;
+  const set = new Set(SHAPES[key]), rooms = g.querySelectorAll(".room");
+  if (rooms.length < 64) return;
+  const gap = (rooms[1].offsetLeft - rooms[0].offsetLeft - rooms[0].offsetWidth) / 2;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "shape"); svg.setAttribute("aria-hidden", "true");
+  let d = "";
+  for (const i of set) {
+    const r = rooms[i], row = i >> 3, col = i & 7, W = g.clientWidth - 1, H = g.clientHeight - 1;
+    const x0 = Math.max(1, r.offsetLeft - gap), y0 = Math.max(1, r.offsetTop - gap),
+      x1 = Math.min(W, r.offsetLeft + r.offsetWidth + gap), y1 = Math.min(H, r.offsetTop + r.offsetHeight + gap);
+    if (row === 0 || !set.has(i - 8)) d += `M${x0} ${y0}H${x1}`;
+    if (row === 7 || !set.has(i + 8)) d += `M${x0} ${y1}H${x1}`;
+    if (col === 0 || !set.has(i - 1)) d += `M${x0} ${y0}V${y1}`;
+    if (col === 7 || !set.has(i + 1)) d += `M${x1} ${y0}V${y1}`;
+  }
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d);
+  svg.append(p); g.append(svg);
+}
+if (window.ResizeObserver) new ResizeObserver(() => drawShape()).observe($("dgrid"));
 $("ddone").addEventListener("change", (e) => { dun(S.cur).done = e.target.checked; save(); renderDTabs(); });
 $("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; dun(S.cur).doors = {}; save(); renderDun(); renderOM(); });
-// the dungeon set (LoL, 1Q-4Q, or Mix: each map its own): which nicknames the box offers and the side column's
-// layout (floor item, item stairs). A map's own set (the buttons under its side column) makes the set Mix.
+// each level's own set (LoL, 1Q-4Q: the row above its nickname box): which nicknames the box offers, its side
+// column's layout (floor item, item stairs) and the outlines. A level not set yet takes the last set picked.
 const QUESTS = [["lol", "LoL"], ["1q", "1Q"], ["2q", "2Q"], ["3q", "3Q"], ["4q", "4Q"]];
 const QNAMES = {
   lol: NICKNAMES.slice(0, NICKNAMES.indexOf("The Eagle")),
@@ -610,20 +637,17 @@ const LAYOUT = {
   "4q": { 1: [0, 1], 2: [0, 1], 3: [0, 1], 4: [1, 0], 5: [0, 1], 6: [1, 1], 7: [0, 1], 8: [1, 1] },
 };
 LAYOUT["1q"] = LAYOUT.lol;
-const qset = () => S.qset || "lol";
-const mapQuest = (k) => (/[A-D]/.test(k) ? "lol" : qset() === "mix" ? (S.mq || {})[k] || "lol" : qset());
+const mapQuest = (k) => (/[A-D]/.test(k) ? "lol" : (S.mq || {})[k] || S.qlast || "lol");
 const layoutOf = (lv) => LAYOUT[mapQuest(String(lv))][lv];
 function renderQuest() {
   const box = $("dquest"); box.replaceChildren();
-  for (const [q, name] of [...QUESTS, ["mix", "Mix"]]) {
-    const b = el("button", { type: "button", className: "qbtn" + (qset() === q ? " cur" : ""), textContent: name,
-      title: q === "mix" ? "Mix: each map its own set (the buttons under its column)" : `Every map: ${name}`,
-      ariaPressed: String(qset() === q) });
-    b.onclick = () => {
-      if (q === "mix") { if (qset() !== "mix") S.mq = Object.fromEntries(DUNGEONS.filter((k) => /\d/.test(k)).map((k) => [k, qset()])); }
-      else S.mq = {};
-      S.qset = q; save(); renderAll();
-    };
+  box.hidden = isShrine(S.cur);                     // (shrines: LoL's in every set)
+  if (box.hidden) return;
+  const k = S.cur, cur = mapQuest(k);
+  for (const [q, name] of QUESTS) {
+    const b = el("button", { type: "button", className: "qbtn" + (cur === q ? " cur" : ""), textContent: name,
+      title: `Level ${k}: ${name}`, ariaPressed: String(cur === q) });
+    b.onclick = () => { S.mq = S.mq || {}; S.mq[k] = q; S.qlast = q; save(); renderAll(); };
     box.append(b);
   }
 }
@@ -776,19 +800,6 @@ function renderSide() {
     sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
     sbtn("boss" + (sd.zelda ? " on" : ""), "Zelda", [icon("en_zelda")], () => { sd.zelda = !sd.zelda; save(); });
   }
-  // this map's own set (picking one makes the set above Mix)
-  const mq = el("div", { className: "mapq", role: "group", ariaLabel: `Level ${lv} set` });
-  for (const [q, name] of QUESTS) {
-    const b = el("button", { type: "button", className: "mqb" + (mapQuest(k) === q ? " cur" : ""), textContent: name,
-      title: `Level ${lv}: ${name}`, ariaPressed: String(mapQuest(k) === q) });
-    b.onclick = (e) => {
-      e.stopPropagation();
-      if (qset() !== "mix") S.mq = Object.fromEntries(DUNGEONS.filter((x) => /\d/.test(x)).map((x) => [x, qset()]));
-      S.qset = "mix"; S.mq[k] = q; save(); renderAll();
-    };
-    mq.append(b);
-  }
-  box.append(mq);
 }
 
 function renderCounters() {
