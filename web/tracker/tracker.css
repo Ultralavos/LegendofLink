@@ -119,7 +119,7 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .dtab.cur { background: var(--accent); color: #1a1406; border-color: var(--accent); }
 .dtab.done:not(.cur) { border-color: var(--green); color: var(--green); }
 .dhead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
-#dname { flex: 1 1 200px; min-width: 0; background: #0b0b10; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
+#dname { flex: 1 1 200px; cursor: pointer; min-width: 0; background: #0b0b10; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
 .done { display: flex; gap: 5px; align-items: center; color: var(--muted); }
 #dclear { border-radius: 6px; padding: 5px 10px; }
 .brushes { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }

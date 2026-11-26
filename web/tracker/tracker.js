@@ -418,7 +418,7 @@ function renderDun() {
   renderDTabs(); renderSide();
   const d = dun(S.cur);
   d.doors = d.doors || {};
-  $("dname").value = d.name; $("ddone").checked = d.done;
+  $("ddone").checked = d.done;
   renderQuest(); renderNicknames();
   // LEVEL-X / SHRINE-X, one letter over each column (as the game's map screen: lines your map up with it)
   const lab = (isShrine(S.cur) ? "SHRINE-" : "LEVEL-") + S.cur;
@@ -595,13 +595,12 @@ function openOMRoom(n, cell) {
 function closeRoomItems() { $("rpick").hidden = true; rpicking = null; }
 document.addEventListener("click", (e) => { if (rpicking !== null && !$("rpick").contains(e.target)) closeRoomItems(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRoomItems(); });
-$("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); drawShape(); });
+$("dname").addEventListener("change", (e) => { dun(S.cur).name = e.target.value; save(); renderDTabs(); drawShape(); });
 // the chosen nickname's outline: a faint line around its rooms on this map (SHAPES: shapes.js)
 function drawShape() {
   const g = $("dgrid"); if (!g) return;
   g.querySelector(".shape")?.remove();
-  const name = (dun(S.cur).name || "").trim().replace(/^\d\s*-\s*/, "").toLowerCase();
-  const key = Object.keys(SHAPES).find((x) => x.startsWith(mapQuest(S.cur) + ":") && x.split(":")[1].toLowerCase() === name);
+  const key = shapeKey(mapQuest(S.cur), dun(S.cur).name || "");
   if (!key) return;
   const set = new Set(SHAPES[key]), rooms = g.querySelectorAll(".room");
   if (rooms.length < 64) return;
@@ -626,7 +625,19 @@ $("ddone").addEventListener("change", (e) => { dun(S.cur).done = e.target.checke
 $("dclear").addEventListener("click", () => { dun(S.cur).cells = {}; dun(S.cur).doors = {}; save(); renderDun(); renderOM(); });
 // each level's own set (LoL, 1Q-4Q: the row above its nickname box): which nicknames the box offers, its side
 // column's layout (floor item, item stairs) and the outlines. A level not set yet takes the last set picked.
-const QUESTS = [["lol", "LoL"], ["1q", "1Q"], ["2q", "2Q"], ["3q", "3Q"], ["4q", "4Q"]];
+const QUESTS = [["lol", "LoL"], ["1q", "1Q"], ["2q", "2Q"], ["3q", "3Q"], ["4q", "4Q"], ["custom", "Custom"]];
+// Custom (Chaos or Mixed): any dungeon of any set, the quests' as "2Q 4 - The D"
+const CUSTOM_NAMES = () => [...QNAMES.lol, ...["1q", "2q", "3q", "4q"].flatMap((q) => QNAMES[q].map((n, i) => `${q.toUpperCase()} ${i + 1} - ${n}`))];
+// a nickname as the dropdown shows it -> its SHAPES key (undefined: no outline)
+function shapeKey(q, name) {
+  let m;
+  if (q === "custom") {
+    if ((m = /^([1-4])Q (\d) - (.+)$/.exec(name))) return `${m[1]}q:${m[3]}`;
+    return SHAPES["lol:" + name] ? "lol:" + name : undefined;
+  }
+  const k = `${q}:${name.replace(/^\d\s*-\s*/, "")}`;
+  return SHAPES[k] ? k : undefined;
+}
 const QNAMES = {
   lol: NICKNAMES.slice(0, NICKNAMES.indexOf("The Eagle")),
   "1q": ["The Eagle", "The Moon", "The Manji", "The Snake", "The Lizard", "The Dragon", "The Demon", "The Lion", "The Skull"],
@@ -643,14 +654,21 @@ const LAYOUT = {
   "4q": { 1: [0, 1], 2: [0, 1], 3: [0, 1], 4: [1, 0], 5: [0, 1], 6: [1, 1], 7: [0, 1], 8: [1, 1] },
 };
 LAYOUT["1q"] = LAYOUT.lol;
-const mapQuest = (k) => (/[A-D]/.test(k) ? "lol" : (S.mq || {})[k] || S.qlast || "lol");
-const layoutOf = (lv) => LAYOUT[mapQuest(String(lv))][lv];
+const mapQuest = (k) => {
+  const q = (S.mq || {})[k] || S.qlast || "lol";
+  return /[A-D]/.test(k) && q !== "custom" ? "lol" : q;               // (shrines: LoL's, or Custom)
+};
+const layoutOf = (lv) => {
+  const q = mapQuest(String(lv));
+  if (q !== "custom") return LAYOUT[q][lv];
+  const m = /^([1-4])Q (\d) - /.exec(dun(String(lv)).name || "");      // (Custom: a quest level on its own number: its layout)
+  return LAYOUT[m && +m[2] === lv ? m[1] + "q" : "lol"][lv];
+};
 function renderQuest() {
   const box = $("dquest"); box.replaceChildren();
-  box.hidden = isShrine(S.cur);                     // (shrines: LoL's in every set)
-  if (box.hidden) return;
   const k = S.cur, cur = mapQuest(k);
   for (const [q, name] of QUESTS) {
+    if (isShrine(k) && q !== "lol" && q !== "custom") continue;      // (shrines: LoL's, or Custom)
     const b = el("button", { type: "button", className: "qbtn" + (cur === q ? " cur" : ""), textContent: name,
       title: `Level ${k}: ${name}`, ariaPressed: String(cur === q) });
     b.onclick = () => { S.mq = S.mq || {}; S.mq[k] = q; S.qlast = q; save(); renderAll(); };
@@ -658,9 +676,10 @@ function renderQuest() {
   }
   // the pencil (a quest): every level 1-9 that quest, each named its own level's nickname (its outline on its map);
   // again: those names off
-  const on = cur !== "lol" && S.autoq === cur;
-  const pen = el("button", { type: "button", className: "qbtn pen" + (on ? " cur" : ""), disabled: cur === "lol",
-    title: cur === "lol" ? "Pick a quest (1Q-4Q) to fill in its levels" : on ? `Clear the ${cur.toUpperCase()} outlines`
+  if (isShrine(k)) return;
+  const on = !["lol", "custom"].includes(cur) && S.autoq === cur;
+  const pen = el("button", { type: "button", className: "qbtn pen" + (on ? " cur" : ""), disabled: cur === "lol" || cur === "custom",
+    title: cur === "lol" || cur === "custom" ? "Pick a quest (1Q-4Q) to fill in its levels" : on ? `Clear the ${cur.toUpperCase()} outlines`
       : `Put all nine ${cur.toUpperCase()} outlines on their maps`, ariaPressed: String(on), ariaLabel: "Fill in the quest's levels" });
   pen.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2"/></svg>';
   pen.onclick = () => {
@@ -675,9 +694,21 @@ function renderQuest() {
   box.append(pen);
 }
 function renderNicknames() {
-  const q = mapQuest(S.cur);
-  const names = q === "lol" ? QNAMES.lol : QNAMES[q].map((n, i) => `${i + 1} - ${n}`);   // (a quest: "level - name", in order)
-  $("nicknames").replaceChildren(...names.map((n) => el("option", { value: n })));
+  // the dungeons this map can be: its set's (LoL: the designs that can be this level / a shrine), then only those
+  // whose outline holds every room marked here
+  const k = S.cur, q = mapQuest(k), d = dun(k), cls = /^\d$/.test(k) ? k : "S";
+  const names = q === "custom" ? CUSTOM_NAMES()                       // (Chaos / Mixed: any dungeon anywhere)
+    : q === "lol" ? QNAMES.lol.filter((n) => (SHAPE_CLASSES[n] || "").includes(cls))
+    : QNAMES[q].map((n, i) => `${i + 1} - ${n}`);                        // (a quest: "level - name", in order)
+  const rooms = Object.entries(d.cells).filter(([, c]) => c.r || c.m || c.k || c.it || c.en).map(([i]) => +i);
+  const fits = (n) => { const sh = SHAPES[shapeKey(q, n)]; return !sh || rooms.every((r) => sh.includes(r)); };
+  const ok = names.filter(fits);
+  const head = !rooms.length ? "Nickname" : ok.length ? `Nickname (${ok.length} of ${names.length} fit your rooms)`
+    : "No dungeon fits your rooms";
+  const opts = [el("option", { value: "", textContent: head }), ...ok.map((n) => el("option", { value: n, textContent: n }))];
+  if (d.name && !ok.includes(d.name)) opts.push(el("option", { value: d.name, textContent: d.name + " (doesn't fit)" }));
+  $("dname").replaceChildren(...opts);
+  $("dname").value = d.name || "";
 }
 
 // ---------------------------------------------------------------- timer, notes, new run
