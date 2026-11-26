@@ -241,3 +241,5 @@ footer a { color: var(--accent); }
   font: bold 16px/1 ui-monospace, "Courier New", monospace; color: #f0f0f0; text-align: center; }
 @media (max-width: 640px) { .dlabel { grid-template-columns: repeat(7, minmax(0, 1fr) 8px) minmax(0, 1fr); column-gap: 1px; padding: 0 4px 3px; } }
 .dside { margin-top: 20px; }
+.qbtn.pen { display: inline-grid; place-items: center; min-width: 38px; }
+.qbtn.pen:disabled { opacity: .3; cursor: not-allowed; }

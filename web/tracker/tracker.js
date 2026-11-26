@@ -600,7 +600,7 @@ $("dname").addEventListener("input", (e) => { dun(S.cur).name = e.target.value; 
 function drawShape() {
   const g = $("dgrid"); if (!g) return;
   g.querySelector(".shape")?.remove();
-  const name = (dun(S.cur).name || "").trim().toLowerCase();
+  const name = (dun(S.cur).name || "").trim().replace(/^\d\s*-\s*/, "").toLowerCase();
   const key = Object.keys(SHAPES).find((x) => x.startsWith(mapQuest(S.cur) + ":") && x.split(":")[1].toLowerCase() === name);
   if (!key) return;
   const set = new Set(SHAPES[key]), rooms = g.querySelectorAll(".room");
@@ -656,11 +656,27 @@ function renderQuest() {
     b.onclick = () => { S.mq = S.mq || {}; S.mq[k] = q; S.qlast = q; save(); renderAll(); };
     box.append(b);
   }
+  // the pencil (a quest): every level 1-9 that quest, each named its own level's nickname (its outline on its map);
+  // again: those names off
+  const on = cur !== "lol" && S.autoq === cur;
+  const pen = el("button", { type: "button", className: "qbtn pen" + (on ? " cur" : ""), disabled: cur === "lol",
+    title: cur === "lol" ? "Pick a quest (1Q-4Q) to fill in its levels" : on ? `Clear the ${cur.toUpperCase()} outlines`
+      : `Put all nine ${cur.toUpperCase()} outlines on their maps`, ariaPressed: String(on), ariaLabel: "Fill in the quest's levels" });
+  pen.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2"/></svg>';
+  pen.onclick = () => {
+    S.mq = S.mq || {};
+    for (let lv = 1; lv <= 9; lv++) {
+      const d = dun(String(lv)), auto = `${lv} - ${QNAMES[cur][lv - 1]}`;
+      if (on) { if (d.name === auto) d.name = ""; }
+      else { S.mq[lv] = cur; d.name = auto; }
+    }
+    S.autoq = on ? null : cur; S.qlast = cur; save(); renderAll();
+  };
+  box.append(pen);
 }
 function renderNicknames() {
-  const q = mapQuest(S.cur), lv = /^\d$/.test(S.cur) ? +S.cur : 0;
-  let names = QNAMES[q];
-  if (q !== "lol" && lv) names = [names[lv - 1], ...names.filter((_, i) => i !== lv - 1)];   // (its own level's first)
+  const q = mapQuest(S.cur);
+  const names = q === "lol" ? QNAMES.lol : QNAMES[q].map((n, i) => `${i + 1} - ${n}`);   // (a quest: "level - name", in order)
   $("nicknames").replaceChildren(...names.map((n) => el("option", { value: n })));
 }
 
