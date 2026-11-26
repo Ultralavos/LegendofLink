@@ -155,7 +155,11 @@ def install(rom: bytearray, notes: list) -> None:
         a.label("boom").b(0xA9, BOOMERANG_ITEM)
         a.label("put").abs(0x20, "setmid").b(0xA2, offs["style"]).abs(0x20, "quote")
         a.label("o1").abs(0x4C, "out")
-        a.label("h8").abs(0xAD, SWL).br(0xD0, "nosw")
+        a.label("h8")
+        import lol_fixed as _fx
+        if not _fx.FIXED:                       # (owner 2026-11-25: a file named UNSEED never turns swordless)
+            a.abs(0x20, "unsck")
+        a.abs(0xAD, SWL).br(0xD0, "nosw")
         a.abs(0xAD, HARD).br(0xD0, "normal").abs(0xAD, 0x0657).br(0xD0, "normal")
         a.abs(0xAD, NCAVE).b(0xC9, NROOMS).br(0xB0, "mk_swl").abs(0xAD, NCAVE).br(0xD0, "normal")
         a.b(0xA4, 0x16).abs(0xB9, DEATHS).b(0xC9, 5).br(0x90, "normal")
@@ -171,6 +175,12 @@ def install(rom: bytearray, notes: list) -> None:
         a.abs(0x4C, "out")
         a.label("normal").b(0xA9, WOOD_SWORD).abs(0x20, "setmid")
         a.label("out").b(0x68, 0xA8, 0x68, 0xAA, 0x68, 0x60)
+        if not _fx.FIXED:                       # unsck: a file named UNSEED: no entrances counted (lol_names)
+            import lol_names
+            import lol_v3core as _V
+            a.label("unsck").b(*_V.far(3, lol_names.lib(rom)["namek"])).b(0xC9, 0x01).br(0xD0, "uns_r")
+            a.abs(0xAD, NCAVE).b(0x29, HARD_PENDING).abs(0x8D, NCAVE)      # (its entrance count: never 5)
+            a.label("uns_r").b(0x60)
         # setmid: the cave's three places: nothing, A, nothing (their flag bits kept)
         a.label("setmid").b(0x09, fl[1]).abs(0x8D, CAVE0_WARES + 1)
         a.b(0xA9, NO_ITEM | fl[0]).abs(0x8D, CAVE0_WARES).b(0xA9, NO_ITEM | fl[2]).abs(0x8D, CAVE0_WARES + 2).b(0x60)

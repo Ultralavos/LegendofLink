@@ -98,7 +98,14 @@ def entry_code(rom):
         a = Asm(org)
         a.label("ent").b(0xA5, 0x10).br(0xD0, "e_r").b(0xA2, len(CAVES) - 1)
         a.label("e_l").b(0xA5, 0xEB).abs(0xDD, "e_rm").br(0xF0, "e_f").b(0xCA).br(0x10, "e_l").b(0x60)
-        a.label("e_f").abs(0xBD, "e_d").b(0x0A, 0x0A).abs(0x8D, THD).b(0xA6, 0xEB).abs(0xBD, ATTR_B).b(0x29, 0x03)
+        a.label("e_f")
+        import lol_fixed as _fx
+        if not _fx.FIXED:                       # (owner 2026-11-25: a file named UNSEED: E4 is its fountain's cave)
+            import lol_names
+            a.b(0xA5, 0xEB, 0xC9, lol_names.E4).br(0xD0, "e_ok").abs(0x20, lol_names.lib(rom)["namek"])
+            a.b(0xC9, 0x01).br(0xD0, "e_ok").b(0x60)
+            a.label("e_ok")
+        a.abs(0xBD, "e_d").b(0x0A, 0x0A).abs(0x8D, THD).b(0xA6, 0xEB).abs(0xBD, ATTR_B).b(0x29, 0x03)
         a.abs(0x0D, THD).abs(0x9D, ATTR_B)
         a.label("e_r").b(0x60)
         a.label("e_rm").b(*[c[0] for c in CAVES])

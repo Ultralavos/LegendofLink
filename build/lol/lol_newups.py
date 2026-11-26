@@ -62,12 +62,31 @@ def free_in(rom, bank, size, lo=0x8000, hi=0xBF00):
 
 
 def put3(rom, bank, build):
-    """(2026-11-25) bank 3's tail ($B300-): free in every finished ROM (lol_heavy / lol_discovery's code)."""
+    """(2026-11-25) bank 3's tail ($B300-): free in every finished ROM (lol_heavy / lol_discovery's code).
+    Best fit: the smallest free run that holds it, so the big runs stay for the big code."""
     assert bank == 3
+    return put3_best(rom, build)
+
+
+def put3_best(rom, build, lo=0xB300, hi=0xBF00):
+    """put3, best fit: the smallest free run of bank 3's tail that holds it (keeps the big runs for big code)."""
     n = len(build(0xB300).bytes())
-    at = free_in(rom, 3, n, 0xB300)
-    a = build(at)
-    place(rom, 3, at, a.bytes())
+    base = BANK(3) - 0x8000
+    best, c = None, lo
+    while c < hi:
+        if rom[base + c] != 0xFF:
+            c += 1
+            continue
+        e = c
+        while e < hi and rom[base + e] == 0xFF:
+            e += 1
+        # usable: [c + 2, e - 2) (free_in's margins)
+        if e - c - 4 >= n and (best is None or e - c < best[1]):
+            best = (c + 2, e - c)
+        c = e
+    assert best, f"no {n} bytes free in bank 3"
+    a = build(best[0])
+    place(rom, 3, best[0], a.bytes())
     return a
 
 

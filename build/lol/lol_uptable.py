@@ -162,6 +162,9 @@ def _pool():
         xr = next(k for k, r in enumerate(ROWS) if r[NAME] == "x-ray glasses")
         if xr in tier and xr not in got and walk_set():     # (owner: always there with walk-through walls)
             got[rng.randrange(GUARANTEED, len(got))] = xr
+        pbi = next(k for k, r in enumerate(ROWS) if r[NAME] == "poison bait")
+        if pbi in tier and pbi not in got and os.environ.get("LOL_FIXED", "1") == "0":   # (owner 2026-11-25: an
+            got[rng.randrange(GUARANTEED, len(got))] = pbi                              #  unseeded game: UNSEED's)
         out |= set(got)
     return out
 

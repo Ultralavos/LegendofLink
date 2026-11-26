@@ -215,6 +215,10 @@ def apply(rom: bytearray, notes: list) -> None:
         sec = lol_secret.frame_code(rom)
         if sec:
             a.b(*V.far(3, sec))
+        import lol_fixed as _fx2                                            # (unseeded: the names' frame)
+        if not _fx2.FIXED:
+            import lol_names
+            a.b(*V.far(3, lol_names.lib(rom)["frame"]))
         import lol_ganon                                                    # (the owner's test build only)
         dbg = lol_ganon.debug_frame(rom)
         if dbg:
@@ -580,6 +584,15 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         clauses.append(0xFF)
     assert len(clauses) < 256
 
+    import lol_fixed as _fx
+    UNSEED_PB, NAMEK = None, None
+    if not _fx.FIXED:
+        import lol_names
+        NAMEK = lol_names.lib(rom)["namek"]
+        _flat = [k for tier in T.TIERS for k in tier]
+        UNSEED_PB = _flat.index(T.index("poison bait"))
+        assert UNSEED_PB < len(T.TIERS[0])
+
     def b_engine(org):
         b = Asm(org)
         # upw: an upgrade cave's wares ($0350 the person); C set: not an upgrade cave
@@ -612,7 +625,14 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("w_tier").abs(0xAE, TT).abs(0xBD, "tstart").b(0xAA)
         b.label("w_s1").b(0x8A).abs(0xAC, TT).abs(0xD9, "tend").br(0xB0, "w_s2")
         b.abs(0x20, "getc").abs(0xCD, P1).br(0xF0, "w_fd").b(0xE8).abs(0x4C, "w_s1")
-        b.label("w_s2").abs(0xAD, P0).br(0xF0, "w_none").abs(0xAE, TT).abs(0xBD, "tstart").b(0xAA)
+        b.label("w_s2").abs(0xAD, P0).br(0xF0, "w_none")
+        if UNSEED_PB is not None:
+            # (owner 2026-11-25) a file named UNSEED: the first upgrade cave Link enters offers the poison bait
+            b.abs(0xAD, TT).abs(0x0D, RANK).br(0xD0, "w_s2n").b(*V3.far(3, NAMEK)).b(0xC9, 0x01).br(0xD0, "w_s2n")
+            b.b(0xA2, UNSEED_PB).abs(0x20, "getc").br(0xD0, "w_s2n").abs(0xAD, P1).abs(0x20, "setc")
+            b.abs(0x4C, "w_fd")
+            b.label("w_s2n")
+        b.abs(0xAE, TT).abs(0xBD, "tstart").b(0xAA)
         b.label("w_s3").b(0x8A).abs(0xAC, TT).abs(0xD9, "tend").br(0xB0, "w_none")
         b.abs(0x20, "getc").br(0xD0, "w_s4").abs(0xBC, "tier_items").abs(0x20, "elig").br(0xB0, "w_s4")
         b.abs(0xAD, P1).abs(0x20, "setc").abs(0x4C, "w_fd")
@@ -650,7 +670,13 @@ def apply_caves(rom: bytearray, notes: list) -> None:
         b.label("r_got").abs(0xBC, "tier_items").abs(0x20, "elig").br(0xB0, "roll")
         b.b(0x8A, 0x38).abs(0xED, TB).b(0x60)
         # elig: Y = the upgrade; C clear if every condition of its holds (X kept)
-        b.label("elig").abs(0x8E, ESX).abs(0xBE, "cptr")
+        b.label("elig").abs(0x8E, ESX)
+        if UNSEED_PB is not None:
+            # (owner 2026-11-25) a file named UNSEED is never offered the Song of Discovery
+            b.b(0xC0, T.index("song of discovery")).br(0xD0, "e_s").b(*V3.far(3, NAMEK)).b(0xC9, 0x01).br(0xD0, "e_s")
+            b.abs(0x4C, "e_no")
+            b.label("e_s")
+        b.abs(0xBE, "cptr")
         b.label("e_lp").abs(0xBD, "cl").b(0xC9, 0xFF).br(0xD0, "e_go").abs(0x4C, "e_ok")
         b.label("e_go")
         b.abs(0x8D, EK).abs(0xBC, "cl1").abs(0xBD, "cl2").abs(0x8D, EB)
