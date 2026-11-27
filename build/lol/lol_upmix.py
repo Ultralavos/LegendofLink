@@ -9,7 +9,9 @@ Stage 1 (this module and its pieces elsewhere):
     the third ware slot's item ($30); none (or three owned already): an orange XP bag.
   - taking a ware slot's item ($2E-$30) outside an upgrade cave gives its upgrade as buying it does (lol_upgrades'
     t_af: the bit, the owned slot's picture, map master's maps...).
-State (each shrine record's fifth byte, which a shrine never uses: cleared for a new file, kept by the records' copy):
+State (owner 2026-11-27: file 3's spare per-file bytes in save RAM - the game's per-slot arrays at $6512 / $6515 /
+$6518, slot 3's, which the menu never checks (the third file is hidden); cleared for a new file by lol_entrances. Until
+0.398 they were in shrine A-C's records' fifth bytes, which hold a shrine's cellar items):
   UPDECK  the upgrade card's upgrade + 1 ($FF none, 0 not drawn yet)
   UPL9    level 9's (stage 4)
   UFLAGS  low nibble: the moves; bit 7: an upgrade taken from a shrine (stage 3)
@@ -17,10 +19,8 @@ State (each shrine record's fifth byte, which a shrine never uses: cleared for a
 from lol_af import Asm, BANK
 
 REC = 0x7FAD
-UPDECK = REC + 9 * 5 + 4
-UPL9 = REC + 10 * 5 + 4
-UFLAGS = REC + 11 * 5 + 4
-DECK_PTR = REC + 12 * 5 + 4             # (lol_genload's: shrine D's record's fifth byte; 0.395)
+UPDECK, UPL9, UFLAGS = 0x6514, 0x6517, 0x651A
+from lol_genload import DECK_PTR        # (the item deck's next card)
 CONTAINER = 0x1A
 RANK, P0, P1, TMP = 0x0195, 0x0199, 0x019A, 0x019C   # (lol_upgrades' engine scratch)
 KIND, SLOT = 0x01A1, 0x01A2             # (stack page, unused)

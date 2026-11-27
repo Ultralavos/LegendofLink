@@ -223,8 +223,8 @@ def build_show(org, rom, names, items, L):
     a.label("ip_go").abs(0x4C, "pic")
     # upic: X = an upgrade at PR / PC
     a.label("upic").abs(0xBD, L["hlo"]).abs(0x8D, HLL).abs(0xBD, L["hhi"]).abs(0x8D, HLH)
-    a.b(0x8A, 0x48, 0x18, 0x69, N + 2, 0xAA).abs(0xBD, L["hlo"])     # (right halves: past lol_pictures' NP = N + 2
-                                                                            #  lefts, the Thorn and Sleep pictures too).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
+    # (right halves: past lol_pictures' NP = N + 2 lefts, the Thorn and Sleep pictures too)
+    a.b(0x8A, 0x48, 0x18, 0x69, N + 2, 0xAA).abs(0xBD, L["hlo"]).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
     a.b(0x68, 0xAA).abs(0xBC, L["upal"]).abs(0xB9, "ipal").abs(0x8D, PPAL).b(0xA9, PAIR).abs(0x8D, PMODE)
     a.abs(0x4C, "pic")
     # uown: X = an upgrade; Z clear if owned (X kept)
@@ -253,7 +253,10 @@ def build_show(org, rom, names, items, L):
     a.b(0xAA, 0xCA).abs(0xBD, "nlo").b(0x85, 0x00).abs(0xBD, "nhi").b(0x85, 0x01).abs(0x20, "text").abs(0x4C, "p1_it")
     a.label("p1_nn").b(0xA9, S_UNSEEN).abs(0x20, "stext")
     a.label("p1_it").abs(0xCE, PR).b(0xA9, 28).abs(0x8D, PC)
-    a.abs(0xAE, CNT).abs(0xBC, "stoidx").abs(0xB9, STORE).br(0x10, "p1_nx").b(0x29, 0x7F).abs(0x20, "ipic")
+    a.abs(0xAE, CNT).abs(0xBC, "stoidx").abs(0xB9, STORE).br(0x10, "p1_nx").b(0x29, 0x7F)
+    a.b(0xC9, len(items)).br(0xB0, "p1_ug").abs(0x20, "ipic").abs(0x4C, "p1_nx")
+    # (owner 2026-11-27) an upgrade (the Upgrade mix's old man or shrine: its ware slot's code, past the items): UG
+    a.label("p1_ug").abs(0xEE, PR).b(0xA9, enc("U")[0]).abs(0x20, "tile1").b(0xA9, enc("G")[0]).abs(0x8D, 0x2007)
     a.label("p1_nx").abs(0xEE, CNT).abs(0xAD, CNT).b(0xC9, 13).br(0xF0, "p1_e").abs(0x4C, "p1_l")
     a.label("p1_e").b(0xA9, 28, 0xA2, 0x05).abs(0x20, "at").b(0xA9, S_KEYS).abs(0x4C, "stext")
 
