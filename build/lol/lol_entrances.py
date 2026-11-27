@@ -360,8 +360,6 @@ def clear_code(a: Asm, slot_zp: int) -> None:
     a.label("ec_0").b(0xAA, 0xA0, PER_FILE, 0xA9, 0x00).label("ec_l").abs(0x9D, STORE).b(0xE8, 0x88).br(0xD0, "ec_l")
     if GEN:                               # and the generated dungeons' records (lol_genload: $7FAD, 65 bytes),
         a.b(0xA2, 64, 0xA9, 0x00).label("ec_m").abs(0x9D, 0x7FAD).b(0xCA).br(0x10, "ec_m")   # the hint quotes
-        import lol_fixed
-        if lol_fixed.FIXED:
-            a.abs(0x8D, 0x7FFF)           # (and the item deck's next card: lol_genload DECK_PTR)
+                                          # (the item deck's next card is in them: lol_genload DECK_PTR)
         a.b(0xA2, 71).label("ec_q").abs(0x9D, 0x7F48).b(0xCA).br(0x10, "ec_q")
         a.b(0xA2, 0x7F).label("ec_f").abs(0x9D, 0x6292).b(0xCA).br(0x10, "ec_f")   # grid 4's second room memory
