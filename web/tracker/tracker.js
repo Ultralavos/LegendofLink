@@ -422,7 +422,7 @@ const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 // a room's kind (right-click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
 const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["hmoat2", "Double horizontal moat"],
-  ["chevy", "Chevy moat"], ["circle", "Circle moat"], ["hchute", "Horizontal chute"], ["vchute", "Vertical chute"],
+  ["chevy", "Chevy moat"], ["circle", "Square moat"], ["hchute", "Horizontal chute"], ["vchute", "Vertical chute"],
   ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["q", "?"], ["x", "Remove room"]];
 const ART = {
   // (owner 2026-11-27) the moats as the rooms have them: the vertical one east of the middle, the horizontal one
@@ -432,7 +432,7 @@ const ART = {
   hmoat2: '<rect x="0" y="22" width="100" height="13"/><rect x="0" y="65" width="100" height="13"/>',
   chevy: '<path fill-rule="evenodd" d="M0 0 H100 V100 H0 Z M14 38 H32 V26 H68 V38 H86 V62 H68 V74 H32 V62 H14 Z'
     + ' M40 0 H60 V12 H40 Z M40 88 H60 V100 H40 Z M0 40 H10 V60 H0 Z M90 40 H100 V60 H90 Z"/>',
-  circle: '<path fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 24 A26 26 0 1 0 50.01 24 Z"/>',
+  circle: '<path fill-rule="evenodd" d="M14 14 H86 V86 H14 Z M27 27 V73 H73 V27 Z"/>',      // (the square moat: id kept)
   hchute: '<rect class="blk" x="10" y="28" width="80" height="10"/><rect class="blk" x="10" y="62" width="80" height="10"/>',
   vchute: '<rect class="blk" x="34" y="8" width="8" height="84"/><rect class="blk" x="58" y="8" width="8" height="84"/>',
   stair: '<path class="st" d="M20 80 H40 V62 H58 V44 H76 V26 H86 V80 Z"/>',
