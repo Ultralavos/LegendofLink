@@ -452,10 +452,3 @@ body.stream .checks { margin-top: 5px; gap: 5px; }
 body.stream .ck { padding: 2px 6px; border-width: 1px; }
 body.stream .ck b { font-size: 20px; } body.stream .ck span { font-size: 9px; }
 body.stream .acc .accn { font-size: 11px; }
-/* (owner) the counts in the Overworld heading's line, on the right */
-.panel.map h2 { display: flex; align-items: center; gap: 8px; }
-.panel.map h2 .checks { margin: 0 0 0 auto; gap: 6px; flex: none; }
-.panel.map h2 .ck { flex: none; background: none; border: 0; padding: 0; gap: 4px; }
-.panel.map h2 .ck b { font-size: 18px; letter-spacing: 0; }
-.panel.map h2 .ck span { font-size: 10px; text-transform: none; letter-spacing: .5px; }
-body.stream .panel.map h2 .ck b { font-size: 15px; } body.stream .panel.map h2 .ck span { font-size: 9px; }

@@ -315,7 +315,20 @@ function renderMap() {
     const cell = el("button", { type: "button", className: "cell", title: "ABCDEFGH"[row] + (col + 1) });
     cell.dataset.s = s;
     cell.style.left = `${col * 6.25}%`; cell.style.top = `${row * 12.5}%`;
-    if (FIXED[s]) { cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] })); cell.disabled = true; }
+    if (FIXED[s]) {
+      cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] }));
+      if (s === 119) {                         // (owner 2026-11-27) the wood sword cave: a click checks it and gives the sword
+        if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
+        cell.title += ": the wood sword (click when taken)";
+        const flip = (on) => {
+          if (on) { S.owDone[s] = 1; if (!(S.items.sword > 0)) S.items.sword = 1; }
+          else { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
+          save(); renderMap();
+        };
+        cell.onclick = (e) => { e.stopPropagation(); flip(!S.owDone[s]); };
+        cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); flip(false); };
+      } else cell.disabled = true;
+    }
     else {
       const m = MARK[S.ow[s]];
       if (m) cell.append(markTag(m[2], m[1]));
@@ -397,7 +410,7 @@ renderAccess();
   const c = el("div", { className: "checks" });
   c.append(el("div", { className: "ck", innerHTML: '<b id="chk-left">0</b><span>checks left</span>' }),
     el("div", { className: "ck avail", innerHTML: '<b id="chk-avail">0</b><span>available now</span>' }));
-  document.querySelector(".panel.map h2").append(c);                // (in the Overworld heading's line)
+  $("access").before(c);                                            // (a bar under the overworld: owner's pick)
 }
 renderAccessCounts();
 function openPicker(s, cell) {
