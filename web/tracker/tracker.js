@@ -419,18 +419,27 @@ const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"]
 const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
 // a room's kind (right-click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
-const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["chevy", "Chevy moat"],
-  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["x", "Remove room"]];
+const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["hmoat2", "Double horizontal moat"],
+  ["chevy", "Chevy moat"], ["circle", "Circle moat"], ["hchute", "Horizontal chute"], ["vchute", "Vertical chute"],
+  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["q", "?"], ["x", "Remove room"]];
 const ART = {
-  vmoat: '<rect x="42" y="0" width="16" height="100"/>',
-  hmoat: '<rect x="0" y="42" width="100" height="16"/>',
-  chevy: '<path d="M0 38 H32 V26 H68 V38 H100 V62 H68 V74 H32 V62 H0 Z"/>',
+  // (owner 2026-11-27) the moats as the rooms have them: the vertical one east of the middle, the horizontal one
+  // north of it; the Chevy room all water but the land: its chevy shape in the middle and a spot by each door
+  vmoat: '<rect x="60" y="0" width="14" height="100"/>',
+  hmoat: '<rect x="0" y="24" width="100" height="14"/>',
+  hmoat2: '<rect x="0" y="22" width="100" height="13"/><rect x="0" y="65" width="100" height="13"/>',
+  chevy: '<path fill-rule="evenodd" d="M0 0 H100 V100 H0 Z M14 38 H32 V26 H68 V38 H86 V62 H68 V74 H32 V62 H14 Z'
+    + ' M40 0 H60 V12 H40 Z M40 88 H60 V100 H40 Z M0 40 H10 V60 H0 Z M90 40 H100 V60 H90 Z"/>',
+  circle: '<path fill-rule="evenodd" d="M50 10 A40 40 0 1 1 49.99 10 Z M50 24 A26 26 0 1 0 50.01 24 Z"/>',
+  hchute: '<rect class="blk" x="10" y="28" width="80" height="10"/><rect class="blk" x="10" y="62" width="80" height="10"/>',
+  vchute: '<rect class="blk" x="34" y="8" width="8" height="84"/><rect class="blk" x="58" y="8" width="8" height="84"/>',
   stair: '<path class="st" d="M20 80 H40 V62 H58 V44 H76 V26 H86 V80 Z"/>',
 };
 function roomArt(kind) {
   if (kind === "O") return el("img", { src: "img/cardD.png", className: "rk px", alt: "Old man", draggable: false });
   if (kind === "x") return el("b", { className: "rk rx", textContent: "✕" });
   if (/^n\d$/.test(kind)) return el("b", { className: "rk rn c" + kind.slice(1), textContent: kind.slice(1) });
+  if (kind === "q") return el("b", { className: "rk rn rq", textContent: "?" });            // (owner 2026-11-27) not sure yet
   if (ART[kind]) {
     const w = document.createElement("span"); w.className = "rk art " + kind;
     w.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${ART[kind]}</svg>`
@@ -492,7 +501,7 @@ function renderDun() {
       if ((d.cells[i] || {}).m === "O" && (brush === "O" || brush === "room") && /^[1-8]$/.test(S.cur)) {
         e.stopPropagation(); openOMRoom(+S.cur, cell); return;                // his room again: what did you take?
       }
-      if (brush === "room") { e.stopPropagation(); openKinds(i, cell); return; }
+      if (brush === "room") { e.stopPropagation(); openKinds(i, cell, e); return; }
       const cur = d.cells[i] || {};
       if (brush === "O" && isShrine(S.cur)) return;
       cur.m = cur.m === brush ? undefined : brush; if (cur.m && !cur.r) cur.r = 1;
@@ -569,7 +578,7 @@ function openRoomItems(i, cell, enemies = false) {
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
 }
-function openKinds(i, cell) {
+function openKinds(i, cell, ev) {
   const p = $("rpick"), d = dun(S.cur); rpicking = i; p.replaceChildren();
   const c0 = d.cells[i] || {};
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[i >> 3]}${(i & 7) + 1}: room` }));
@@ -583,7 +592,7 @@ function openKinds(i, cell) {
     const b = el("button", { type: "button", className: "rpi kind" + (cur ? " sel" : ""), disabled: full,
       title: full ? `${name}: already in two rooms` : name });
     const pv = el("span", { className: "kpv" }); const a = roomArt(id); if (a) pv.append(a);
-    b.append(pv); if (!/^n/.test(id)) b.append(el("small", { textContent: name }));
+    b.append(pv); if (!/^n/.test(id) && id !== "q") b.append(el("small", { textContent: name }));
     b.onclick = () => {
       if (id === "x") { delete d.cells[i]; save(); closeRoomItems(); renderDun(); renderOM(); return; }
       const c = d.cells[i] || {};
@@ -605,7 +614,9 @@ function openKinds(i, cell) {
   const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  // (owner 2026-11-27) its bottom at the cursor (the cell's middle without one), kept on the page
+  const y = ev && ev.clientY ? ev.clientY : (r.top + r.bottom) / 2;
+  p.style.top = Math.max(8 - host.top, y - host.top - p.offsetHeight) + "px";
 }
 function openOMRoom(n, cell) {
   const p = $("rpick"); rpicking = -1; p.replaceChildren();
