@@ -354,3 +354,8 @@ body.stream .up { padding: 3px; }
 body.stream .uptiers { align-items: stretch; }
 body.stream .tierhead { text-align: center; }
 .upgrid { width: 100%; box-sizing: border-box; }
+.up.ghost { visibility: hidden; aspect-ratio: 1; }
+/* the bar holds every upgrade now (the hidden ones as blank squares): five across, so it is no taller than before */
+body.stream main { grid-template-columns: 160px minmax(0, 1fr); }
+body.stream.wide main { grid-template-columns: 190px minmax(0, 1fr) 580px; }
+body.stream .upgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
