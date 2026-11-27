@@ -436,3 +436,19 @@ body.stream.onemap .upgrid { background: #1d1d27; border: 1px solid var(--line);
 body.stream .access { gap: 4px; margin-top: 5px; flex-wrap: nowrap; }
 body.stream .acc { max-width: none; border-width: 1px; padding: 3px; }
 body.stream .acc .acclabel { font-size: 9px; }
+/* checks left / available now (owner, 2026-11-27; test page), and each icon's count of unchecked spots */
+.checks { display: flex; gap: 8px; margin-top: 8px; }
+.ck { flex: 1 1 0; display: flex; align-items: baseline; justify-content: center; gap: 8px; background: #000; border: 2px solid var(--line);
+  border-radius: 8px; padding: 4px 8px; }
+.ck b { font: bold 26px ui-monospace, monospace; color: var(--accent); }
+.ck.avail b { color: #5ff0ff; }
+.ck span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.acc { position: relative; }
+.acc .accn { position: absolute; right: 2px; bottom: 1px; font: bold 13px ui-monospace, monospace; color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #000; }
+.acc:not(.can) img, .acc:not(.can) .acclabel { opacity: .3; filter: grayscale(.8); }
+.acc.none .accn { color: #5f5; }
+body.stream .checks { margin-top: 5px; gap: 5px; }
+body.stream .ck { padding: 2px 6px; border-width: 1px; }
+body.stream .ck b { font-size: 20px; } body.stream .ck span { font-size: 9px; }
+body.stream .acc .accn { font-size: 11px; }
