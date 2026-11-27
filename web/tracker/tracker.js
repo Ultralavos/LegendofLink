@@ -319,8 +319,8 @@ function openPicker(s, cell) {
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
   const grid = el("div", { className: "pgrid" });
   for (const [v, label, cls, text] of MARKS) {
-    // (owner 2026-11-27) a level or shrine already on another square: blacked out until it's taken off there
-    const taken = (cls === "lvl" || cls === "shr") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
+    // (owner 2026-11-27) a level, shrine or triforce cave already on another square: blacked out until it's taken off there
+    const taken = (cls === "lvl" || cls === "shr" || cls === "tri") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : "") + (taken ? " taken" : ""),
       title: taken ? `${text}: already on the map` : text, disabled: taken },
       // (owner 2026-11-27) a level or shrine: just its big box, the number or letter (no "Level" text)
