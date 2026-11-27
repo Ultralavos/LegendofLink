@@ -269,8 +269,10 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             seen = reach(graph())
             if len(seen) == len(cells):
                 return
+            # (owner 2026-11-27) level 9's entrance keeps its east and west walls solid: it opens north only
             opts = [(c, s) for c in sorted(seen) for s in range(4)
-                    if nb(c, s) in cells and nb(c, s) not in seen and piece[nb(c, s)] == piece[c]]
+                    if nb(c, s) in cells and nb(c, s) not in seen and piece[nb(c, s)] == piece[c]
+                    and not (cls == "L9" and c == ent and s in (E_, W_))]
             if not opts:
                 raise Fail("unreachable")
             c, s = rng.choice(opts)
@@ -619,6 +621,12 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             y = nb(c, E_)
             if walls[c][E_] != WALL or (y in cells and walls[y][W_] != WALL):
                 raise Fail("corridor stairs east")
+    # (owner 2026-11-27) level 9's entrance: solid east and west (both sides), its way on north only
+    if cls == "L9":
+        for t in (E_, W_):
+            y = nb(ent, t)
+            if walls[ent][t] != WALL or (y in cells and walls[y][OPP[t]] != WALL):
+                raise Fail("level 9 entrance sides")
     for c in cells:
         rooms[c]["walls"] = walls[c]
     if len(reach(graph())) != len(cells):
