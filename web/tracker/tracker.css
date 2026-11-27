@@ -94,7 +94,11 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
   color: #111; background: #ddd; box-shadow: 0 1px 0 rgba(0,0,0,.6); white-space: nowrap; }
 .tag.lvl { background: #f5e04a; } .tag.shr { background: var(--pink); color: #fff; } .tag.shop { background: #fff; }
 .tag.up { background: var(--accent); } .tag.hint { background: #9ad0ff; } .tag.misc { background: #c8c8c8; }
-.tag.tri { background: #f39a2c; } .tag.fixed { background: #333; color: #ddd; } .tag.road { background: #6d4bd8; color: #fff; }
+.tag.tri { background: #f39a2c; position: relative; display: inline-grid; place-items: center; min-width: 22px; min-height: 20px; }
+.tag.tri svg { position: absolute; inset: 10% 12%; width: 76%; height: 80%; fill: #ffe27a; stroke: #6b3a00; stroke-width: 1; }
+.tag.tri b { position: relative; color: #000; font-weight: 900; font-size: 1em; margin-top: 18%; }
+.pick.tri .tag { width: 100%; min-height: 30px; font-size: 16px; }
+.cell .tag.tri { font-size: clamp(10px, 1.7vw, 24px); border: 2px solid #111; } .tag.fixed { background: #333; color: #ddd; } .tag.road { background: #6d4bd8; color: #fff; }
 .cell .tag { position: absolute; inset: 5%; display: grid; place-items: center; padding: 0; border-radius: 4px;
   font-size: clamp(9px, 1.5vw, 22px); overflow: hidden; }
 .cell.fixed .tag { font-size: clamp(7px, 0.95vw, 13px); }
