@@ -219,7 +219,7 @@ P(f'''<section class="page"><h1 class="band">ENEMIES THAT GROW WITH YOU</h1>
 <tr><td>15</td><td>Patras</td></tr>
 <tr><td>16</td><td>Ganon</td></tr>
 </table>
-{shot("img/gibdo.png", "Orange Gibdos.", "mid")}
+{shot("img/digdogger.png", "Pink Digdogger.", "mid")}
 <div class="hint"><b>HINT</b> Listen to the old men. They know a thing or two about these.</div>
 </section>''')
 
