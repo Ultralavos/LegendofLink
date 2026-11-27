@@ -356,12 +356,13 @@ const B_ = [0x01, 0x03, 0x05, 0x07, 0x0D, 0x10, 0x12, 0x13, 0x14, 0x16, 0x1E, 0x
 const CANDLE_ = [0x28, 0x46, 0x47, 0x48, 0x4B, 0x4D, 0x51, 0x56, 0x5B, 0x62, 0x63, 0x68, 0x6A, 0x6B, 0x6D, 0x78];
 const ACCESS = [   // id, icon (null: a label), name, screens (ACCESS_OK: whether Link can open them now)
   ["open", null, "Open caves and the Armos' stairs", [0x04, 0x0A, 0x0B, 0x0C, 0x0E, 0x0F, 0x1A, 0x1C, 0x1F, 0x21, 0x22,
-    0x25, 0x34, 0x37, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75]],
+    0x25, 0x34, 0x37, 0x3C, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75]],
   ["bomb", "bombs", "Bomb walls", B_],
-  ["candle1", "candle1", "Bushes to burn (blue candle)", CANDLE_],
-  ["candle2", "candle2", "Bushes to burn (red candle)", CANDLE_],
+  // (owner 2026-11-27) the blue candle burns only F2, G3, G4, F7, C9 and G11; the red candle every bush
+  ["candle1", "candle1", "Bushes the blue candle burns", [0x51, 0x62, 0x63, 0x56, 0x28, 0x6A]],
+  ["candle2", "candle2", "Bushes to burn (red candle: all of them)", CANDLE_],
   ["bracelet", "bracelet", "Rocks to push (power bracelet)", [0x11, 0x1B]],
-  ["recorder", "recorder", "The recorder's secrets", [0x3C, 0x42, 0x58]],
+  ["recorder", "recorder", "The recorder's secrets", [0x42, 0x58]],             // (D13: open, owner 2026-11-27)
   ["raft", "raft", "Docks (raft)", [0x2F, 0x45]],
   ["ladder", "ladder", "Across the water (ladder; and a bomb)", [0x19]],
 ];
@@ -373,7 +374,7 @@ function showAccess(a) {
   $("access").querySelectorAll("button").forEach((b) => b.classList.toggle("cur", !!a && b.dataset.id === a[0]));
 }
 // (bombs count as always at hand; the ladder's spot needs a bomb too)
-const ACCESS_OK = { open: () => true, bomb: () => true, candle1: () => has("candle"), candle2: () => has("candle"),
+const ACCESS_OK = { open: () => true, bomb: () => true, candle1: () => has("candle"), candle2: () => has("candle", 2),
   bracelet: () => has("bracelet"), recorder: () => has("recorder"), raft: () => has("raft"), ladder: () => has("ladder") };
 const openable = (s) => (s === 0x19 ? has("ladder") : ACCESS.some((a) => a[3].includes(s) && ACCESS_OK[a[0]]()));
 const unchecked = (s) => !S.ow[s] && !S.owX[s];
