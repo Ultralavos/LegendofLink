@@ -920,14 +920,16 @@ function renderAll() {
   renderItems(); renderCounters();
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
-// the Stream layout (button or ?stream): one 640px column (the upgrades a bar beside the overworld), zoomed to fit the window
+// the Stream layout (button or ?stream): one 640px column (the upgrades a bar beside the overworld), zoomed to fit the window;
+// Wide (button or ?stream=wide, owner 2026-11-27): the dungeon map beside it instead, for a whole monitor
 const STREAM_KEY = "lol-tracker-stream";
-const STREAM_W = 640;                    // (tracker.css: body.stream main's width)
+const WIDE_KEY = "lol-tracker-stream-wide";
 function fitStream() {
   if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
   document.body.style.zoom = 1;
-  const h = document.documentElement.scrollHeight;
-  document.body.style.zoom = Math.min(innerWidth / STREAM_W, innerHeight / h);
+  const w = document.querySelector("main").offsetWidth;        // (tracker.css: 640, or 1240 wide)
+  const h = document.querySelector("main").getBoundingClientRect().bottom + scrollY + 4;   // (not the page: it fills the window)
+  document.body.style.zoom = Math.min(innerWidth / w, innerHeight / h);
 }
 function setStream(on) {
   document.body.classList.toggle("stream", on);
@@ -935,11 +937,23 @@ function setStream(on) {
   $("stream").classList.toggle("cur", on);
   fitStream();
 }
+function setWide(on) {
+  document.body.classList.toggle("wide", on);
+  try { localStorage.setItem(WIDE_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
+  $("stream-wide").classList.toggle("cur", on);
+  fitStream();
+}
 $("stream").onclick = () => setStream(!document.body.classList.contains("stream"));
+$("stream-wide").onclick = () => setWide(!document.body.classList.contains("wide"));
 addEventListener("resize", fitStream);
 if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(fitStream)).observe(document.querySelector("main"));
 let streamOn = /[?&]stream\b/.test(location.search);
-try { streamOn = streamOn || localStorage.getItem(STREAM_KEY) === "1"; } catch (e) { /* storage off */ }
+let wideOn = /[?&]stream=wide\b/.test(location.search);
+try {
+  streamOn = streamOn || localStorage.getItem(STREAM_KEY) === "1";
+  wideOn = wideOn || localStorage.getItem(WIDE_KEY) === "1";
+} catch (e) { /* storage off */ }
+setWide(wideOn);
 setStream(streamOn);
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;

@@ -332,3 +332,12 @@ body.stream .ups h2 .upall input { margin: 0; }
 body.stream .map { min-width: 0; display: flex; flex-direction: column; }
 body.stream .mapwrap { flex: 1 1 auto; display: flex; container-type: inline-size; }
 body.stream .owmap { aspect-ratio: auto; height: auto; flex: 1 1 auto; min-height: calc(100cqw * 704 / 2048); }
+/* Stream layout, Wide (owner, 2026-11-27: a whole monitor, 1080p or 2560x1600 at 125%): the dungeon map beside the
+   rest instead of under it, so the page is about half as tall and scales up about twice as big */
+body.stream.wide main { width: 1240px; max-width: 1240px; grid-template-columns: 118px minmax(0, 1fr) 580px;
+  grid-template-areas: "items items dun" "tri tri dun" "ups map dun"; align-items: start; }
+body.stream.wide .ups, body.stream.wide .map { align-self: stretch; }
+body.stream.wide .top { width: 1240px; }
+.actions #stream-wide { display: none; }
+body.stream .actions #stream-wide { display: inline-block; }
+#stream-wide.cur, #stream.cur { border-color: var(--accent); color: var(--accent); }
