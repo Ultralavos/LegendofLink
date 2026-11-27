@@ -346,3 +346,13 @@ body.stream .actions #stream-wide { display: inline-block; }
 /* bigger upgrade icons (owner, 2026-11-27): a wider upgrades bar, the overworld a little narrower */
 body.stream main { grid-template-columns: 140px minmax(0, 1fr); }
 body.stream.wide main { grid-template-columns: 150px minmax(0, 1fr) 580px; }
+/* (owner, 2026-11-27: some browsers drew Stream's upgrade icons a few pixels big) the icon sized by its own width, not
+   by percentages of a button that is sized by them: the button takes its column's width, the picture that width */
+.up { width: 100%; min-width: 0; box-sizing: border-box; }
+.up img { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+body.stream .up { padding: 3px; }
+/* (and the cause: the old bar's align-items: center was left on, so each tier's grid shrank to its content's width -
+   nearly nothing where the browser counts the pictures by their percentage size) */
+body.stream .uptiers { align-items: stretch; }
+body.stream .tierhead { text-align: center; }
+.upgrid { width: 100%; box-sizing: border-box; }
