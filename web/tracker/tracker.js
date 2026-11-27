@@ -988,7 +988,15 @@ function fitStream() {
   if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
   document.body.style.zoom = 1;
   const w = document.querySelector("main").offsetWidth;        // (tracker.css: 640, or 1240 wide)
-  const h = document.querySelector("main").getBoundingClientRect().bottom + scrollY + 4;   // (not the page: it fills the window)
+  const measure = () => document.querySelector("main").getBoundingClientRect().bottom + scrollY + 4;   // (not the page: it fills the window)
+  let h = measure();
+  const c = document.body.classList;
+  if (c.contains("onemap")) {             // One map: fitted to the taller of the two, so the switch never rescales
+    const ow = c.contains("view-ow");
+    c.toggle("view-ow", !ow); c.toggle("view-dun", ow);
+    h = Math.max(h, measure());
+    c.toggle("view-ow", ow); c.toggle("view-dun", !ow);
+  }
   document.body.style.zoom = Math.min(innerWidth / w, innerHeight / h);
 }
 function setStream(on) {
@@ -1001,8 +1009,25 @@ function setWide(on) {
   document.body.classList.toggle("wide", on);
   try { sessionStorage.setItem(WIDE_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
   $("stream-wide").classList.toggle("cur", on);
+  if (typeof applyOneMap === "function") applyOneMap();
   fitStream();
 }
+// One map (button or ?onemap, owner 2026-11-27; test page): the overworld and the dungeons share one space, a big
+// switch above it (each window its own; not with Wide, which has room for both)
+const ONEMAP_KEY = "lol-tracker-onemap", VIEW_KEY = "lol-tracker-mapview";
+let oneMap = false, mapView = "ow";
+function applyOneMap() {
+  const on = oneMap && !document.body.classList.contains("wide");
+  document.body.classList.toggle("onemap", on);
+  document.body.classList.toggle("view-ow", on && mapView === "ow");
+  document.body.classList.toggle("view-dun", on && mapView === "dun");
+  $("onemap").classList.toggle("cur", oneMap);
+  document.querySelectorAll("#maptoggle button").forEach((b) => b.classList.toggle("cur", b.dataset.v === mapView));
+  try { sessionStorage.setItem(ONEMAP_KEY, oneMap ? "1" : ""); sessionStorage.setItem(VIEW_KEY, mapView); } catch (e) { /* storage off */ }
+  fitStream();
+}
+$("onemap").onclick = () => { oneMap = !oneMap; applyOneMap(); };
+document.querySelectorAll("#maptoggle button").forEach((b) => { b.onclick = () => { mapView = b.dataset.v; applyOneMap(); }; });
 $("stream").onclick = () => setStream(!document.body.classList.contains("stream"));
 $("stream-wide").onclick = () => setWide(!document.body.classList.contains("wide"));
 addEventListener("resize", fitStream);
@@ -1014,7 +1039,13 @@ try {
   wideOn = wideOn || sessionStorage.getItem(WIDE_KEY) === "1";
   localStorage.removeItem(STREAM_KEY); localStorage.removeItem(WIDE_KEY);       // (the old shared setting)
 } catch (e) { /* storage off */ }
+oneMap = /[?&]onemap\b/.test(location.search);
+try {
+  oneMap = oneMap || sessionStorage.getItem(ONEMAP_KEY) === "1";
+  mapView = sessionStorage.getItem(VIEW_KEY) === "dun" ? "dun" : "ow";
+} catch (e) { /* storage off */ }
 setWide(wideOn);
 setStream(streamOn);
+applyOneMap();
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
