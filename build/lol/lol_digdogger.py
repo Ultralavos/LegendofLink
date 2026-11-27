@@ -13,7 +13,7 @@ palette 3), and the recorder's tune turns it into a blue dodongo on its square (
 with the spawn cloud), no mini.
 
 Bank 4: UpdateDigdogger's LDA InvClock ($95F0) -> a stub: far(3, dg), then LDA InvClock.
-Bank 7: FlagFluteUsed ($EFC7: LDA UsedFlute / BNE / INC UsedFlute / RTS) -> far(3, fl) / RTS: in a Bomb Digdogger's
+Bank 7: FlagFluteUsed ($EFC7: LDA UsedFlute / BNE / INC UsedFlute / RTS) -> far(3, fl) / RTS / RTS (its RTS at $EFCF stays: other code branches to it): in a Bomb Digdogger's
   room the bombs instead, else the replaced code.
 RAM (save RAM spare): DGR the room it's in (one is there), BT the bomb timer, LASTF the frame done, SPL 1: a split
 to come (the pink one's minis get their health; the blue one's room counts its dodongo), DGK 0 pink / 1 blue."""
@@ -157,11 +157,11 @@ def _hook(rom, notes, bank, a):
         return Asm(o).b(*V.far(bank, L["dg"])).abs(0xAD, 0x066C).b(0x60)
     s = N.put(rom, 4, stub)
     patch(rom, 4, 0x95F0, bytes([0xAD, 0x6C, 0x06]), bytes([0x20, s.cpu & 0xFF, s.cpu >> 8]))
-    patch(rom, 7, 0xEFC7, bytes.fromhex("ad1b05d003ee1b0560"), bytes(V.far(bank, L["fl"])) + bytes([0x60, 0xEA]))
+    patch(rom, 7, 0xEFC7, bytes.fromhex("ad1b05d003ee1b0560"), bytes(V.far(bank, L["fl"])) + bytes([0x60, 0x60]))
     if bank != 3:                       # (late: the fixed bank's copy, bank 15, is made already: patched there too)
         o = BANK(15) + 0xEFC7 - 0xC000
         if rom[o:o + 9] == bytes.fromhex("ad1b05d003ee1b0560"):
-            rom[o:o + 9] = bytes(V.far(bank, L["fl"])) + bytes([0x60, 0xEA])
+            rom[o:o + 9] = bytes(V.far(bank, L["fl"])) + bytes([0x60, 0x60])
     notes.append(f"Bomb Digdogger: 8+ containers, {len(a.bytes())} bytes in bank {bank} at ${L['dg']:04X}")
 
 
