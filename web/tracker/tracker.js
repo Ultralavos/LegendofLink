@@ -89,7 +89,8 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still works */ }
   if (!upQueued && typeof renderUps === "function") {
     upQueued = true;
-    queueMicrotask(() => { upQueued = false; renderUps(); renderTri(); renderItems(); renderCounters(); renderSide(); renderDTabs(); });
+    queueMicrotask(() => { upQueued = false; renderUps(); renderTri(); renderItems(); renderCounters(); renderSide(); renderDTabs();
+      if (typeof renderAccessCounts === "function") renderAccessCounts(); });
   }
 }
 
@@ -273,7 +274,8 @@ function renderUps() {
     // changes as more are offered (in Stream the whole page rescales when it does)
     for (let k = 0; k < hidden; k++) row.append(el("div", { className: "up ghost" }));
     const head = el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") });
-    head.dataset.short = `Tier ${t + 1}`;                // (the Stream layout's bar shows this)
+    head.dataset.short = `Tier ${t + 1}`;
+    head.dataset.tn = `${t + 1}`;                         // (Stream + One map: just the number)                // (the Stream layout's bar shows this)
     box.append(head, row);
   });
 }
@@ -297,8 +299,22 @@ function renderMap() {
   for (const s of all) {
     const row = s >> 4, col = s & 15;
     const cell = el("button", { type: "button", className: "cell", title: "ABCDEFGH"[row] + (col + 1) });
+    cell.dataset.s = s;
     cell.style.left = `${col * 6.25}%`; cell.style.top = `${row * 12.5}%`;
-    if (FIXED[s]) { cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] })); cell.disabled = true; }
+    if (FIXED[s]) {
+      cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] }));
+      if (s === 119) {                         // (owner 2026-11-27) the wood sword cave: a click checks it and gives the sword
+        if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
+        cell.title += ": the wood sword (click when taken)";
+        const flip = (on) => {
+          if (on) { S.owDone[s] = 1; if (!(S.items.sword > 0)) S.items.sword = 1; }
+          else { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
+          save(); renderMap();
+        };
+        cell.onclick = (e) => { e.stopPropagation(); flip(!S.owDone[s]); };
+        cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); flip(false); };
+      } else cell.disabled = true;
+    }
     else {
       const m = MARK[S.ow[s]];
       if (m) cell.append(markTag(m[2], m[1]));
@@ -316,7 +332,73 @@ function renderMap() {
     map.append(cell);
   }
   $("spots").textContent = ENTRANCES.filter((s) => !S.ow[s] && !S.owX[s]).length;
+  if (typeof showAccess === "function" && accShown) showAccess(accShown);
+  if (typeof renderAccessCounts === "function" && $("chk-left")) renderAccessCounts();
 }
+// (owner 2026-11-27) what opens which entrance: point at (or tap) an icon under the overworld and the
+// entrances that need it light up. The screens by how they open (ZORA's model of the overworld: both quests' secrets)
+const B_ = [0x01, 0x03, 0x05, 0x07, 0x0D, 0x10, 0x12, 0x13, 0x14, 0x16, 0x1E, 0x26, 0x27, 0x2C, 0x2D, 0x33, 0x67, 0x71,
+  0x76, 0x7B, 0x7C, 0x7D, 0x19];
+const CANDLE_ = [0x28, 0x46, 0x47, 0x48, 0x4B, 0x4D, 0x51, 0x56, 0x5B, 0x62, 0x63, 0x68, 0x6A, 0x6B, 0x6D, 0x78];
+const ACCESS = [   // id, icon (null: a label), name, screens (ACCESS_OK: whether Link can open them now)
+  ["open", null, "Open caves and the Armos' stairs", [0x04, 0x0A, 0x0B, 0x0C, 0x0E, 0x0F, 0x1A, 0x1C, 0x1F, 0x21, 0x22,
+    0x25, 0x34, 0x37, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75]],
+  ["bomb", "bombs", "Bomb walls", B_],
+  ["candle1", "candle1", "Bushes to burn (blue candle)", CANDLE_],
+  ["candle2", "candle2", "Bushes to burn (red candle)", CANDLE_],
+  ["bracelet", "bracelet", "Rocks to push (power bracelet)", [0x11, 0x1B]],
+  ["recorder", "recorder", "The recorder's secrets", [0x3C, 0x42, 0x58]],
+  ["raft", "raft", "Docks (raft)", [0x2F, 0x45]],
+  ["ladder", "ladder", "Across the water (ladder; and a bomb)", [0x19]],
+];
+let accShown = null;                        // the one lit now (renderMap keeps it lit)
+function showAccess(a) {
+  accShown = a;
+  $("map").classList.toggle("acc-on", !!a);
+  $("map").querySelectorAll(".cell").forEach((c) => c.classList.toggle("acc-hit", !!a && a[3].includes(+c.dataset.s)));
+  $("access").querySelectorAll("button").forEach((b) => b.classList.toggle("cur", !!a && b.dataset.id === a[0]));
+}
+// (bombs count as always at hand; the ladder's spot needs a bomb too)
+const ACCESS_OK = { open: () => true, bomb: () => true, candle1: () => has("candle"), candle2: () => has("candle"),
+  bracelet: () => has("bracelet"), recorder: () => has("recorder"), raft: () => has("raft"), ladder: () => has("ladder") };
+const openable = (s) => (s === 0x19 ? has("ladder") : ACCESS.some((a) => a[3].includes(s) && ACCESS_OK[a[0]]()));
+const unchecked = (s) => !S.ow[s] && !S.owX[s];
+function renderAccessCounts() {
+  const left = ENTRANCES.filter(unchecked);
+  const avail = left.filter(openable).length;
+  $("chk-left").textContent = left.length;
+  $("chk-avail").textContent = avail;
+  $("access").querySelectorAll(".acc").forEach((b) => {
+    const a = ACCESS.find((x) => x[0] === b.dataset.id);
+    const n = a[3].filter(unchecked).length;
+    b.querySelector(".accn").textContent = n;
+    b.classList.toggle("can", ACCESS_OK[a[0]]());
+    b.classList.toggle("none", n === 0);
+  });
+}
+function renderAccess() {
+  const box = $("access"); box.replaceChildren();
+  const show = showAccess;
+  let held = null;                          // (a tap holds it on until another tap)
+  for (const a of ACCESS) {
+    const b = el("button", { type: "button", className: "acc", title: `${a[2]}: ${a[3].length}` });
+    b.dataset.id = a[0];
+    b.append(a[1] ? icon(a[1]) : el("span", { className: "acclabel", textContent: "OPEN" }), el("span", { className: "accn" }));
+    b.onmouseenter = () => show(a);
+    b.onmouseleave = () => show(held);
+    b.onclick = () => { held = held === a ? null : a; show(held); };
+    box.append(b);
+  }
+}
+renderAccess();
+// checks left (entrances not marked or X'd) and how many of them Link can open with what he has
+{
+  const c = el("div", { className: "checks" });
+  c.append(el("div", { className: "ck", innerHTML: '<b id="chk-left">0</b><span>checks left</span>' }),
+    el("div", { className: "ck avail", innerHTML: '<b id="chk-avail">0</b><span>available now</span>' }));
+  $("access").before(c);                                            // (a bar under the overworld: owner's pick)
+}
+renderAccessCounts();
 function openPicker(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
@@ -938,7 +1020,15 @@ function fitStream() {
   if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
   document.body.style.zoom = 1;
   const w = document.querySelector("main").offsetWidth;        // (tracker.css: 640, or 1240 wide)
-  const h = document.querySelector("main").getBoundingClientRect().bottom + scrollY + 4;   // (not the page: it fills the window)
+  const measure = () => document.querySelector("main").getBoundingClientRect().bottom + scrollY + 4;   // (not the page: it fills the window)
+  let h = measure();
+  const c = document.body.classList;
+  if (c.contains("onemap")) {             // One map: fitted to the taller of the two, so the switch never rescales
+    const ow = c.contains("view-ow");
+    c.toggle("view-ow", !ow); c.toggle("view-dun", ow);
+    h = Math.max(h, measure());
+    c.toggle("view-ow", ow); c.toggle("view-dun", !ow);
+  }
   document.body.style.zoom = Math.min(innerWidth / w, innerHeight / h);
 }
 function setStream(on) {
@@ -951,8 +1041,25 @@ function setWide(on) {
   document.body.classList.toggle("wide", on);
   try { sessionStorage.setItem(WIDE_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
   $("stream-wide").classList.toggle("cur", on);
+  if (typeof applyOneMap === "function") applyOneMap();
   fitStream();
 }
+// One map (button or ?onemap, owner 2026-11-27): the overworld and the dungeons share one space, a big
+// switch above it (each window its own; not with Wide, which has room for both)
+const ONEMAP_KEY = "lol-tracker-onemap", VIEW_KEY = "lol-tracker-mapview";
+let oneMap = false, mapView = "ow";
+function applyOneMap() {
+  const on = oneMap && !document.body.classList.contains("wide");
+  document.body.classList.toggle("onemap", on);
+  document.body.classList.toggle("view-ow", on && mapView === "ow");
+  document.body.classList.toggle("view-dun", on && mapView === "dun");
+  $("onemap").classList.toggle("cur", oneMap);
+  document.querySelectorAll("#maptoggle button").forEach((b) => b.classList.toggle("cur", b.dataset.v === mapView));
+  try { sessionStorage.setItem(ONEMAP_KEY, oneMap ? "1" : ""); sessionStorage.setItem(VIEW_KEY, mapView); } catch (e) { /* storage off */ }
+  fitStream();
+}
+$("onemap").onclick = () => { oneMap = !oneMap; applyOneMap(); };
+document.querySelectorAll("#maptoggle button").forEach((b) => { b.onclick = () => { mapView = b.dataset.v; applyOneMap(); }; });
 $("stream").onclick = () => setStream(!document.body.classList.contains("stream"));
 $("stream-wide").onclick = () => setWide(!document.body.classList.contains("wide"));
 addEventListener("resize", fitStream);
@@ -964,7 +1071,16 @@ try {
   wideOn = wideOn || sessionStorage.getItem(WIDE_KEY) === "1";
   localStorage.removeItem(STREAM_KEY); localStorage.removeItem(WIDE_KEY);       // (the old shared setting)
 } catch (e) { /* storage off */ }
+oneMap = /[?&]onemap\b/.test(location.search);
+try {
+  oneMap = oneMap || sessionStorage.getItem(ONEMAP_KEY) === "1";
+  mapView = sessionStorage.getItem(VIEW_KEY) === "dun" ? "dun" : "ow";
+} catch (e) { /* storage off */ }
 setWide(wideOn);
 setStream(streamOn);
+applyOneMap();
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
+// (owner 2026-11-27) no browser menu anywhere on the tracker (a right-click, or a long press on a touch
+// screen), and no text selection while clicking about; the notes and the pickers' text boxes keep theirs
+document.addEventListener("contextmenu", (e) => { if (!e.target.closest("textarea, input, select")) e.preventDefault(); });

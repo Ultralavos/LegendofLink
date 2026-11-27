@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Legend of Link Tracker</title>
-<link rel="stylesheet" href="tracker.css?v=0.415">
+<link rel="stylesheet" href="tracker.css?v=0.416">
 </head>
 <body>
 <header class="top">
@@ -19,6 +19,7 @@
     <button id="reset-all" type="button" class="quiet">New run</button>
     <button id="stream" type="button" class="quiet" title="A narrow layout for beside a game capture (640 wide, the upgrades in a bar by the overworld), scaled to the window, nothing to scroll. Or open the page with ?stream">Stream</button>
     <button id="stream-wide" type="button" class="quiet" title="Stream layout for a whole monitor: the dungeon map beside the rest, everything about twice as big. Or open the page with ?stream=wide">Wide</button>
+    <button id="onemap" type="button" class="quiet" title="The overworld and the dungeon maps share one space, a big switch above it: more room for the rest. Or open the page with ?onemap">One map</button>
   </div>
 </header>
 
@@ -51,9 +52,13 @@
     <div id="up-name" class="upname">&nbsp;</div>
   </section>
 
+  <div id="maptoggle" class="maptoggle" role="group" aria-label="Which map">
+    <button type="button" data-v="ow">Overworld</button><button type="button" data-v="dun">Dungeons</button>
+  </div>
   <section class="panel map">
     <h2>Overworld <span class="sub">Click an entrance to mark what's behind it; right-click (or long-press) to X it out. Dashed circles are unmarked.</span></h2>
     <div class="mapwrap"><div id="map" class="owmap"><img src="img/overworld.png" alt="The overworld" draggable="false"></div></div>
+    <div id="access" class="access" aria-label="What opens which entrances: point at one"></div>
     <div id="picker" class="picker" hidden></div>
   </section>
 
@@ -86,7 +91,7 @@
 <footer>Saved in this browser as you go. Layout inspired by
   <a href="https://github.com/TheGobOne/ZoraTracker" target="_blank" rel="noopener">ZORATracker</a> by TheGobOne,
   itself based on brianmcn's Z1R tracker. <a href="../">Back to the randomizer</a></footer>
-<script src="shapes.js?v=0.415"></script>
-<script src="tracker.js?v=0.415"></script>
+<script src="shapes.js?v=0.416"></script>
+<script src="tracker.js?v=0.416"></script>
 </body>
 </html>
