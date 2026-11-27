@@ -3,8 +3,8 @@
 The clock: four bytes of save RAM (CLOCK: frames, seconds, minutes, hours; file 2's name, which nothing writes since
 lol_af keeps the file unregistered) count every frame from the file's start (lol_saveblock's new-file clear zeroes
 them) to the end: the frame's sound call in the NMI (bank 7 $E561, JSR $9825 with bank 0 in) goes through TICK first,
-which counts in the game's modes 2-$12 (not the title, the menu, registering, elimination or the ending), up to
-99:59:59. Kept at once (not undone by a reset), so it is the time from start to finish.
+which counts in the game's modes 2-$12 (the title, the menu, registering and elimination too once the clock has
+started; not the ending), 60.1 frames a second (build_tick), up to 99:59:59. Kept at once (not undone by a reset), so it is the time from start to finish.
 
 The end screen: the credits' last wait (bank 2 $ABA5, the Start press: JSR $EBA3 before the file is wiped) runs SHOW
 first (bank 0, far-called). With NMI and the picture off it draws a page into nametable $2000 (the font's tiles, $00-
@@ -376,17 +376,24 @@ INV = [(16, 6, 0x0660, 0, 0x0B),         # raft ($0C)
 
 
 def build_tick(org):
-    """TICK (bank 0): the clock, then the sound driver."""
+    """TICK (bank 0): the clock, then the sound driver. Counts in modes 2-$12; in the title, the menu, registering
+    and elimination too once the file's clock has started (owner 2026-11-27: closer to a split timer's time - a reset
+    or a save's trip through the menu counts); not in the ending ($13 on). A second is 60 frames, 61 every tenth one
+    (seconds 0, 10, ... 50): 3606 frames a minute, the NES's 60.0988 a second within 7 frames in 100 minutes."""
     a = Asm(org)
-    a.label("tick").b(0xA5, 0x12, 0xC9, 0x02).br(0x90, "go").b(0xC9, 0x13).br(0xB0, "go")
-    a.b(0xC9, 0x0E).br(0xF0, "go").b(0xC9, 0x0F).br(0xF0, "go")
-    a.abs(0xAD, CLOCK + 3).b(0xC9, 99).br(0x90, "run")
+    a.label("tick").b(0xA5, 0x12, 0xC9, 0x13).br(0xB0, "go")
+    a.b(0xC9, 0x02).br(0x90, "menu").b(0xC9, 0x0E).br(0xF0, "menu").b(0xC9, 0x0F).br(0xD0, "cap")
+    a.label("menu").abs(0xAD, CLOCK).abs(0x0D, CLOCK + 1).abs(0x0D, CLOCK + 2).abs(0x0D, CLOCK + 3).br(0xF0, "go")
+    a.label("cap").abs(0xAD, CLOCK + 3).b(0xC9, 99).br(0x90, "run")
     a.abs(0xAD, CLOCK + 2).b(0xC9, 59).br(0x90, "run").abs(0xAD, CLOCK + 1).b(0xC9, 59).br(0xB0, "go")
-    a.label("run").b(0xA2, 0x00)
-    a.label("lp").abs(0xFE, CLOCK).abs(0xBD, CLOCK).abs(0xDD, "lim").br(0x90, "go")
-    a.b(0xA9, 0x00).abs(0x9D, CLOCK).b(0xE8, 0xE0, 0x03).br(0xD0, "lp").abs(0xEE, CLOCK + 3)
+    a.label("run").abs(0xEE, CLOCK).abs(0xAD, CLOCK).b(0xC9, 60).br(0x90, "go")
+    a.b(0xA2, 0x00).abs(0x8E, CLOCK)
+    a.label("lp").b(0xE8).abs(0xFE, CLOCK).abs(0xBD, CLOCK).b(0xC9, 60).br(0x90, "ten")
+    a.b(0xA9, 0x00).abs(0x9D, CLOCK).b(0xE0, 0x02).br(0xD0, "lp").abs(0xEE, CLOCK + 3)
+    a.label("ten").abs(0xAD, CLOCK + 1)
+    a.label("t10").b(0x38, 0xE9, 10).br(0xB0, "t10").b(0xC9, 0xF6).br(0xD0, "go")
+    a.abs(0xCE, CLOCK)                                  # 0 -> $FF: this second takes 61 frames
     a.label("go").abs(0x4C, SOUND)
-    a.label("lim").b(60, 60, 60)
     return a
 
 
