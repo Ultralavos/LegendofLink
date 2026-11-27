@@ -341,3 +341,6 @@ body.stream.wide .top { width: 1240px; }
 .actions #stream-wide { display: none; }
 body.stream .actions #stream-wide { display: inline-block; }
 #stream-wide.cur, #stream.cur { border-color: var(--accent); color: var(--accent); }
+/* bigger upgrade icons (owner, 2026-11-27): a wider upgrades bar, the overworld a little narrower */
+body.stream main { grid-template-columns: 140px minmax(0, 1fr); }
+body.stream.wide main { grid-template-columns: 150px minmax(0, 1fr) 580px; }
