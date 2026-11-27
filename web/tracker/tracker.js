@@ -923,9 +923,16 @@ function renderAll() {
   renderItems(); renderCounters();
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
+// (owner 2026-11-27) every tracker window open in this browser shows the same run: another window's save arrives here
+addEventListener("storage", (e) => {
+  if (e.key !== KEY) return;
+  try { S = Object.assign(fresh(), e.newValue ? JSON.parse(e.newValue) : {}); } catch (err) { return; }
+  if (document.activeElement !== $("notes")) $("notes").value = S.notes;
+  renderAll();
+});
 // the Stream layout (button or ?stream): one 640px column (the upgrades a bar beside the overworld), zoomed to fit the window;
 // Wide (button or ?stream=wide, owner 2026-11-27): the dungeon map beside it instead, for a whole monitor
-const STREAM_KEY = "lol-tracker-stream";
+const STREAM_KEY = "lol-tracker-stream";            // (sessionStorage: each window its own layout, kept over a reload)
 const WIDE_KEY = "lol-tracker-stream-wide";
 function fitStream() {
   if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
@@ -936,13 +943,13 @@ function fitStream() {
 }
 function setStream(on) {
   document.body.classList.toggle("stream", on);
-  try { localStorage.setItem(STREAM_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
+  try { sessionStorage.setItem(STREAM_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
   $("stream").classList.toggle("cur", on);
   fitStream();
 }
 function setWide(on) {
   document.body.classList.toggle("wide", on);
-  try { localStorage.setItem(WIDE_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
+  try { sessionStorage.setItem(WIDE_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
   $("stream-wide").classList.toggle("cur", on);
   fitStream();
 }
@@ -953,8 +960,9 @@ if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(fitStr
 let streamOn = /[?&]stream\b/.test(location.search);
 let wideOn = /[?&]stream=wide\b/.test(location.search);
 try {
-  streamOn = streamOn || localStorage.getItem(STREAM_KEY) === "1";
-  wideOn = wideOn || localStorage.getItem(WIDE_KEY) === "1";
+  streamOn = streamOn || sessionStorage.getItem(STREAM_KEY) === "1";
+  wideOn = wideOn || sessionStorage.getItem(WIDE_KEY) === "1";
+  localStorage.removeItem(STREAM_KEY); localStorage.removeItem(WIDE_KEY);       // (the old shared setting)
 } catch (e) { /* storage off */ }
 setWide(wideOn);
 setStream(streamOn);
