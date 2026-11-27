@@ -940,5 +940,25 @@ function renderAll() {
   renderItems(); renderCounters();
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
+// the Stream layout (button or ?stream): one 480px column, zoomed to fit the window (width and height)
+const STREAM_KEY = "lol-tracker-stream";
+function fitStream() {
+  if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
+  document.body.style.zoom = 1;
+  const h = document.documentElement.scrollHeight;
+  document.body.style.zoom = Math.min(innerWidth / 480, innerHeight / h);
+}
+function setStream(on) {
+  document.body.classList.toggle("stream", on);
+  try { localStorage.setItem(STREAM_KEY, on ? "1" : ""); } catch (e) { /* storage off */ }
+  $("stream").classList.toggle("cur", on);
+  fitStream();
+}
+$("stream").onclick = () => setStream(!document.body.classList.contains("stream"));
+addEventListener("resize", fitStream);
+if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(fitStream)).observe(document.querySelector("main"));
+let streamOn = /[?&]stream\b/.test(location.search);
+try { streamOn = streamOn || localStorage.getItem(STREAM_KEY) === "1"; } catch (e) { /* storage off */ }
+setStream(streamOn);
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
