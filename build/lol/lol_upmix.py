@@ -81,7 +81,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("u_n").b(0xA9, 0xFF).abs(0x8D, UPDECK)
         a.label("u_h").abs(0xAD, UPDECK).b(0xC9, 0xFF).br(0xD0, "u_g").b(0xA9, 0x29, 0x60)
         a.label("u_g").b(0xAA, 0xCA).abs(0x8E, UT.WIX + 2).b(0xA9, 0xFF).abs(0x8D, UT.WIX).abs(0x8D, UT.WIX + 1)
-        a.b(0xA2, 0x01).b(*f0(PIC.LOAD["load"]))
+        a.b(0xA2, 0x02, 0xA0, 0x02).b(*f0(PIC.LOAD["load"]))                     # (queued: no flash)
         a.b(0xA9, UT.WARE_CODES[2], 0x60)
         # pre (TakeItem's first far call): a heart container moves the upgrade card one nearer (while it's not the
         # next card already, nor drawn)
@@ -147,7 +147,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("ur_h").b(0xC9, 0xC0).br(0xF0, "ur_e").b(0x29, 0x3F, 0xAA).b(*f0(E["uget"])).br(0xD0, "ur_e")
         a.abs(0xAC, KIND).b(0x8A).abs(0x99, UT.WIX).abs(0x20, "uload")
         a.abs(0xAD, KIND).b(0x18, 0x69, CODE_OM, 0x60)
-        a.label("uload").b(0xA2, 0x01).b(*f0(PIC.LOAD["load"])).b(0x60)
+        a.label("uload").b(0xA2, 0x02).b(*f0(PIC.LOAD["load"])).b(0x60)            # (Y the ware: queued)
         # ul9 (lol_genload's dfx: level 9's red potion, $FD): an upgrade of any tier instead while Link owns fewer
         # than three when it first shows (UPL9 as UPDECK); else the red potion
         a.label("ul9").abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0x90, "l9_go").b(0xA9, 0x20, 0x60)   # (three: potion)
@@ -156,7 +156,7 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("l9_n").b(0xA9, 0xFF).abs(0x8D, UPL9)
         a.label("l9_h").abs(0xAD, UPL9).b(0xC9, 0xFF).br(0xD0, "l9_g").b(0xA9, 0x20, 0x60)
         a.label("l9_g").b(0xAA, 0xCA).b(*f0(E["uget"])).br(0xF0, "l9_s").b(0xA9, 0x20, 0x60)   # (taken: the potion)
-        a.label("l9_s").abs(0x8E, UT.WIX + 2).abs(0x20, "uload").b(0xA9, UT.WARE_CODES[2], 0x60)
+        a.label("l9_s").abs(0x8E, UT.WIX + 2).b(0xA0, 0x02).abs(0x20, "uload").b(0xA9, UT.WARE_CODES[2], 0x60)
         # ucave (bank 1's cave fill, in place of the engine's upw): an upgrade cave while Link owns three and hasn't
         # bought there: a plain shop (UCONV; shop cave 13's wares); else upw as before
         from lol_upgrades import SHOPS, CAVE_WARES, CAVE_PRICES

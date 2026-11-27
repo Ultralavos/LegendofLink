@@ -367,6 +367,7 @@ def main():
         import lol_genload
         lol_genload.apply(rom, notes)
         lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
+        lol_pictures.late(rom)                    # (its picture queue's NMI hook: bank 6)
         lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
     import lol_mixgroups

@@ -24,6 +24,12 @@ LOAD_AT = 0xB330                       # bank 2 free ($B322-, 1502 bytes)
 INIT_HOOK = 0x8045                     # bank 2: LDA #$5A / STA $F5 (the common patterns loaded)
 U_MODE, U_SLOT, U_IT, U_K = 0x019D, 0x019E, 0x019F, 0x01A0   # (stack page, unused)
 U_ORG = 0x01B7                         # (stack page, unused): put's X
+# (owner 2026-11-27: the floor drop's flash) one ware picture queued instead of loaded with the picture off: put's
+# halves recorded (Q_N of them, Q_C its check), then written in the next NMIs' vblank, one half each on a frame whose
+# tile buffer is light (QHOOK: before the frame's tile buffer, bank 7 $E4C1 JSR $A080)
+Q_N, Q_C, Q_LO, Q_HI, Q_P, U_Q = 0x0115, 0x0116, 0x0117, 0x0119, 0x011B, 0x011D   # (stack page, unused)
+Q_LIGHT = 16                           # (the counters' frame: 11 bytes; the hearts': 40)
+NMI_TILEBUF = 0xE4C1                   # bank 7: JSR $A080 (bank 6 in: the tile buffer)
 CI = 0x0194                            # lol_upgrades: the upgrade cave's index (0-2)
 CAVE_WARES = 0x6A7E
 import lol_uptable
@@ -99,8 +105,9 @@ def apply(rom: bytearray, notes: list) -> None:
                 datas[d] = base + len(blob); blob += d
             plo.append(datas[d] & 0xFF); phi.append(datas[d] >> 8)
         a = Asm(org)
-        a.label("load").abs(0x8E, U_MODE).b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
-        a.b(0xA9, 0x00).abs(0x8D, 0x2001)                                  # the picture off
+        a.label("load").b(0xE0, 0x02).br(0xD0, "l_full").abs(0x4C, "qload")   # (X 2: one ware queued)
+        a.label("l_full").abs(0x8E, U_MODE).b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
+        a.b(0xA9, 0x00).abs(0x8D, Q_N).abs(0x8D, 0x2001)                   # (a queued one dropped) the picture off
         a.b(0xA5, 0xFF, 0x29, 0x7B).abs(0x8D, 0x2000)                      # (+1 a write, NMI off)
         a.b(0xA9, 0x00).abs(0x8D, U_SLOT).b(0xA2, 0x00)
         # the owned ones: slots 0-2, in table order
@@ -124,6 +131,24 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("w_nx").b(0xC8).abs(0xEE, U_SLOT).abs(0xAD, U_SLOT).b(0xC9, 0x06).br(0xD0, "w_lp")
         a.label("done").abs(0xAD, 0x2002).b(0xA5, 0xFF).abs(0x8D, 0x2000)
         a.b(0x68, 0x85, 0x01, 0x68, 0x85, 0x00, 0x60)
+        # qload: Y = the ware (0-2): its picture queued (Q_N halves), the slot's tables pointed at it; nothing written
+        a.label("qload").b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
+        a.b(0xA9, 0x00).abs(0x8D, Q_N).b(0xA9, 0x01).abs(0x8D, U_Q)
+        a.b(0x98, 0x18, 0x69, 0x03).abs(0x8D, U_SLOT).abs(0xBE, T.WIX).b(0xE0, N_UP).br(0xB0, "q_x")
+        a.abs(0x20, "put")
+        a.label("q_x").b(0xA9, 0x00).abs(0x8D, U_Q).abs(0xAD, Q_N).b(0x49, 0x5A).abs(0x8D, Q_C)
+        a.b(0x68, 0x85, 0x01, 0x68, 0x85, 0x00, 0x60)
+        # drain (far-called from QHOOK in the NMI, before the tile buffer): one queued half written
+        a.label("drain").abs(0xAD, Q_N).b(0xC9, 0x03).br(0xB0, "d_no").b(0x49, 0x5A).abs(0xCD, Q_C).br(0xD0, "d_no")
+        a.abs(0xCE, Q_N).abs(0xAE, Q_N).br(0x30, "d_no")
+        a.abs(0xBD, Q_LO).b(0x85, 0x00).abs(0xBD, Q_HI).b(0x85, 0x01)
+        a.b(0xA5, 0xFF, 0x29, 0x7B).abs(0x8D, 0x2000).abs(0xAD, 0x2002)          # (+1 a write, NMI off)
+        a.abs(0xBD, Q_P).b(0x4A, 0x4A, 0x4A, 0x4A, 0x09, 0x10).abs(0x8D, 0x2006)
+        a.abs(0xBD, Q_P).b(0x0A, 0x0A, 0x0A, 0x0A).abs(0x8D, 0x2006).b(0xA0, 0x00)
+        a.label("d_lp").b(0xB1, 0x00).abs(0x8D, 0x2007).b(0xC8, 0xC0, 0x20).br(0xD0, "d_lp")
+        a.b(0xA5, 0xFF, 0x29, 0x7E).abs(0x8D, 0x2000)                      # (as the NMI left it)
+        a.abs(0xAD, Q_N).b(0x49, 0x5A).abs(0x8D, Q_C).b(0x60)
+        a.label("d_no").b(0xA9, 0x00).abs(0x8D, Q_N).b(0x60)
         # pot: X = the picture (0 bat 1-2, 1 bat 3, 2 bat 4 / 3-5 unused, 6 orange, 7 white); its place by X mod 3 /
         # X 0: counts 1 and 2. (X kept)
         a.label("pot").abs(0xBD, "pplo").b(0x85, 0x00).abs(0xBD, "pphi").b(0x85, 0x01)
@@ -153,11 +178,14 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label("half").abs(0xBD, "hhi").br(0xD0, "h_data").abs(0xBD, "hlo").b(0x60)
         a.label("h_data").b(0x85, 0x01).abs(0xBD, "hlo").b(0x85, 0x00)
         a.abs(0xAC, U_K).abs(0xB9, "slotp").b(0x48)
+        a.abs(0xAE, U_Q).br(0xF0, "h_now").abs(0xAE, Q_N).abs(0x9D, Q_P)             # (queued: recorded)
+        a.b(0xA5, 0x00).abs(0x9D, Q_LO).b(0xA5, 0x01).abs(0x9D, Q_HI).abs(0xEE, Q_N).abs(0x4C, "h_end")
+        a.label("h_now").b(0x68, 0x48)
         a.b(0x4A, 0x4A, 0x4A, 0x4A, 0x09, 0x10).abs(0x8D, 0x2006)
         a.b(0x68, 0x48, 0x0A, 0x0A, 0x0A, 0x0A).abs(0x8D, 0x2006)
         a.b(0xA0, 0x00)
         a.label("h_lp").b(0xB1, 0x00).abs(0x8D, 0x2007).b(0xC8, 0xC0, 0x20).br(0xD0, "h_lp")
-        a.b(0x68, 0x18, 0x69, 0x01, 0x60)                                   # (bit 0: the $1000 table)
+        a.label("h_end").b(0x68, 0x18, 0x69, 0x01, 0x60)                                   # (bit 0: the $1000 table)
         a.label("ualo").b(*[T.ROWS[k][T.SAVE][0] & 0xFF for k in range(N_UP)])
         a.label("uahi").b(*[T.ROWS[k][T.SAVE][0] >> 8 for k in range(N_UP)])
         a.label("ubits").b(*[T.ROWS[k][T.SAVE][1] for k in range(N_UP)])
@@ -191,6 +219,7 @@ def apply(rom: bytearray, notes: list) -> None:
     i2.b(0xCA).br(0x10, "i_lp")
     i2.b(0xA2, len(wram) - 1)                                           # the potion tables
     i2.label("i_w").abs(0xBD, "wram").abs(0x9D, B.PTILE).b(0xCA).br(0x10, "i_w")
+    i2.b(0xA9, 0x00).abs(0x8D, Q_N).abs(0x8D, U_Q)
     i2.b(0xA9, 0x5A, 0x85, 0xF5, 0x60)
     i2.label("wl0").b(*B.WL_INIT)
     i2.label("wr0").b(*B.WR_INIT)
@@ -204,3 +233,31 @@ def apply(rom: bytearray, notes: list) -> None:
         place(rom, bank, STUB, s.bytes())
     notes.append(f"upgrade pictures loaded on demand: 6 slots in pairs {[hex(p) for p in pairs]}; "
                  f"{len(code)} + {len(blob)} bytes in bank 0 at ${at:04X}")
+
+
+def late(rom: bytearray) -> None:
+    """QHOOK (bank 6, placed last: in with the tile buffer's bank): a queued half, then the tile buffer as before.
+    Only the Upgrade mix queues (lol_upmix's floor drop, old men, prizes and level 9's potion)."""
+    import lol_fixed
+    if not lol_fixed.UPMIX:
+        return
+    import lol_v3core as V3
+    from lol_newups import free_in
+    # (only on a frame whose tile buffer is empty - the game's own transfer and a half don't both fit in vblank)
+    # Only on a frame whose tile buffer is light (Q_LIGHT bytes at most: the frames the status bar's counters go, not
+    # the hearts' or a room's tiles): the game's transfer and a half don't both fit in vblank otherwise.
+    def mk(o):
+        h = Asm(o).label("qh").abs(0xAD, Q_N).br(0xF0, "qh_x").b(0xA5, 0x14).br(0xD0, "qh_x").b(0xA2, 0x00)
+        h.label("qh_w").abs(0xBD, 0x0302).br(0x30, "qh_go")                  # (the end)
+        h.abs(0xBD, 0x0304).b(0x29, 0x40).br(0xF0, "qh_n").b(0xA9, 0x01).br(0xD0, "qh_a")   # (a run: one byte)
+        h.label("qh_n").abs(0xBD, 0x0304).b(0x29, 0x3F)
+        h.label("qh_a").b(0x18, 0x69, 0x03, 0x85, 0x00, 0x8A, 0x18, 0x65, 0x00, 0xAA)
+        h.b(0xE0, Q_LIGHT + 1).br(0x90, "qh_w").br(0xB0, "qh_x")
+        h.label("qh_go").b(*V3.far(0, LOAD["drain"]))
+        h.label("qh_x").abs(0x4C, 0xA080)
+        return h
+    n = len(mk(0x8000).bytes())
+    at = free_in(rom, 6, n, 0xA000)
+    h = mk(at)
+    place(rom, 6, at, h.bytes())
+    patch(rom, 7, NMI_TILEBUF, bytes([0x20, 0x80, 0xA0]), bytes([0x20, at & 0xFF, at >> 8]))
