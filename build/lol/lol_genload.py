@@ -652,15 +652,22 @@ def decoder(groups, ptr_table, maps, info):
     GA = {0x3D, 0x31, 0x32, 0x38, 0x39}
     a.label("lanok").b(*[1 if x else 0 for x in LAN_GROUPS])
     a.label("bgrp").b(*[1 if 0x31 + i in GA else 0 for i in range(0x15)])
-    lays = sorted(G.BOSS_OF)
+    # (owner 2026-11-26: any layout ZORA allows, lol_gen.boss_of) a row per distinct list
+    lists = []
     row = [0] * 64
-    for k, L in enumerate(lays):
-        row[L] = k + 1
+    import lol_fixed
+    for L in (range(64) if lol_fixed.FIXED else sorted(G.BOSS_OF)):      # (Unseeded: the boss layouts only)
+        lst = tuple(G.boss_of(L))
+        if not lst:
+            continue
+        if lst not in lists or not lol_fixed.FIXED:          # (Unseeded: a row per boss layout, as before)
+            lists.append(lst)
+        row[L] = len(lists) if not lol_fixed.FIXED else lists.index(lst) + 1
     a.label("blrow").b(*row)
     blen, bofs, bfl = [0, 0], [0, 0], []
-    for L in lays:
+    for bl in lists:
         for grp in (0, 1):
-            lst = [b for b in G.BOSS_OF[L] if (b in GA) == bool(grp)]
+            lst = [b for b in bl if (b in GA) == bool(grp)]
             assert len(lst) <= 8
             bofs.append(len(bfl)); blen.append(len(lst)); bfl += lst
     a.label("blen").b(*blen)
@@ -868,7 +875,10 @@ def apply(rom: bytearray, notes: list) -> None:
         body = bodies[key]
         import lol_upmix
         for b in DATA_BANKS:
-            if fill[b] + len(body) <= (lol_upmix.UAT if b == lol_upmix.BANKX and lol_upmix.UAT else TRAMPD - 0x10):
+            lim = TRAMPD - 0x10
+            if b == 14:                       # (lol_upmix: noshoot and the Upgrade mix's code at the top)
+                lim = lol_upmix.UAT or lol_upmix.NOSHOOT_AT
+            if fill[b] + len(body) <= lim:
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break
         else:
@@ -1091,6 +1101,9 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
             if t not in blists:
                 blists.append(t)
             bl[vindex(d, ci, v)] = blists.index(t)
+    import lol_fixed
+    if lol_fixed.FIXED:                 # (the build's records: the in-game roll's boss lists never read; kept short)
+        blists, bl = [()], [0] * 1024
     # gen_need: A = a dealt destination: a level or shrine without a record gets one now (gen_make)
     a.label("gen_need").b(0xC9, 0x0E).br(0xB0, "gn_x").b(0xC9, 0x01).br(0x90, "gn_x")
     a.b(0x48).abs(0x20, "gf_slotrec").b(0x68).abs(0xBE, REC).br(0xD0, "gn_x").abs(0x4C, "gen_make")

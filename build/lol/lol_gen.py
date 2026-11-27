@@ -53,6 +53,44 @@ BOSS_LAYOUTS = (0x04, 0x05, 0x06, 0x25, 0x23, 0x24)       # aquamentus, gleeok, 
 BOSS_OF = {0x04: [0x3D], 0x05: [0x43, 0x44, 0x45], 0x06: [0x33, 0x34], 0x25: [0x3C, 0x32, 0x31],
            0x23: [0x33, 0x34, 0x3C, 0x32, 0x31, 0x38, 0x39], 0x24: [0x33, 0x34, 0x3C, 0x32, 0x31, 0x38, 0x39]}
 BOSS_GROUP_A = {0x3D, 0x31, 0x32, 0x38, 0x39}               # Aquamentus, Dodongos, Digdogger (one boss graphics set)
+# (owner 2026-11-26) a boss room may take any ordinary layout as ZORA allows (zora.generate.shapes.bosses'
+# boss_barred: Gleeok not in circle walls, lava, chutes, T, circle moats or the fireball rooms, the four-headed one
+# not in the moats either; Gohma not in lava, chutes or T; Dodongos not in circle walls, lava, chutes or T)
+ALL_BOSSES = (0x3D, 0x31, 0x32, 0x33, 0x34, 0x43, 0x44, 0x45, 0x38, 0x39, 0x3C)
+_GLEEOK_BAD = {0x09, 0x0B, 0x0E, 0x0F, 0x12, 0x14, 0x23, 0x24}
+_GLEEOK4_BAD = {0x13, 0x15, 0x16, 0x17, 0x18, 0x19}
+_GOHMA_BAD = {0x0B, 0x0E, 0x0F, 0x12}
+_DODONGO_BAD = {0x09, 0x0B, 0x0E, 0x0F, 0x12}
+
+
+def _seeded():
+    """(owner 2026-11-26) the website's seeded builds: ZORA's boss rooms and doors; Unseeded keeps the old way."""
+    import lol_fixed
+    return lol_fixed.FIXED
+
+
+def _shut_boss(walls, c, deg):
+    """Unseeded (the old way): a boss room's doors shutters on its own side."""
+    for t in deg(c):
+        if walls[c][t] == OPEN:
+            walls[c][t] = SHUT
+
+
+def boss_of(L):
+    """The bosses a boss room of layout L can hold: a boss layout's own list, else ZORA's bars."""
+    L &= 0x3F
+    if L in BOSS_OF:
+        return BOSS_OF[L]
+    out = []
+    for b in ALL_BOSSES:
+        if b in (0x43, 0x44, 0x45) and (L in _GLEEOK_BAD or (b == 0x45 and L in _GLEEOK4_BAD)):
+            continue
+        if b in (0x33, 0x34) and L in _GOHMA_BAD:
+            continue
+        if b in (0x31, 0x32) and L in _DODONGO_BAD:
+            continue
+        out.append(b)
+    return out
 
 
 def _quest_l2():
@@ -379,18 +417,17 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         if not cand:
             raise Fail("no second boss")
         b2 = max(cand, key=lambda c: (abs(dist.get(c, 0) - dist.get(app, 0)) + rng.random() * 3, -c))
-        roles[b2] = "boss"
-        for t in deg(b2):
-            if walls[b2][t] == OPEN:
-                walls[b2][t] = SHUT
+        roles[b2] = "boss"          # (owner 2026-11-26: its doors as any room's; Unseeded: shutters)
+        if not _seeded():
+            _shut_boss(walls, b2, deg)
     else:
-        # boss room: far from the entrance; its doors shutters on its own side (shut until the boss dies)
+        # boss room: far from the entrance (owner 2026-11-26: its doors as any room's; only a shrine's guard keeps
+        # its shutter into the prize)
         cand = free()
         boss = max(cand, key=lambda c: (dist.get(c, 0) + rng.random() * 2, -c))
         roles[boss] = "boss"
-        for s in deg(boss):
-            if walls[boss][s] in (OPEN,):
-                walls[boss][s] = SHUT
+        if not _seeded():
+            _shut_boss(walls, boss, deg)
         tri = boss                                  # (the game picks the triforce's room at load)
         # the old man's choice: anywhere. A north doorway (behind him: he stops Link going north) is a gate that
         # opens when he leaves - so the rooms past it are reached only through his room, never from behind first
@@ -424,7 +461,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             raise Fail("no item stairs room")
         c = rng.choice(pool); roles[c] = "item_stairs"; item_stairs.append(c)
 
-    # more boss rooms (level 9: the Patra rooms), shutters on their own side
+    # more boss rooms (level 9: the Patra rooms)
     nb_ = (N_BOSS[lvcls] if n_boss is None else n_boss) - (0 if cls == "L9" else 1)
     if not shrine:
         for _ in range(nb_):
@@ -434,9 +471,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
                 raise Fail("no room for a boss")
             c = rng.choice(cand)
             roles[c] = "patra" if cls == "L9" else "boss"
-            for t in deg(c):
-                if walls[c][t] == OPEN:
-                    walls[c][t] = SHUT
+            if not _seeded():
+                _shut_boss(walls, c, deg)
 
     # layouts
     w4 = t4_weights(lvcls)
@@ -471,15 +507,31 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             r.update(layout=0x27, eclass=7)
         elif role == "boss":
             # every boss room's layout holds a boss of one graphics group (the game picks each room's boss at load)
+            # (owner 2026-11-26) the boss layouts or any ordinary one (its share as an ordinary room's), as ZORA
             opts = [L for L in BOSS_LAYOUTS if fits(L, c)]
-            if bosses_ok is not None:
-                opts = [L for L in opts if groups_of(BOSS_OF[L]) & groups_ok] or opts
-            L = rng.choice(opts)
-            if bosses_ok is None:
-                bosses_ok, groups_ok = set(BOSS_OF[L]), groups_of(BOSS_OF[L])
+            wb = max(1, sum(w4) // max(1, sum(1 for x in w4 if x)))           # (a boss layout: an average room's)
+            ow = [w4[L] if L not in opts else 0 for L in codes]
+            cand = [(L, wb) for L in opts] + ([(L, ow[L]) for L in codes
+                                               if ow[L] and not L & 0x40 and fits(L, c) and boss_of(L)]
+                                              if _seeded() else [])               # (Unseeded: the boss layouts)
+            if not _seeded():                       # (Unseeded: the old way, by graphics group)
+                if bosses_ok is not None:
+                    opts = [L for L in opts if groups_of(BOSS_OF[L]) & groups_ok] or opts
+                L = rng.choice(opts)
+                if bosses_ok is None:
+                    bosses_ok, groups_ok = set(BOSS_OF[L]), groups_of(BOSS_OF[L])
+                else:
+                    groups_ok = groups_ok & groups_of(BOSS_OF[L]) or groups_ok
+                    bosses_ok = {x for x in bosses_ok if groups_of([x]) & groups_ok} or bosses_ok
             else:
-                groups_ok = groups_ok & groups_of(BOSS_OF[L]) or groups_ok
-                bosses_ok = {x for x in bosses_ok if groups_of([x]) & groups_ok} or bosses_ok
+                if bosses_ok is not None:          # (a boss every boss room so far can hold)
+                    cand = [(L, w) for L, w in cand if set(boss_of(L)) & bosses_ok] or cand
+                L = rng.choices([x for x, _ in cand], [w for _, w in cand])[0]
+                if bosses_ok is None:
+                    bosses_ok, groups_ok = set(boss_of(L)), groups_of(boss_of(L))
+                else:
+                    bosses_ok = bosses_ok & set(boss_of(L)) or bosses_ok
+                    groups_ok = groups_of(bosses_ok)
             r.update(layout=L, eclass=3, item=None, trigger=T_ALL_DEAD, pos=0)    # no heart container
         elif role == "patra":
             for _ in range(200):
@@ -570,7 +622,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     # block's) become open doors while there are more than its share
     pairs = [(c, t) for c in cells for t in (E_, S_) if nb(c, t) in cells and piece[nb(c, t)] == piece[c]
              and (walls[c][t] != WALL or walls[nb(c, t)][OPP[t]] != WALL or True)]
-    keep = lambda c: roles.get(c) in ("boss", "patra", "ganon", "check", "zelda") or rooms[c]["trigger"] == T_BLOCK_DOOR
+    kept = ("prize", "ganon", "check", "zelda") if _seeded() else ("boss", "patra", "ganon", "check", "zelda")
+    keep = lambda c: roles.get(c) in kept or rooms[c]["trigger"] == T_BLOCK_DOOR
     def is_shut(c, t):
         y = nb(c, t)
         return SHUT in (walls[c][t], walls[y][OPP[t]]) and not ({walls[c][t], walls[y][OPP[t]]} & {KEY, KEY2, BOMB})

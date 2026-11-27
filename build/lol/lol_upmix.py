@@ -32,6 +32,8 @@ N_ENT = 71
 # fixed entry points (the last data bank, below its trampolines): lol_choice's and lol_odds' code is built before
 # this module's
 VEC = 0xBB50
+NOSHOOT_AT = 0xBB00                     # (every build) noshoot, below the vectors; the Upgrade mix's code below it
+V_NOSHOOT = VEC + 3 * 7
 V_URES, V_UCHECK, V_UL9, V_UCARD, V_UITEM, V_UCAVE, V_UTAKE = (VEC + 3 * k for k in range(7))
 UCONV = 0x01A3                          # (stack page, unused) 1 while in an upgrade cave turned plain shop
 PLAIN_CAVE = 13                         # the plain shop's wares and prices: shop cave 13's (the shield, bombs, arrows)
@@ -196,7 +198,7 @@ def apply(rom: bytearray, notes: list) -> None:
     from lol_af import place
     n = len(build(0x8000, 0).bytes())
     bk = 14
-    at = (VEC - n) & ~0x0F
+    at = (NOSHOOT_AT - n) & ~0x0F
     global UAT
     UAT = at
     a = build(at, bk)
@@ -218,11 +220,37 @@ def apply(rom: bytearray, notes: list) -> None:
                  f"the gone cave {lol_fixed.gone_cave()}")
 
 
+def noshoot(o):
+    """(owner 2026-11-26, every build) noshoot (bank 4's statue shot, far-called): C set while the room holds the
+    purple (Hydra) Gohma, the pink Digdogger or the old man Patra (lol_gohma, lol_digdogger, lol_patra): those
+    bosses may stand in any room ZORA allows (lol_gen.boss_of), statue rooms too. Y kept."""
+    import lol_gohma, lol_digdogger, lol_patra
+    HVE = 0x016F
+    sj = Asm(o)
+    sj.label("ns").b(0x98, 0x48, 0xA0, 0x0B)
+    sj.label("sj_l").abs(0xB9, 0x034F)
+    sj.b(0xC9, 0x33).br(0xF0, "sj_g").b(0xC9, 0x34).br(0xF0, "sj_g")
+    sj.b(0xC9, 0x38).br(0xF0, "sj_d").b(0xC9, 0x18).br(0xF0, "sj_d")
+    sj.b(0xC9, 0x47).br(0xF0, "sj_p").b(0xC9, 0x48).br(0xF0, "sj_p")
+    sj.label("sj_n").b(0x88).br(0xD0, "sj_l").b(0x68, 0xA8, 0x18, 0x60)
+    sj.label("sj_g").abs(0xAD, HVE).b(0xC9, lol_gohma.AT).br(0xB0, "sj_x").br(0x90, "sj_n")
+    sj.label("sj_p").abs(0xAD, HVE).b(0xC9, lol_patra.AT).br(0xB0, "sj_x").br(0x90, "sj_n")
+    sj.label("sj_d").abs(0xAD, HVE).b(0xC9, lol_digdogger.AT).br(0x90, "sj_n")
+    sj.abs(0xAD, lol_digdogger.DGK).br(0xD0, "sj_n")                           # (the blue one shoots on)
+    sj.label("sj_x").b(0x68, 0xA8, 0x38, 0x60)
+    return sj
+
+
 def late(rom: bytearray) -> None:
-    """lol_build, after lol_genload (the data banks made): the code, at the last data bank's top."""
+    """lol_build, after lol_genload (the data banks made): noshoot and its vector (every build); the Upgrade mix's
+    code and vectors, at the last data bank's top."""
+    from lol_af import place
+    ns = noshoot(NOSHOOT_AT).bytes()
+    assert NOSHOOT_AT + len(ns) <= VEC
+    place(rom, 14, NOSHOOT_AT, ns)
+    place(rom, 14, V_NOSHOOT, Asm(V_NOSHOOT).abs(0x4C, NOSHOOT_AT).bytes())
     if _PENDING is None:
         return
-    from lol_af import place
     bk, at, code, vec = _PENDING
     place(rom, bk, at, code)
     place(rom, bk, VEC, vec)

@@ -525,9 +525,16 @@ def apply(rom: bytearray, notes: list) -> None:
     for bank in range(7):
         place(rom, bank, CR_C, cc.bytes())
     # Statue jammer: bank 4's statue shot (UpdateStatues' LDA #$55 / JSR $82AF at $86D2) is skipped with the upgrade
+    # (owner 2026-11-26) and in a room with the purple (Hydra) Gohma, the pink Digdogger or the old man Patra (their
+    # levels: lol_gohma, lol_digdogger, lol_patra): those bosses may now stand in any room ZORA allows (lol_gen)
+    import lol_upmix as _UM2, lol_v3core as _V2
     SJ = 0xBB4C                                 # bank 4 free ($BB4C-$BB79)
     sj = Asm(SJ)
-    sj.abs(0xAD, JAMMER[0]).b(0x29, JAMMER[1]).br(0xD0, "sj_r").b(0xA9, 0x55).abs(0x4C, 0x82AF)
+    sj.abs(0xAD, JAMMER[0]).b(0x29, JAMMER[1]).br(0xD0, "sj_r")
+    import lol_fixed as _fx5
+    if _fx5.FIXED:                              # (seeded builds: those bosses may stand in statue rooms)
+        sj.b(*_V2.far(14, _UM2.V_NOSHOOT)).br(0xB0, "sj_r")                    # (lol_upmix's noshoot: C set: quiet)
+    sj.b(0xA9, 0x55).abs(0x4C, 0x82AF)
     sj.label("sj_r").b(0x60)
     place(rom, 4, SJ, sj.bytes())
     patch(rom, 4, 0x86D2, bytes.fromhex("a95520af82"), bytes([0x20, SJ & 0xFF, SJ >> 8, 0xEA, 0xEA]))
