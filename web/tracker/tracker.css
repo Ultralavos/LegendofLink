@@ -411,3 +411,15 @@ body.stream.onemap .uptiers { grid-template-columns: 16px minmax(0, 1fr); }
 body.stream.onemap .tierhead::before { content: attr(data-tn); }
 body.stream.onemap .upgrid { grid-template-columns: repeat(15, minmax(0, 1fr)); }
 body.stream.onemap .dun { max-width: 560px; justify-self: center; }
+/* (owner, 2026-11-27) the upgrades bar: the three tiers side by side, each its own block, its name above it */
+body.stream.onemap .uptiers { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto;
+  grid-auto-flow: column; gap: 2px 10px; align-items: start; }
+body.stream.onemap .tierhead { text-align: center; }
+body.stream.onemap .tierhead::before { content: attr(data-short); }
+body.stream.onemap .upgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body.stream.onemap .uptiers { row-gap: 0; }
+body.stream.onemap .tierhead { background: #1d1d27; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0;
+  padding: 2px 0 1px; }
+body.stream.onemap .tierhead::before { font-size: 10px; letter-spacing: .5px; }
+body.stream.onemap .upgrid { background: #1d1d27; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px;
+  padding: 3px; align-self: stretch; }
