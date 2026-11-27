@@ -188,6 +188,7 @@ footer a { color: var(--accent); }
 .rk.art { inset: 0; pointer-events: none; }
 .rk.art svg { display: block; width: 100%; height: 100%; fill: #2f6fe0; opacity: .85; }
 .rk.art.stair svg { fill: #d8d4c8; opacity: 1; }
+.rk.art svg .blk { fill: #9a96a8; }                                   /* a chute's blocks */
 .rk.art.stair { inset: 12% 14% 12% 30%; }
 .rk.art .si { position: absolute; left: -38%; top: 0; bottom: 0; display: grid; place-items: center; font: bold clamp(11px, 1.6vw, 19px)/1 ui-monospace, monospace; color: #fff; text-shadow: 0 1px 0 #000; }
 .kpv .rk.art .si { font-size: 14px; }
