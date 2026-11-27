@@ -1131,3 +1131,6 @@ setStream(streamOn);
 applyOneMap();
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
+// (owner 2026-11-27; test page) no browser menu anywhere on the tracker (a right-click, or a long press on a touch
+// screen), and no text selection while clicking about; the notes and the pickers' text boxes keep theirs
+document.addEventListener("contextmenu", (e) => { if (!e.target.closest("textarea, input, select")) e.preventDefault(); });

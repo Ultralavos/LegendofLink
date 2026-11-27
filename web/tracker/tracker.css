@@ -452,3 +452,7 @@ body.stream .checks { margin-top: 5px; gap: 5px; }
 body.stream .ck { padding: 2px 6px; border-width: 1px; }
 body.stream .ck b { font-size: 20px; } body.stream .ck span { font-size: 9px; }
 body.stream .acc .accn { font-size: 11px; }
+/* (owner, 2026-11-27) no text selection or touch callout while clicking about; typing places keep it */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+textarea, input, select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+img { -webkit-user-drag: none; }
