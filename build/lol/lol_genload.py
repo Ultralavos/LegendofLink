@@ -868,8 +868,12 @@ def apply(rom: bytearray, notes: list) -> None:
     ptr = {}
     for key in sorted(bodies):
         body = bodies[key]
+        import lol_xray
         for b in DATA_BANKS:
-            if fill[b] + len(body) <= TRAMPD - 0x10:
+            lim = TRAMPD - 0x10
+            if b == lol_xray.XRAY_BANK and lol_xray.XRAY_AT:    # (lol_xray's code at the top)
+                lim = lol_xray.XRAY_AT
+            if fill[b] + len(body) <= lim:
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break
         else:

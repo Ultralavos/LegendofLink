@@ -364,6 +364,7 @@ def main():
     if lol_entrances.GEN:
         import lol_genload
         lol_genload.apply(rom, notes)
+        lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
     import lol_mixgroups
     lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
