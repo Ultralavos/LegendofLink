@@ -361,7 +361,7 @@ body.stream .tierhead { text-align: center; }
 body.stream main { grid-template-columns: 160px minmax(0, 1fr); }
 body.stream.wide main { grid-template-columns: 190px minmax(0, 1fr) 580px; }
 body.stream .upgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-/* One map (owner, 2026-11-27; test page): the overworld and the dungeons in one space, a big switch above it */
+/* One map (owner, 2026-11-27): the overworld and the dungeons in one space, a big switch above it */
 .maptoggle { display: none; grid-area: mtog; }
 body.onemap .maptoggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .maptoggle button { font-size: 18px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 8px;
@@ -386,7 +386,7 @@ body.stream.onemap .ups { grid-row: 3 / span 2; }
 body.stream.wide #onemap { display: none; }
 body.stream.onemap main { grid-template-rows: auto auto auto 1fr; }
 body.stream.onemap .map { align-self: start; }
-/* Stream + One map, the side layout (owner, 2026-11-27; test page): the items a column down the whole left side (the
+/* Stream + One map, the side layout (owner, 2026-11-27): the items a column down the whole left side (the
    hearts, then the bomb upgrades, then the items two across), the upgrades a bar across the top of the maps */
 body.stream.onemap main { width: 640px; max-width: 640px; grid-template-columns: 104px minmax(0, 1fr);
   grid-template-rows: auto auto auto 1fr; grid-template-areas: "items tri" "items ups" "items mtog" "items map"; }
@@ -423,7 +423,7 @@ body.stream.onemap .tierhead { background: #1d1d27; border: 1px solid var(--line
 body.stream.onemap .tierhead::before { font-size: 10px; letter-spacing: .5px; }
 body.stream.onemap .upgrid { background: #1d1d27; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px;
   padding: 3px; align-self: stretch; }
-/* what opens which entrance (owner, 2026-11-27; test page): icons under the overworld; the one pointed at lights its spots */
+/* what opens which entrance (owner, 2026-11-27): icons under the overworld; the one pointed at lights its spots */
 .access { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .acc { flex: 1 1 0; min-width: 0; max-width: 64px; aspect-ratio: 1; background: #000; border: 2px solid var(--line); border-radius: 7px;
   padding: 4px; display: grid; place-items: center; }
@@ -436,7 +436,7 @@ body.stream.onemap .upgrid { background: #1d1d27; border: 1px solid var(--line);
 body.stream .access { gap: 4px; margin-top: 5px; flex-wrap: nowrap; }
 body.stream .acc { max-width: none; border-width: 1px; padding: 3px; }
 body.stream .acc .acclabel { font-size: 9px; }
-/* checks left / available now (owner, 2026-11-27; test page), and each icon's count of unchecked spots */
+/* checks left / available now (owner, 2026-11-27), and each icon's count of unchecked spots */
 .checks { display: flex; gap: 8px; margin-top: 8px; }
 .ck { flex: 1 1 0; display: flex; align-items: baseline; justify-content: center; gap: 8px; background: #000; border: 2px solid var(--line);
   border-radius: 8px; padding: 4px 8px; }

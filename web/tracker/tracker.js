@@ -349,7 +349,7 @@ function renderMap() {
   if (typeof showAccess === "function" && accShown) showAccess(accShown);
   if (typeof renderAccessCounts === "function" && $("chk-left")) renderAccessCounts();
 }
-// (owner 2026-11-27; test page) what opens which entrance: point at (or tap) an icon under the overworld and the
+// (owner 2026-11-27) what opens which entrance: point at (or tap) an icon under the overworld and the
 // entrances that need it light up. The screens by how they open (ZORA's model of the overworld: both quests' secrets)
 const B_ = [0x01, 0x03, 0x05, 0x07, 0x0D, 0x10, 0x12, 0x13, 0x14, 0x16, 0x1E, 0x26, 0x27, 0x2C, 0x2D, 0x33, 0x67, 0x71,
   0x76, 0x7B, 0x7C, 0x7D, 0x19];
@@ -1094,7 +1094,7 @@ function setWide(on) {
   if (typeof applyOneMap === "function") applyOneMap();
   fitStream();
 }
-// One map (button or ?onemap, owner 2026-11-27; test page): the overworld and the dungeons share one space, a big
+// One map (button or ?onemap, owner 2026-11-27): the overworld and the dungeons share one space, a big
 // switch above it (each window its own; not with Wide, which has room for both)
 const ONEMAP_KEY = "lol-tracker-onemap", VIEW_KEY = "lol-tracker-mapview";
 let oneMap = false, mapView = "ow";
@@ -1131,6 +1131,6 @@ setStream(streamOn);
 applyOneMap();
 renderAll();
 if (VER) document.querySelector(".brand span").textContent = `TRACKER · BETA ${VER}`;
-// (owner 2026-11-27; test page) no browser menu anywhere on the tracker (a right-click, or a long press on a touch
+// (owner 2026-11-27) no browser menu anywhere on the tracker (a right-click, or a long press on a touch
 // screen), and no text selection while clicking about; the notes and the pickers' text boxes keep theirs
 document.addEventListener("contextmenu", (e) => { if (!e.target.closest("textarea, input, select")) e.preventDefault(); });
