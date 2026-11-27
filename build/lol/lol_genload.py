@@ -61,7 +61,9 @@ NC = len(CLASS_LIST)
 K = 3
 
 REC = 0x7FAD
-DECK_PTR = 0x7FFF                       # the item deck's next card (battery RAM's last byte; cleared for a new file)
+DECK_PTR = REC + 12 * 5 + 4             # the item deck's next card: shrine D's record's fifth byte (a shrine never uses
+                                        # it; cleared for a new file with the records). (0.395: it was $7FFF, the
+                                        # game's own "save RAM is good" byte ($A5): saving then wiped the file.)
 NSLOT = 13
 CUR_GEN, GEN_CHOICE, SUB_RM, SUB_IT = 0x0168, 0x0169, 0x016A, 0x016C   # RAM (stack page, unused)
 SCR = 0x0150                            # scratch (stack page, unused)
@@ -903,7 +905,7 @@ def apply(rom: bytearray, notes: list) -> None:
     B6 = BANK(6) + TRAMPD - 0x8000
     while rom[B6 - 1] == 0xFF:
         B6 -= 1
-    B6 = B6 - BANK(6) + 0x8000 + 0x10
+    B6 = B6 - BANK(6) + 0x8000 + 0x08            # (0.395: 8 bytes after the data before it, was 16)
     a = Asm(B6)
     a.label("full").b(0xA4, 0x16).abs(0xB9, 0x062D).abs(0x4C, 0x810E)      # the vanilla start (JMP'd over)
     a.label("newfull").abs(0x20, "full")
@@ -1078,9 +1080,12 @@ def gen_force(a, V_IDX, V_OFF, A15, STORE, N_ENT):
     import lol_fixed
     if lol_fixed.FIXED:                 # the build's record, copied (Level 9: its stair item rolled now)
         a.label("gm_go").b(0x48).abs(0x20, "gf_slotrec").b(0xA2, 0x00)
-        a.label("gx_c").abs(0xB9, "gx_tab").abs(0x99, REC).b(0xC8, 0xE8, 0xE0, 0x05).br(0xD0, "gx_c")
-        a.b(0x68, 0x48, 0xC9, 0x09).br(0xD0, "gx_r")
-        a.b(0x88, 0x88, 0x88, 0x88, 0x88).abs(0x20, "gf_up").abs(0x99, REC + 4)
+        # a shrine's record: its first four bytes (its fifth, never used by a shrine, keeps the item deck's next card
+        # in shrine D's: cleared for a new file)
+        a.label("gx_c").abs(0xB9, "gx_tab").abs(0x99, REC).b(0xC8, 0xE8, 0xE0, 0x04).br(0xD0, "gx_c")
+        a.b(0x68, 0x48, 0xC9, 0x0A).br(0xB0, "gx_s").abs(0xB9, "gx_tab").abs(0x99, REC)
+        a.label("gx_s").b(0x68, 0x48, 0xC9, 0x09).br(0xD0, "gx_r")
+        a.b(0x88, 0x88, 0x88, 0x88).abs(0x20, "gf_up").abs(0x99, REC + 4)
         a.label("gx_r").b(0x68, 0x38, 0x60)
         a.label("gx_tab").b(*[x for r in lol_fixed.records() for x in r])
     else:
