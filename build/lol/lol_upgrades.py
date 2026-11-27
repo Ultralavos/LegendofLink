@@ -297,7 +297,8 @@ def apply(rom: bytearray, notes: list) -> None:
     # the level's character (bank 5 $B02A, InitMode3_Sub7): its number or letter
     c5.label("lvq").abs(0xAD, 0x6BB1).b(0x60)
     c5.label("hu_t").b(0x20, 0x41, 0x08, 0x24, 0x15, 0x0E, 0x1F, 0x0E, 0x15, 0x62)       # " LEVEL-"
-    c5.b(0x20, 0x41, 0x08, 0x1C, 0x11, 0x1B, 0x12, 0x17, 0x0E, 0x62)                    # "SHRINE-"
+    c5.b(0x20, 0x42, 0x08, 0x1C, 0x11, 0x1B, 0x12, 0x17, 0x0E, 0x62)                    # "SHRINE-" (owner 2026-11-27: one
+                                                                                          #  tile right: its letter over the map's 8th column; lol_shrineui's first frame too)
     code5 = c5.bytes()
     assert c5.labels["hu"] == LABEL5
     at = BANK(5) + LABEL5 - 0x8000

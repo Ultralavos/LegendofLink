@@ -223,8 +223,8 @@ def build_show(org, rom, names, items, L):
     a.label("ip_go").abs(0x4C, "pic")
     # upic: X = an upgrade at PR / PC
     a.label("upic").abs(0xBD, L["hlo"]).abs(0x8D, HLL).abs(0xBD, L["hhi"]).abs(0x8D, HLH)
-    a.b(0x8A, 0x48, 0x18, 0x69, N + 2, 0xAA).abs(0xBD, L["hlo"])     # (right halves: past lol_pictures' NP = N + 2
-                                                                            #  lefts, the Thorn and Sleep pictures too).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
+    # (right halves: past lol_pictures' NP = N + 2 lefts, the Thorn and Sleep pictures too)
+    a.b(0x8A, 0x48, 0x18, 0x69, N + 2, 0xAA).abs(0xBD, L["hlo"]).abs(0x8D, HRL).abs(0xBD, L["hhi"]).abs(0x8D, HRH)
     a.b(0x68, 0xAA).abs(0xBC, L["upal"]).abs(0xB9, "ipal").abs(0x8D, PPAL).b(0xA9, PAIR).abs(0x8D, PMODE)
     a.abs(0x4C, "pic")
     # uown: X = an upgrade; Z clear if owned (X kept)
