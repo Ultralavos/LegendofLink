@@ -311,7 +311,9 @@ function openPicker(s, cell) {
   const grid = el("div", { className: "pgrid" });
   for (const [v, label, cls, text] of MARKS) {
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : ""), title: text },
-      [el("span", { className: "tag " + cls, textContent: label }), el("small", { textContent: text })]);
+      // (owner 2026-11-27) a level or shrine: just its big box, the number or letter (no "Level" text)
+      cls === "lvl" || cls === "shr" ? [el("span", { className: "tag " + cls, textContent: label })]
+        : [el("span", { className: "tag " + cls, textContent: label }), el("small", { textContent: text })]);
     b.onclick = () => {
       S.ow[s] = v; save(); closePicker(); renderMap();
       if (/^[LS]/.test(v)) {                       // a level or shrine: its map below

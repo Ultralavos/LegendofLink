@@ -110,6 +110,9 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .pick small { font-size: 10px; color: var(--muted); line-height: 1.1; text-align: center; }
 .pick.sel { border-color: var(--accent); }
 .pick .tag { font-size: 12px; }
+.pick.lvl, .pick.shr { padding: 3px; }
+.pick.lvl .tag, .pick.shr .tag { font-size: 20px; width: 100%; padding: 8px 0; text-align: center; border-radius: 4px; }
+.cell .tag.lvl, .cell .tag.shr { inset: 2%; font-size: clamp(11px, 2vw, 28px); }   /* the map's: big boxes */
 .prow { display: flex; gap: 6px; margin-top: 8px; }
 .prow .wide { flex: 1; border-radius: 6px; padding: 6px; background: #2c2c3a; border: 1px solid var(--line); }
 
