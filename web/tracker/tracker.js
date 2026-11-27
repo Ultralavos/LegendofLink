@@ -49,7 +49,7 @@ const MARKS = [   // value, label on the map, class, picker text
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 const BRUSHES = [   // id, label, title
-  ["room", "", "Room: click for its kind (moats, old man, stairs, numbers); right-click: a room, again cleared"],
+  ["room", "", "Room: right-click for its kind (moats, old man, stairs, numbers); click: a room, again cleared"],
   ["E", "↑", "Entrance (the first room you click; one per map)"], ["S", "S", "Stairs"], ["O", "O", "Old man"], ["B", "B", "Boss"],
   ["T", "▲", "Triforce or prize"], ["I", "★", "Item"], ["K", "K", "Locked door"], ["X", "✸", "Bomb wall"],
   ["?", "?", "Something to check"], ["erase", "✕", "Remove: click a room to clear it"],
@@ -409,15 +409,15 @@ function renderBrushes() {
     b.append(btn);
   }
 }
-// the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green (again: none), the
-// mouse wheel through green, yellow, dark blue, red, purple; right-click clears. A room: click / right-click as the
+// the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green, right-click gold (the
+// same again: none), the mouse wheel through green, yellow, dark blue, red, purple. A room: right-click / click as the
 // brush says; the wheel (down) opens its item list (map, compass, key, bomb, triforce, potion, I).
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["rupee5", "rupee.png", "5 rupees"], ["I", null, "I"]];
 const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
   ["wiz", "en_wizzrobe.png", "Blue Wizzrobes"], ["nut", "en_darknut.png", "Blue Darknuts"], ["dod", "en_dodongo.png", "Dodongos"]];
-// a room's kind (left click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
+// a room's kind (right-click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
 const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["chevy", "Chevy moat"],
   ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["x", "Remove room"]];
 const ART = {
@@ -481,7 +481,9 @@ function renderDun() {
     const art = kind && roomArt(kind); if (art) cell.prepend(art);
     if (c.m === "E") cell.append(entArrow("in"));
     else if (c.m && c.m !== "O") cell.append(el("span", { className: "mk", textContent: (BRUSHES.find((x) => x[0] === c.m) || [, "?"])[1] }));
-    cell.onclick = (e) => {
+    // (owner, 2026-11-26: left and right swapped) right-click: what the brush draws (the Room brush: its kind)
+    cell.oncontextmenu = (e) => {
+      e.preventDefault();
       if (brush === "erase") { delete d.cells[i]; redraw(); return; }
       if (!Object.keys(d.cells).length) {                 // an empty map: the first room is the entrance
         d.cells[i] = { r: 1, m: "E" }; redraw(); return;
@@ -498,9 +500,8 @@ function renderDun() {
       if (!cur.r && !cur.m && !cur.it && !cur.en && !cur.k) delete d.cells[i]; else d.cells[i] = cur;
       redraw();
     };
-    // right-click: a plain room; again, cleared; again, not cleared
-    cell.oncontextmenu = (e) => {
-      e.preventDefault();
+    // click: a plain room; again, cleared; again, not cleared
+    cell.onclick = (e) => {
       if (!Object.keys(d.cells).length) { d.cells[i] = { r: 1, m: "E" }; redraw(); return; }
       const cur = d.cells[i] || {};
       cur.r = cur.r === 1 ? 2 : 1; d.cells[i] = cur; redraw();
@@ -524,8 +525,8 @@ function renderDun() {
       door.style.gridColumn = String(k === "h" ? col * 2 + 2 : col * 2 + 1);
       door.append(el("i"));
       const set = (n) => { if (n) d.doors[key] = n; else delete d.doors[key]; save(); renderDun(); };
-      door.onclick = () => set(v ? 0 : 1);
-      door.oncontextmenu = (e) => { e.preventDefault(); set(0); };
+      door.onclick = () => set(v === 1 ? 0 : 1);                           // click: green (again: none)
+      door.oncontextmenu = (e) => { e.preventDefault(); set(v === 2 ? 0 : 2); };   // right-click: gold (again: none)
       door.addEventListener("wheel", (e) => {
         e.preventDefault();
         const w = wheelDir(e); if (!w) return;
