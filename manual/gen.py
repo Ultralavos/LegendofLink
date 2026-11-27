@@ -211,9 +211,9 @@ P(f'''<section class="page"><h1 class="band">ENEMIES THAT GROW WITH YOU</h1>
 <p>Enemies watch Link's heart containers. When he reaches these, they change. In Hard mode they change 3 hearts sooner.</p>
 <table class="grid lvl">
 <tr><th>Hearts</th><th>Enemies</th></tr>
-<tr><td>8</td><td>Red Moblins, Gibdos, Ropes, Stalfos</td></tr>
+<tr><td>8</td><td>Red Moblins, Gibdos, Ropes, Stalfos, Digdogger (3)</td></tr>
 <tr><td>9</td><td>Red Darknuts</td></tr>
-<tr><td>10</td><td>Red Octoroks, Pols Voice, Dodongos, Aquamentus</td></tr>
+<tr><td>10</td><td>Red Octoroks, Pols Voice, Dodongos, Aquamentus, Digdogger (1)</td></tr>
 <tr><td>12</td><td>Blue Goriyas, Wallmasters, Vires, Gleeok</td></tr>
 <tr><td>14</td><td>Red Wizzrobes, Gohma</td></tr>
 <tr><td>15</td><td>Patras</td></tr>
