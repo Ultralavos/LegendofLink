@@ -274,7 +274,9 @@ function renderUps() {
       stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
       row.append(b);
     });
-    box.append(el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") }), row);
+    const head = el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") });
+    head.dataset.short = `Tier ${t + 1}`;                // (the Stream layout's bar shows this)
+    box.append(head, row);
   });
 }
 $("up-all").addEventListener("change", renderUps);
@@ -306,11 +308,12 @@ function renderMap() {
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
       if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
-      // left click: an X ("don't need it"), again to take it off; right-click / long press: what's here
-      cell.onclick = (e) => { e.stopPropagation(); if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
+      // left click: what's here; right-click / long press: an X ("don't need it"), again to take it off
       const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : openPicker(s, cell));
-      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); menu(); };
-      longPress(cell, menu);
+      const xout = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
+      cell.onclick = (e) => { e.stopPropagation(); menu(); };
+      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); xout(); };
+      longPress(cell, xout);
     }
     map.append(cell);
   }
@@ -346,7 +349,7 @@ function openPicker(s, cell) {
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
 }
-// a shop's square, right-clicked: its wares; the one bought: an X on the map and into the inventory
+// a shop's square, clicked: its wares; the one bought: an X on the map and into the inventory
 function openShop(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: shop, what did you buy?` }));
@@ -940,13 +943,14 @@ function renderAll() {
   renderItems(); renderCounters();
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
-// the Stream layout (button or ?stream): one 480px column, zoomed to fit the window (width and height)
+// the Stream layout (button or ?stream): one 640px column (the upgrades a bar beside the overworld), zoomed to fit the window
 const STREAM_KEY = "lol-tracker-stream";
+const STREAM_W = 640;                    // (tracker.css: body.stream main's width)
 function fitStream() {
   if (!document.body.classList.contains("stream")) { document.body.style.zoom = ""; return; }
   document.body.style.zoom = 1;
   const h = document.documentElement.scrollHeight;
-  document.body.style.zoom = Math.min(innerWidth / 480, innerHeight / h);
+  document.body.style.zoom = Math.min(innerWidth / STREAM_W, innerHeight / h);
 }
 function setStream(on) {
   document.body.classList.toggle("stream", on);

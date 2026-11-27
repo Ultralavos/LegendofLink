@@ -301,3 +301,21 @@ body.stream .counters button { padding: 0 6px; }
 body.stream .uptiers { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 2px 4px; align-items: center; }
 body.stream .tierhead { font-size: 8px; line-height: 1.15; margin: 0; }
 body.stream .upgrid { grid-template-columns: repeat(auto-fill, minmax(24px, 1fr)); }
+
+/* Stream layout, wider (owner, 2026-11-26): 640px, the upgrades a vertical bar left of the overworld, which fills
+   the rest of the width and the row the upgrades had */
+body.stream main { width: 640px; max-width: 640px; grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-areas: "items items" "tri tri" "ups map" "dun dun"; }
+body.stream .top { width: 640px; }
+body.stream .ups { display: flex; flex-direction: column; min-width: 0; }
+body.stream .ups h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+body.stream .ups .upall { float: none; font-size: 9px; }
+body.stream .uptiers { display: flex; flex-direction: column; gap: 2px; }
+body.stream .tierhead { font-size: 0; line-height: 1; margin: 2px 0 0; }
+body.stream .tierhead::before { content: attr(data-short); font-size: 9px; }
+body.stream .upgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+body.stream .ups h2 .upall input { margin: 0; }
+/* the overworld fills its row: at least its own shape, taller (stretched) when the upgrades bar is */
+body.stream .map { min-width: 0; display: flex; flex-direction: column; }
+body.stream .mapwrap { flex: 1 1 auto; display: flex; container-type: inline-size; }
+body.stream .owmap { aspect-ratio: auto; height: auto; flex: 1 1 auto; min-height: calc(100cqw * 704 / 2048); }
