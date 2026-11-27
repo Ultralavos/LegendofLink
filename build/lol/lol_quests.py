@@ -79,6 +79,11 @@ def _q3():
     return out
 
 
+# 4Q's hidden rooms (left off its level maps in the 4Q build), not part of LoL's 4Q levels (owner, 2026-11-26):
+# level 8's back way out (G16, D14) and level 9's Zelda room (H1). Their squares are free for stairs.
+Q4_HIDDEN = {8: ("G16", "D14"), 9: ("H1",)}
+
+
 def _q4():
     q = json.load(open(os.path.join(BUILD, "shapes", "q4", "q4_grids.json")))
     out = {}
@@ -91,6 +96,9 @@ def _q4():
         if lv in out:                           # (level 9's Torch wing: the same dungeon, its own piece)
             cells = sorted(set(out[lv][1]) | set(cells))
         out[lv] = (b, sorted(cells))
+    for lv, names in Q4_HIDDEN.items():
+        drop = {"ABCDEFGH".index(n[0]) * 16 + int(n[1:]) - 1 for n in names}
+        out[lv] = (out[lv][0], [c for c in out[lv][1] if c not in drop])
     return out
 
 
