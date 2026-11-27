@@ -283,6 +283,9 @@ function renderUps() {
       stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
       row.append(b);
     });
+    // (owner 2026-11-27) the hidden ones keep their room, as blank squares after the shown ones: the bar's size never
+    // changes as more are offered (in Stream the whole page rescales when it does)
+    for (let k = 0; k < hidden; k++) row.append(el("div", { className: "up ghost" }));
     const head = el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") });
     head.dataset.short = `Tier ${t + 1}`;                // (the Stream layout's bar shows this)
     box.append(head, row);
