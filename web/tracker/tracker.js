@@ -287,7 +287,8 @@ function renderUps() {
     // changes as more are offered (in Stream the whole page rescales when it does)
     for (let k = 0; k < hidden; k++) row.append(el("div", { className: "up ghost" }));
     const head = el("div", { className: "tierhead", textContent: `${tname} · ${range} rupees` + (hidden ? ` · ${hidden} hidden` : "") });
-    head.dataset.short = `Tier ${t + 1}`;                // (the Stream layout's bar shows this)
+    head.dataset.short = `Tier ${t + 1}`;
+    head.dataset.tn = `${t + 1}`;                         // (Stream + One map: just the number)                // (the Stream layout's bar shows this)
     box.append(head, row);
   });
 }

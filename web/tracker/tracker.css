@@ -386,3 +386,28 @@ body.stream.onemap .ups { grid-row: 3 / span 2; }
 body.stream.wide #onemap { display: none; }
 body.stream.onemap main { grid-template-rows: auto auto auto 1fr; }
 body.stream.onemap .map { align-self: start; }
+/* Stream + One map, the side layout (owner, 2026-11-27; test page): the items a column down the whole left side (the
+   hearts, then the bomb upgrades, then the items two across), the upgrades a bar across the top of the maps */
+body.stream.onemap main { width: 640px; max-width: 640px; grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-rows: auto auto auto 1fr; grid-template-areas: "items tri" "items ups" "items mtog" "items map"; }
+body.stream.onemap .ups { grid-row: auto; }
+body.stream.onemap .items { display: flex; flex-direction: column; }
+body.stream.onemap .items .counters { order: -1; flex-direction: column; flex-wrap: nowrap; gap: 4px; margin: 0 0 6px; }
+body.stream.onemap .counter { gap: 3px; justify-content: space-between; }
+body.stream.onemap .counter .clabel { display: none; }
+body.stream.onemap .counter img { width: 18px; height: 18px; }
+body.stream.onemap .counter b { font-size: 15px; }
+body.stream.onemap .counters button { padding: 0 7px; }
+body.stream.onemap .itemgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+/* the upgrades: one row per tier, every place held */
+body.stream.onemap .ups h2 { margin-bottom: 2px; }
+body.stream.onemap .uptiers { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 2px 4px; align-items: center; }
+body.stream.onemap .tierhead { margin: 0; text-align: left; }
+body.stream.onemap .upgrid { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; }
+body.stream.onemap .up { padding: 2px; }
+body.stream.onemap main { width: 720px; max-width: 720px; }
+body.stream.onemap .top { width: 720px; }
+body.stream.onemap .uptiers { grid-template-columns: 16px minmax(0, 1fr); }
+body.stream.onemap .tierhead::before { content: attr(data-tn); }
+body.stream.onemap .upgrid { grid-template-columns: repeat(15, minmax(0, 1fr)); }
+body.stream.onemap .dun { max-width: 560px; justify-self: center; }
