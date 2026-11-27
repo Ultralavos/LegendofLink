@@ -875,11 +875,13 @@ def apply(rom: bytearray, notes: list) -> None:
     ptr = {}
     for key in sorted(bodies):
         body = bodies[key]
-        import lol_upmix
+        import lol_upmix, lol_xray
         for b in DATA_BANKS:
             lim = TRAMPD - 0x10
             if b == 14:                       # (lol_upmix: noshoot and the Upgrade mix's code at the top)
                 lim = lol_upmix.UAT or lol_upmix.NOSHOOT_AT
+            if b == lol_xray.XRAY_BANK and lol_xray.XRAY_AT:    # (lol_xray's code at the top)
+                lim = lol_xray.XRAY_AT
             if fill[b] + len(body) <= lim:
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break

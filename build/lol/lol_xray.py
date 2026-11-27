@@ -5,7 +5,7 @@ open in palette 0 (grey / white), a walk-through wall (door types 2 and 3) in pa
 attributes change: the door spots are whole 16x16 quarters of the play area's attribute bytes (north and south:
 32 x 32 at the wall's middle; east and west: 32 x 48), all in the room's outer (wall) palette.
 
-Bank 5 (stubs; the work: bank 0, far calls):
+Bank 5 (stubs; the work: bank 13's top, far calls):
   FillPlayAreaAttrs ($83D7: A = the room; every room draw, scroll and level entry fills PlayAreaAttrs, $0530, from
       it) -> fill: the game's fill, then the marks (in a level, not in a cellar, with the glasses)
   a door's opening transfer ($A659: LDA #$FF / STA DynTileBuf,X, ending the door's tile records) -> opened: a
@@ -21,6 +21,8 @@ ATTR_A, ATTR_B = 0x687E, 0x68FE      # LevelBlockAttrsA / B (each room: S / N do
 WORLD_FLAGS = 0x6BAF                 # LevelInfo_WorldFlagsAddr
 ZR, PV, DX, K, BX = 0x01B8, 0x01B9, 0x01BA, 0x01BB, 0x01BC
 BOMB_PAL, WALK_PAL = 0, 1
+XRAY_BANK, XRAY_AT = 13, None    # (the code's bank and address: set in apply)
+_PENDING = None
 # each direction's (E, W, S, N: the game's door index) attribute bytes and the quarters in them (4 at most)
 SPOTS = [[(23, 0xFF), (31, 0x0F)],
          [(16, 0xFF), (24, 0x0F)],
@@ -95,17 +97,40 @@ def apply(rom: bytearray, notes: list) -> None:
         lol_heavy.ow_mark(a, rom, ZR)
         return a
     import lol_v3core as V
-    a = V.put0(rom, build)
+    from lol_af import place
+    from lol_genload import TRAMPD
+    # (0.396) the code: the top of data bank 13, below its trampolines (lol_genload's variants stop short of it,
+    # XRAY_AT). It was in bank 0, whose last free run the end screen's names (their length varies with the build's
+    # dungeons) then sometimes overran: unseeded builds failed. The code uses RAM and its own tables only.
+    # (the data banks exist once lol_genload has expanded the ROM: placed by late(); without LOL_GEN, bank 0)
+    global XRAY_AT, _PENDING
+    import lol_entrances
+    if lol_entrances.GEN:
+        n = len(build(0x8000).bytes())
+        XRAY_AT = (TRAMPD - 0x20 - n) & ~0x0F
+        a = build(XRAY_AT)
+        _PENDING = a.bytes()
+        bank = XRAY_BANK
+    else:
+        a = V.put0(rom, build)
+        bank = 0
     L = a.labels
 
-    def stubs(org):                  # bank 5: the hooks, far calls to bank 0
+    def stubs(org):                  # bank 5: the hooks, far calls to bank 13
         s = Asm(org)
-        s.label("fill").abs(0x8D, ZR).abs(0x20, "body").b(*V.far(0, L["mark"])).b(0x60)
+        s.label("fill").abs(0x8D, ZR).abs(0x20, "body").b(*V.far(bank, L["mark"])).b(0x60)
         s.label("body").b(0xA8).abs(0xB9, ATTR_A).abs(0x4C, FILL + 4)
-        s.label("opened").b(*V.far(0, L["opened"])).b(0xA9, 0xFF).abs(0x9D, 0x0302).b(0x60)
+        s.label("opened").b(*V.far(bank, L["opened"])).b(0xA9, 0xFF).abs(0x9D, 0x0302).b(0x60)
         return s
     st = put(rom, 5, stubs)
     f, o = st.labels["fill"], st.labels["opened"]
     patch(rom, 5, FILL, bytes([0xA8, 0xB9, 0x7E, 0x68]), bytes([0x4C, f & 0xFF, f >> 8, 0xEA]))
     patch(rom, 5, OPEN_SITE, bytes([0xA9, 0xFF, 0x9D, 0x02, 0x03]), bytes([0x20, o & 0xFF, o >> 8, 0xEA, 0xEA]))
-    notes.append(f"x-ray glasses: secret walls marked (bank 0 ${L['mark']:04X}, {len(a.bytes())} bytes; bank 5 stubs ${f:04X})")
+    notes.append(f"x-ray glasses: secret walls marked (bank {bank} ${L['mark']:04X}, {len(a.bytes())} bytes; bank 5 stubs ${f:04X})")
+
+
+def late(rom: bytearray) -> None:
+    """After lol_genload (the data banks): the code at the top of bank 13."""
+    from lol_af import place
+    if _PENDING:
+        place(rom, XRAY_BANK, XRAY_AT, _PENDING)

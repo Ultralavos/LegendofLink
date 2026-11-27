@@ -367,6 +367,7 @@ def main():
         import lol_genload
         lol_genload.apply(rom, notes)
         lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
+        lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)
     import lol_mixgroups
     lol_mixgroups.apply(rom, notes)               # the page's Mix enemy groups (after everything: LoL's bytes win)
