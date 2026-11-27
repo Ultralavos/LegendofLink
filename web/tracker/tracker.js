@@ -397,7 +397,7 @@ renderAccess();
   const c = el("div", { className: "checks" });
   c.append(el("div", { className: "ck", innerHTML: '<b id="chk-left">0</b><span>checks left</span>' }),
     el("div", { className: "ck avail", innerHTML: '<b id="chk-avail">0</b><span>available now</span>' }));
-  $("access").before(c);
+  document.querySelector(".panel.map h2").append(c);                // (in the Overworld heading's line)
 }
 renderAccessCounts();
 function openPicker(s, cell) {
