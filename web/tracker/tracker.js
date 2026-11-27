@@ -48,6 +48,15 @@ const MARKS = [   // value, label on the map, class, picker text
   ["tri4", "4▲", "tri", "4-triforce cave"], ["tri8", "8▲", "tri", "8-triforce cave"],
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
+// a mark's box; (owner 2026-11-27) the 4 and 8 triforce caves: an orange box, a triangle, the number in bold black
+function markTag(cls, label) {
+  const t = el("span", { className: "tag " + cls });
+  if (cls !== "tri") { t.textContent = label; return t; }
+  t.innerHTML = '<svg viewBox="0 0 20 18" aria-hidden="true"><path d="M10 1 L19 17 H1 Z"/></svg>';
+  t.append(el("b", { textContent: label.replace("▲", "") }));
+  t.title = label.replace("▲", "") + "-triforce cave";
+  return t;
+}
 const BRUSHES = [   // id, label, title
   ["room", "", "Room: right-click for its kind (moats, old man, stairs, numbers); click: a room, again cleared"],
   ["E", "↑", "Entrance (the first room you click; one per map)"], ["S", "S", "Stairs"], ["O", "O", "Old man"], ["B", "B", "Boss"],
@@ -303,7 +312,7 @@ function renderMap() {
     if (FIXED[s]) { cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] })); cell.disabled = true; }
     else {
       const m = MARK[S.ow[s]];
-      if (m) cell.append(el("span", { className: "tag " + m[2], textContent: m[1] }));
+      if (m) cell.append(markTag(m[2], m[1]));
       else cell.classList.add("open");
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
       if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
@@ -329,8 +338,7 @@ function openPicker(s, cell) {
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : "") + (taken ? " taken" : ""),
       title: taken ? `${text}: already on the map` : text, disabled: taken },
       // (owner 2026-11-27) a level or shrine: just its big box, the number or letter (no "Level" text)
-      cls === "lvl" || cls === "shr" ? [el("span", { className: "tag " + cls, textContent: label })]
-        : [el("span", { className: "tag " + cls, textContent: label }), el("small", { textContent: text })]);
+      cls === "lvl" || cls === "shr" ? [markTag(cls, label)] : [markTag(cls, label), el("small", { textContent: text })]);
     b.onclick = () => {
       S.ow[s] = v; save(); closePicker(); renderMap();
       if (/^[LS]/.test(v)) {                       // a level or shrine: its map below
