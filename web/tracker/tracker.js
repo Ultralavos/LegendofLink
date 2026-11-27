@@ -409,10 +409,11 @@ function renderBrushes() {
     b.append(btn);
   }
 }
-// the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green, right-click gold (the
-// same again: none), the mouse wheel through green, yellow, dark blue, red, purple. A room: right-click / click as the
+// the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green, right-click a wall (a
+// thin red line; the same again: none), the mouse wheel through green, yellow, dark blue, red, purple. A room: right-click / click as the
 // brush says; the wheel (down) opens its item list (map, compass, key, bomb, triforce, potion, I).
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
+const WALL_V = 9;                      // (owner 2026-11-27) right-click: a wall, a thin red line along the side
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["rupee5", "rupee.png", "5 rupees"], ["I", null, "I"]];
 const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.png", "Blue Gohma"], ["gleeok", "en_gleeok.png", "Gleeok"],
@@ -519,14 +520,15 @@ function renderDun() {
     for (const k of ["h", "v"]) {
       if ((k === "h" && col === 7) || (k === "v" && row === 7)) continue;
       const key = `${k}${row * 8 + col}`, v = d.doors[key] || 0;
-      const door = el("button", { type: "button", className: `door ${k}` + (v ? " " + DOORS[v - 1] : ""),
-        title: v ? `Door: ${DOORS[v - 1] === "navy" ? "dark blue" : DOORS[v - 1]}` : "Door" });
+      const dc = v === WALL_V ? "wall" : DOORS[v - 1];
+      const door = el("button", { type: "button", className: `door ${k}` + (v ? " " + dc : ""),
+        title: v ? `Door: ${dc === "navy" ? "dark blue" : dc === "wall" ? "wall (red line)" : dc}` : "Door" });
       door.style.gridRow = String(k === "h" ? row * 2 + 1 : row * 2 + 2);
       door.style.gridColumn = String(k === "h" ? col * 2 + 2 : col * 2 + 1);
       door.append(el("i"));
       const set = (n) => { if (n) d.doors[key] = n; else delete d.doors[key]; save(); renderDun(); };
       door.onclick = () => set(v === 1 ? 0 : 1);                           // click: green (again: none)
-      door.oncontextmenu = (e) => { e.preventDefault(); set(v === 2 ? 0 : 2); };   // right-click: gold (again: none)
+      door.oncontextmenu = (e) => { e.preventDefault(); set(v === WALL_V ? 0 : WALL_V); };   // right-click: a wall (again: none)
       door.addEventListener("wheel", (e) => {
         e.preventDefault();
         const w = wheelDir(e); if (!w) return;
