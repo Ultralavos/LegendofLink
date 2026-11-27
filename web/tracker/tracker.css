@@ -423,3 +423,16 @@ body.stream.onemap .tierhead { background: #1d1d27; border: 1px solid var(--line
 body.stream.onemap .tierhead::before { font-size: 10px; letter-spacing: .5px; }
 body.stream.onemap .upgrid { background: #1d1d27; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px;
   padding: 3px; align-self: stretch; }
+/* what opens which entrance (owner, 2026-11-27; test page): icons under the overworld; the one pointed at lights its spots */
+.access { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.acc { flex: 1 1 0; min-width: 0; max-width: 64px; aspect-ratio: 1; background: #000; border: 2px solid var(--line); border-radius: 7px;
+  padding: 4px; display: grid; place-items: center; }
+.acc img { width: 100%; height: 100%; object-fit: contain; }
+.acc .acclabel { font: bold 11px ui-monospace, monospace; color: #e8e8e8; letter-spacing: .5px; }
+.acc:hover, .acc.cur { border-color: #5ff0ff; box-shadow: 0 0 6px #5ff0ff88; }
+.owmap.acc-on .cell:not(.acc-hit):not(.fixed) { opacity: .35; }
+.owmap.acc-on .cell.acc-hit { outline: 3px solid #5ff0ff; outline-offset: -2px; box-shadow: inset 0 0 0 999px #5ff0ff33, 0 0 8px #5ff0ff;
+  z-index: 3; border-radius: 3px; }
+body.stream .access { gap: 4px; margin-top: 5px; flex-wrap: nowrap; }
+body.stream .acc { max-width: none; border-width: 1px; padding: 3px; }
+body.stream .acc .acclabel { font-size: 9px; }

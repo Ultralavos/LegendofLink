@@ -312,6 +312,7 @@ function renderMap() {
   for (const s of all) {
     const row = s >> 4, col = s & 15;
     const cell = el("button", { type: "button", className: "cell", title: "ABCDEFGH"[row] + (col + 1) });
+    cell.dataset.s = s;
     cell.style.left = `${col * 6.25}%`; cell.style.top = `${row * 12.5}%`;
     if (FIXED[s]) { cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] })); cell.disabled = true; }
     else {
@@ -331,7 +332,46 @@ function renderMap() {
     map.append(cell);
   }
   $("spots").textContent = ENTRANCES.filter((s) => !S.ow[s] && !S.owX[s]).length;
+  if (typeof showAccess === "function" && accShown) showAccess(accShown);
 }
+// (owner 2026-11-27; test page) what opens which entrance: point at (or tap) an icon under the overworld and the
+// entrances that need it light up. The screens by how they open (ZORA's model of the overworld: both quests' secrets)
+const B_ = [0x01, 0x03, 0x05, 0x07, 0x0D, 0x10, 0x12, 0x13, 0x14, 0x16, 0x1E, 0x26, 0x27, 0x2C, 0x2D, 0x33, 0x67, 0x71,
+  0x76, 0x7B, 0x7C, 0x7D, 0x19];
+const CANDLE_ = [0x28, 0x46, 0x47, 0x48, 0x4B, 0x4D, 0x51, 0x56, 0x5B, 0x62, 0x63, 0x68, 0x6A, 0x6B, 0x6D, 0x78];
+const ACCESS = [   // id, icon (null: a label), name, screens
+  ["open", null, "Open caves and the Armos' stairs", [0x04, 0x0A, 0x0B, 0x0C, 0x0E, 0x0F, 0x1A, 0x1C, 0x1F, 0x21, 0x22,
+    0x25, 0x34, 0x37, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75]],
+  ["bomb", "bombs", "Bomb walls", B_],
+  ["candle1", "candle1", "Bushes to burn (blue candle)", CANDLE_],
+  ["candle2", "candle2", "Bushes to burn (red candle)", CANDLE_],
+  ["bracelet", "bracelet", "Rocks to push (power bracelet)", [0x11, 0x1B]],
+  ["recorder", "recorder", "The recorder's secrets", [0x3C, 0x42, 0x58]],
+  ["raft", "raft", "Docks (raft)", [0x2F, 0x45]],
+  ["ladder", "ladder", "Across the water (ladder; and a bomb)", [0x19]],
+];
+let accShown = null;                        // the one lit now (renderMap keeps it lit)
+function showAccess(a) {
+  accShown = a;
+  $("map").classList.toggle("acc-on", !!a);
+  $("map").querySelectorAll(".cell").forEach((c) => c.classList.toggle("acc-hit", !!a && a[3].includes(+c.dataset.s)));
+  $("access").querySelectorAll("button").forEach((b) => b.classList.toggle("cur", !!a && b.dataset.id === a[0]));
+}
+function renderAccess() {
+  const box = $("access"); box.replaceChildren();
+  const show = showAccess;
+  let held = null;                          // (a tap holds it on until another tap)
+  for (const a of ACCESS) {
+    const b = el("button", { type: "button", className: "acc", title: `${a[2]}: ${a[3].length}` });
+    b.dataset.id = a[0];
+    b.append(a[1] ? icon(a[1]) : el("span", { className: "acclabel", textContent: "OPEN" }));
+    b.onmouseenter = () => show(a);
+    b.onmouseleave = () => show(held);
+    b.onclick = () => { held = held === a ? null : a; show(held); };
+    box.append(b);
+  }
+}
+renderAccess();
 function openPicker(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
