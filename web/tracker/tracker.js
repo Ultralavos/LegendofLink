@@ -140,8 +140,8 @@ function counter(id, img, label, get, set, lo, hi) {
   const minus = el("button", { type: "button", className: "pm", textContent: "−", ariaLabel: `Fewer ${label}` });
   const plus = el("button", { type: "button", className: "pm", textContent: "+", ariaLabel: `More ${label}` });
   const val = el("b", { textContent: get() });
-  minus.onclick = () => { set(Math.max(lo, get() - 1)); save(); val.textContent = get(); };
-  plus.onclick = () => { set(Math.min(hi, get() + 1)); save(); val.textContent = get(); };
+  minus.onclick = () => { set(Math.max(lo, get() - 1)); save(); val.textContent = get(); renderMap(); };   // (the wood
+  plus.onclick = () => { set(Math.min(hi, get() + 1)); save(); val.textContent = get(); renderMap(); };    //  shop's level)
   box.append(icon(img), el("span", { className: "clabel", textContent: label }), minus, val, plus);
 }
 function renderTri() {
@@ -169,7 +169,7 @@ function renderTri() {
   for (const [c, name] of [["S", "Shop"], ["D", "Dungeon"], ["X", "Shrine"]]) {
     const b = el("button", { type: "button", className: "card" + (S.cards[c] ? " on" : ""), title: `${name} cards (up to 3)` });
     b.append(icon("card" + c), el("span", { textContent: `${c} ×${S.cards[c]}` }));
-    stepper(b, (d) => { S.cards[c] = (S.cards[c] + d + 4) % 4; save(); renderTri(); });
+    stepper(b, (d) => { S.cards[c] = (S.cards[c] + d + 4) % 4; save(); renderTri(); renderMap(); });
     k.append(b);
   }
 }
@@ -339,11 +339,12 @@ function renderMap() {
           else { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
           save(); renderMap();
         };
-        // (1.0) from heart level 9 (owner 2026-11-28) the cave shows a shop that stays open: a click shows its wares
-        if (S.hearts >= 9) {
+        // (1.0) from shop level 11 - heart level + the old men's shop (S) cards, as the game counts it (owner
+        // 2026-11-28) - the cave shows a shop that stays open: a click shows its wares
+        if (S.hearts + ((S.cards || {}).S || 0) >= 11) {
           cell.querySelectorAll(".tag, .xmark").forEach((x) => x.remove()); cell.classList.remove("xd");
           cell.append(el("span", { className: "tag shop", textContent: "SHOP" }));
-          cell.title = "H8: the wood sword cave's shop (heart level 9+): click for what you bought";
+          cell.title = "H8: the wood sword cave's shop (heart level + shop cards 11+): click for what you bought";
           cell.onclick = (e) => { e.stopPropagation(); openWoodShop(s, cell); };
         } else
         cell.onclick = (e) => { e.stopPropagation(); flip(!S.owDone[s]); };
