@@ -150,7 +150,7 @@ L4_ROOMS = {
 
 # ---------------------------------------------------------------------------------------------------------------
 # Level 5 (q3/level_5.json). Item spots A 8,9  B 8,12  C 2,12  D 13,6.
-L5_SPOTS = [0x89, 0x8C, 0x2C, 0xD6]
+L5_SPOTS = [0x89, 0x8A, 0x2C, 0xD6]        # (owner 2026-11-28: B one tile below A)
 L5_SHARED = {"L5F7": Enemy(0x74), "L5C9": Enemy(0x74)}      # 2 Bubbles, 3 Darknuts, 3 Gibdos
 L5_MIXED_COUNT = {"L5F7": 8, "L5C9": 8}
 L5_ROOMS = {
@@ -185,7 +185,7 @@ L5_TEXTS = {23: ["THE SWORD DUNGEON", "HOLDS MORE THAN ONE."]}   # D6: ELDER_3 i
 
 # ---------------------------------------------------------------------------------------------------------------
 # Level 6 (q3/level_6.json). Item spots = vanilla Level 6's: A 8,9  B 13,6  C 2,6  D 2,12.
-L6_SPOTS = [0x89, 0xD6, 0x26, 0x2C]
+L6_SPOTS = [0x89, 0x8A, 0xAC, 0xC9]        # (owner 2026-11-28: B-D new, never at a door)
 L6_MIXED = {"L6F14": [E.RED_BUBBLE] * 3 + [E.BLUE_BUBBLE] + [RED_LOOK_WIZZROBE, BLUE_LOOK_WIZZROBE] * 2}
 L6_MIXED_CODE = 0x76            # vanilla 1Q Level 9's only (Levels 7-9 are cleared); written after the others
 L6_MIXED_COUNT = {"L6F14": 8}
@@ -224,7 +224,7 @@ EXTRA_ROOMS = {}
 # (q3/level_8.json); Levels 7 and 9 are an entrance room with their item for now.
 GRID79 = json.load(open(base.Q3 / "grid_7_9.json"))["rows"]
 NEW79 = {k: {r * 16 + c for r in range(8) for c in range(16) if GRID79[r][c] == ch} for k, ch in ((7, "r"), (8, "b"), (9, "g"))}
-L8_SPOTS = [0x89, 0xD6, 0x26, 0x2C]        # vanilla Level 8's: A 8,9  B 13,6  C 2,6  D 2,12
+L8_SPOTS = [0x89, 0xC9, 0xAC, 0x88]        # A 8,9  B 12,9  C 10,12  D 8,8 (owner 2026-11-28: B-D new)
 L8_SHARED = {"L8F2": Enemy(0x74)}           # 2 Bubbles, 3 Darknuts, 3 Gibdos
 L8_MIXED_COUNT = {"L8F2": 8}
 L8_ROOMS = {
@@ -274,7 +274,7 @@ L8_TRANSPORTS = [("A8", "A3", "A4"), ("F3", "A8", "A2"), ("B8", "B3", "C4"), ("D
 L8_CELLAR = ("A3", Item.RED_RING, "C3")
 ENTRANCES_79 = {}
 # Level 9 (q3/level_9.json): the Serpent, plus D15 (a free cell made a room, left off the map).
-L9_SPOTS = [0x89, 0xD6, 0x26, 0x2C]        # vanilla Level 9's: A 8,9  B 13,6  C 2,6  D 2,12
+L9_SPOTS = [0x89, 0x8A, 0xAC, 0xC8]        # A 8,9  B 8,10  C 10,12  D 12,8 (owner 2026-11-28: B-D new)
 L9_HIDDEN = {"D15"}
 P_C14 = PB    # C14: the compass at B (13,6, the top-right floor), off the grid's blocks
 L9_ROOMS = {
