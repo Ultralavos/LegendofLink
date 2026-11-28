@@ -633,12 +633,16 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             raise Fail("no old man room")
         choice = rng.choice(pool)
         roles[choice] = "choice"
-        if v10:                                 # (1.0) ZORA's triforce room (SH-ROOM-01): its own room, layout $29
-            cand = [c for c in free() if c not in hidden]
+        if v10:                                 # (1.0, owner 2026-11-28) the triforce in any room; the triforce room's
+            cand = [c for c in free() if c not in hidden]   # layout ($29) in one room of its own (maybe the same)
             if not cand:
                 raise Fail("no triforce room")
             tri = rng.choice(cand)
             roles[tri] = "triforce"
+            lay_c = rng.choice(cand)
+            rooms[lay_c]["trilay"] = True
+            if lay_c != tri:
+                roles[lay_c] = "trilay"
     if len(reach(graph())) != len(cells):
         raise Fail("after specials")
 
@@ -735,9 +739,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             r.update(layout=L, eclass=3, trigger=T_ALL_DEAD)
         elif role == "prize":
             r.update(layout=0x29, eclass=0, trigger=T_NONE)            # the triforce room, no enemies
-        elif role == "triforce" and v10:              # (1.0: ZORA's, standing; at $89)
-            r.update(layout=0x29, eclass=0, trigger=T_NONE, item=I_TRIFORCE,
-                     pos=0 if postab is None else postab.index(0x89))
+        elif r.get("trilay"):                         # (1.0) the triforce room's layout, enemies as any room
+            r.update(layout=0x29, eclass=1, trigger=T_NONE)
         elif role in ("item_stairs", "transport"):
             if role == "item_stairs" and cls == "L13":
                 lays = PUSH_STAIRS
@@ -840,8 +843,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
                 walls[x][side] = OPEN
         shut.remove((c, t))
     if v10:
-        _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok=lambda c, t: nb(c, t) in cells,
-                   postab=postab)
+        tri = _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok=lambda c, t: nb(c, t) in cells,
+                         postab=postab) or tri
     # the item marks: rooms that may hold an item, a usable spot, the center usable?, standing only?
     nmark = ncenter = 0
     for c in ([] if v10 else cells):
@@ -911,6 +914,31 @@ def _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok, postab=Non
     Levels 1-8 keep DECK_MARKS rooms without an item marked for the deck's spots."""
     lv = int(lvcls[1]) if lvcls[0] == "L" and lvcls[1:].isdigit() else None
     t3 = T3[lv] if lv else weights(cls, T3)
+    standing = lambda r: r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"]
+    # (owner 2026-11-28) the triforce: any room, a spot its layout allows, dropped or standing as other items (in the
+    # triforce room's layout: standing)
+    spots = lambda c: list(spot_slots(rooms[c]["layout"], postab,
+                                      {t for t in range(4) if nb_ok(c, t) and passable(c, t)}))
+    tri = None
+    for c in sorted(cells):
+        if roles.get(c) != "triforce":
+            continue
+        opts = spots(c)
+        if not opts:                            # (its room has no spot: another ordinary room that has one)
+            other = [x for x in sorted(cells) if roles.get(x) in (None, "trilay") and rooms[x]["item"] is None
+                     and (rooms[x]["layout"] & 0x3F) not in NO_ITEM_LAYOUTS and spots(x)]
+            if not other:
+                raise Fail("no spot for the triforce")
+            del roles[c]
+            c = rng.choice(other)
+            roles[c] = "triforce"
+            opts = spots(c)
+        r = rooms[c]
+        r["item"], r["pos"] = I_TRIFORCE, rng.choice(opts)
+        if not standing(r) and not r.get("trilay"):
+            r["trigger"] = T_ALL_DEAD_ITEM if rng.random() < 2 / 3 else T_ALL_DEAD
+        tri = c
+        break
     elig = []
     for c in sorted(cells):
         r = rooms[c]
@@ -935,18 +963,23 @@ def _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok, postab=Non
         r["item"], r["pos"] = it, rng.choice(opts)
         vc += 1
         held.append(c)
-        if r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"]:
+        if standing(r):
             continue
-        r["trigger"] = T_ALL_DEAD_ITEM if rng.random() < 2 / 3 else T_ALL_DEAD
+        # (owner 2026-11-28) the triforce room's layout: a dropped item only the map (below), else standing
+        r["trigger"] = T_ALL_DEAD if r.get("trilay") else T_ALL_DEAD_ITEM if rng.random() < 2 / 3 else T_ALL_DEAD
     for code in (I_COMPASS, I_MAP):
         cnt = [c for c in held if rooms[c]["item"] in (I_BOMBS, I_RUPEES, I_KEY)]
         if not cnt:
             raise Fail("no room for the map / compass")
-        rooms[rng.choice(cnt)]["item"] = code
+        c = rng.choice(cnt)
+        rooms[c]["item"] = code
+        if code == I_MAP and rooms[c].get("trilay") and not standing(rooms[c]) and rng.random() < 2 / 3:
+            rooms[c]["trigger"] = T_ALL_DEAD_ITEM            # (the map may drop there)
     if lvcls[0] == "L" and lv and lv <= 8:
-        empty = [(c, o) for c, o in elig if rooms[c]["item"] is None]
+        empty = [(c, o) for c, o in elig if rooms[c]["item"] is None and not rooms[c].get("trilay")]   # (the deck's:
+                                                                                                        #  not there)
         if len(empty) < DECK_MARKS:             # (a small level: item rooms give way, not the map or compass)
-            more = [(c, o) for c, o in elig if rooms[c]["item"] in (I_BOMBS, I_RUPEES, I_KEY)]
+            more = [(c, o) for c, o in elig if rooms[c]["item"] in (I_BOMBS, I_RUPEES, I_KEY) and not rooms[c].get("trilay")]
             empty += rng.sample(more, min(len(more), DECK_MARKS - len(empty)))
         if len(empty) < DECK_MARKS:
             raise Fail("no rooms for the deck's spots")
@@ -954,6 +987,7 @@ def _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok, postab=Non
             r = rooms[c]
             m = MARK | (1 if (0 if postab is None else postab.index(0x89) if 0x89 in postab else -1) in opts else 0) | (2 if r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"] else 0)
             r["item"], r["pos"] = m, rng.choice(opts)
+    return tri
 
 
 def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None,
