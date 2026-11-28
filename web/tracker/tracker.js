@@ -54,7 +54,8 @@ const MARKS = [   // value, label on the map, class, picker text
   // (owner 2026-11-28) gambling: a die; the secrets by size: a cent sign (small), a rupee (medium), a dollar sign (large)
   ["gamble", "", "dice", "Gambling"], ["sec1", "¢", "sec", "Small secret"], ["sec2", "", "rup", "Medium secret"],
   ["sec3", "$", "sec", "Large secret"], ["secq", "?", "sec", "Secret, not taken"], ["rupee", "$", "misc", "Secret rupees"],
-  ["tri4", "4▲", "tri", "4-triforce cave"], ["tri8", "8▲", "tri", "8-triforce cave"],
+  // (owner 2026-11-28) a triforce cave: one button, then how many triforces (3-8: 1.0's caves ask for 3-5 and 6-8)
+  ...[3, 4, 5, 6, 7, 8].map((n) => [`tri${n}`, `${n}▲`, "tri", `${n}-triforce cave`]),
   ["armos", "ARM", "arm", "Armos item"],
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
@@ -363,7 +364,8 @@ function renderMap() {
       if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
       // left click: what's here; right-click / long press: an X ("don't need it"), again to take it off
-      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : S.ow[s] === "armos" ? openArmos(s, cell) : openPicker(s, cell));
+      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : S.ow[s] === "armos" ? openArmos(s, cell)
+        : /^tri\d$/.test(S.ow[s] || "") ? openTriPick(s, cell) : openPicker(s, cell));
       const xout = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
       cell.onclick = (e) => { e.stopPropagation(); menu(); };
       cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); xout(); };
@@ -444,8 +446,20 @@ function openPicker(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
   const grid = el("div", { className: "pgrid" });
+  const triN = Object.entries(S.ow).filter(([k, x]) => +k !== s && /^tri\d$/.test(x)).length;
   for (const [v, label, cls, text] of MARKS) {
     if (v === "armos" && !ARMOS.includes(s)) continue;
+    if (cls === "tri") {                          // (one button for the six: its own window picks the number)
+      if (v !== "tri3") continue;
+      const full = triN >= TRI_MAX && !/^tri\d$/.test(S.ow[s] || "");
+      const on = /^tri\d$/.test(S.ow[s] || "");
+      const b = el("button", { type: "button", className: "pick tri" + (on ? " sel" : "") + (full ? " taken" : ""),
+        title: full ? `Triforce cave: ${TRI_MAX} already on the map` : "Triforce cave", disabled: full },
+        [markTag("tri", on ? MARK[S.ow[s]][1] : "▲"), el("small", { textContent: "Triforce cave" })]);
+      b.onclick = (e) => { e.stopPropagation(); openTriPick(s, cell); };
+      grid.append(b);
+      continue;
+    }
     if (v === "rupee") continue;                  // (old saves' secret mark: shown, not offered)
     // (owner 2026-11-27) a level, shrine or triforce cave already on another square: blacked out until it's taken off there
     const taken = (cls === "lvl" || cls === "shr" || cls === "tri" || cls === "arm") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
@@ -475,6 +489,37 @@ function openPicker(s, cell) {
   // place it under the tile, inside the panel
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(320, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+// (owner 2026-11-28) a triforce cave: how many triforces its old man asks for (3-8); at most two on the map, each
+// number once
+const TRI_MAX = 2;
+function openTriPick(s, cell) {
+  const p = $("picker"); picking = s; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: triforce cave, how many triforces?` }));
+  const grid = el("div", { className: "pgrid tgrid" });
+  for (let n = 3; n <= 8; n++) {
+    const v = `tri${n}`;
+    const taken = Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
+    const b = el("button", { type: "button", className: "pick tri" + (S.ow[s] === v ? " sel" : "") + (taken ? " taken" : ""),
+      title: taken ? `${n} triforces: already on the map` : `${n} triforces`, disabled: taken }, [markTag("tri", `${n}▲`)]);
+    b.onclick = () => {
+      if (S.ow[s] === "armos") { delete S.owArm[s]; revoke("armos:" + s); }
+      if (S.ow[s] === "shop") { delete S.owBuy[s]; revoke("shop:" + s); }
+      S.ow[s] = v; save(); closePicker(); renderMap();
+    };
+    grid.append(b);
+  }
+  const change = el("button", { type: "button", className: "wide", textContent: "Change mark" });
+  change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
+  const done = el("button", { type: "button", className: "wide quiet", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
+  done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
+  p.append(grid, el("div", { className: "prow" }, [change, done]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = (r.bottom - host.top + 4) + "px";
