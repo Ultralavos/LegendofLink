@@ -99,9 +99,12 @@ def shrine14():
     return w
 
 
+def seed():
+    return os.environ.get("LOL_SEED") or os.environ.get("LOL_SET_SEED") or "0"
+
+
 def rng(tag):
-    s = os.environ.get("LOL_SEED") or os.environ.get("LOL_SET_SEED") or "0"
-    return random.Random(f"lol 1.0 {tag} {s}")
+    return random.Random(f"lol 1.0 {tag} {seed()}")
 
 
 def roll(weights, r):
@@ -421,3 +424,48 @@ def apply_armos(rom, notes):
     nm = lambda s: "ABCDEFGH"[s // 16] + str(s % 16 + 1)
     notes.append(f"1.0 Armos: the item on {nm(a)} (X {xs[0]}); stairs " + ", ".join(f"{nm(s)} X {x}" for s, x in
                                                                                   zip(screens[1:], xs[1:])))
+
+
+# ---------------- step 4: fresh dungeons (owner 2026-11-28) ----------------
+# lol_gen (1.0): the dungeons drawn fresh every seed (lol_genload.vseed); ZORA's room items, triforce room and
+# level 9 Ganon / Zelda (her ways in opened by the Triforce of Power); an old man's choice in level 9. Here: one
+# room with Ganon's room's layout and one with Zelda's, each in a random level 1-9 (not a shrine), once a game.
+GANON_LAYOUT, ZELDA_LAYOUT = 0x28, 0x27
+
+
+def decor(out, chosen):
+    """chosen: per slot (levels 1-9, shrines) its (design, class, variant). One ordinary room each takes Ganon's room's
+    layout (its item, if any, standing) and Zelda's (no item)."""
+    import lol_gen as G
+    r = rng("decor")
+    said = []
+    used = set()
+    for lay, name in ((GANON_LAYOUT, "Ganon's"), (ZELDA_LAYOUT, "Zelda's")):
+        for _ in range(50):
+            lv = r.randint(1, 9)
+            d, ci, vi = chosen[lv - 1]
+            v = out[(d, ci)][vi]
+            cells = v["cells"]
+            pool = [c for c, x in sorted(cells.items()) if x["role"] == "room" and c not in used
+                    and x["trigger"] in (G.T_NONE, G.T_ALL_DEAD, G.T_ALL_DEAD_ITEM) and not x["layout"] & 0x40
+                    and (x["layout"] & 0x3F) not in G.CHUTE_SIDES and x["eclass"] in (1, 2)
+                    and (x["item"] is None or x["item"] in (G.I_BOMBS, G.I_RUPEES, G.I_KEY)
+                         or (lay == GANON_LAYOUT and x["item"] == G.I_MAP))]
+            if pool:
+                break
+        else:
+            continue
+        c = r.choice(pool)
+        used.add(c)
+        x = cells[c]
+        x["layout"] = lay
+        if lay == ZELDA_LAYOUT:
+            x["item"], x["pos"] = None, 0
+            if x["trigger"] == G.T_ALL_DEAD_ITEM:
+                x["trigger"] = G.T_ALL_DEAD
+        elif x["item"] is not None:
+            x["pos"] = r.choice(G.usable_in(lay, v.get("postab")) or (0,))
+            if x["trigger"] == G.T_ALL_DEAD_ITEM:
+                x["trigger"] = G.T_ALL_DEAD                 # (standing)
+        said.append(f"{name} room's layout in level {lv} ({G.name(c)})")
+    return "1.0 dungeons: " + ", ".join(said)

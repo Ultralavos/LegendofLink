@@ -246,6 +246,41 @@ def cellar_alloc(ds, free):
     return out
 
 
+def vseed(d, ci):
+    """A design's variants' seed: (1.0, owner 2026-11-28) fresh every seed; else the same every build."""
+    import lol_v10
+    if lol_v10.ON:
+        return f"lol 1.0 dungeon {d} {ci} {lol_v10.seed()}"
+    return 1000 * d + ci
+
+
+def postab_of(nm, cls):
+    """(1.0, owner 2026-11-28) a level's four item positions: ZORA's for 1Q's and 2Q's levels (the vanilla level's own
+    table) and Random shapes (the first quest's table of the level it plays); None (LoL's POS_TABLE) for LoL's own,
+    3Q, 4Q and the shrines (their drop spots: the owner's, to come)."""
+    import lol_v10
+    if not lol_v10.ON or not cls.startswith("L"):
+        return None
+    if "pt" not in _CACHE:
+        from zora.rom.parse.bin_files import load_bin_files_from_rom
+        from zora.rom.parse.game_world import parse_game_world
+        from zora.rom.base_rom import player_rom_of, using_player_rom
+        rom = bytes(lolpaths.source_rom())
+        with using_player_rom(player_rom_of(rom)):
+            w = parse_game_world(load_bin_files_from_rom(rom), rom_bytes=rom)
+        _CACHE["pt"] = ({L.level_num: list(L.item_position_table) for L in w.levels},
+                        {L.level_num: list(L.item_position_table) for L in w.levels_2q})
+    q1, q2 = _CACHE["pt"]
+    lv = int(cls[1:])
+    if nm.startswith("1Q L"):
+        return q1[int(nm[4:])]
+    if nm.startswith("2Q L"):
+        return q2[int(nm[4:])]
+    if nm.startswith("Shape"):
+        return q1[lv]
+    return None
+
+
 def build_variants():
     if "v" in _CACHE:
         return _CACHE["v"]
@@ -260,7 +295,8 @@ def build_variants():
                 ic, tc = alloc[nm]
                 for cls in classes_of(nm):
                     ci = CLASS_LIST.index(cls)
-                    out[(d, ci)] = G.make_variants(cells, cls, K, 1000 * d + ci, ic, tc, hid, rule=rule_of(nm))
+                    out[(d, ci)] = G.make_variants(cells, cls, K, vseed(d, ci), ic, tc, hid, rule=rule_of(nm),
+                                                   postab=postab_of(nm, cls))
             continue
         if False:
             pass
@@ -278,7 +314,7 @@ def build_variants():
             ic = [items[2 * i], items[2 * i + 1]]
         for cls in classes_of(nm):
             ci = CLASS_LIST.index(cls)
-            out[(d, ci)] = G.make_variants(cells, cls, K, 1000 * d + ci, ic, tc, hid)
+            out[(d, ci)] = G.make_variants(cells, cls, K, vseed(d, ci), ic, tc, hid, postab=postab_of(nm, cls))
     _CACHE["v"] = (ds, out)
     return _CACHE["v"]
 
@@ -456,7 +492,7 @@ def decoder(groups, ptr_table, maps, info):
     """DECODE (each data bank). In: $08 = variant index, $09 seed, $0A group, $0B boss, $0E slot code, $0F design.
     Writes the rooms, the level info (start, triforce, boss, cellars, item positions, room flags, map).
     Out: $03 old man, $04/$05 stairs rooms, $06/$07 cellars, $08 level 1 / 2's floor item room ($FF none)."""
-    import lol_v10 as V10
+    import lol_v10 as V10, lol_fixed
     import lol_sets
     S_N, S_CLS, S_POS, S_LAY, S_T, S_CNT, S_X, S_HI, S_R, S_BX, L1, L2, L3, S_RT, S_G = range(SCR, SCR + 15)
     P = 0x0C                                                                  # pointer $0C/$0D
@@ -544,7 +580,11 @@ def decoder(groups, ptr_table, maps, info):
     # the level info
     a.label("info").b(0xA5, 0x00).abs(0x8D, INFO + 0x2F).b(0xA5, 0x01).abs(0x8D, INFO + 0x30)
     a.b(0xA5, 0x02).abs(0x8D, INFO + 0x3E)
-    a.b(0xA2, 0x03).label("ip").abs(0xBD, "postab").abs(0x9D, INFO + 0x29).b(0xCA).br(0x10, "ip")
+    if V10.ON:                          # (1.0: each slot's own four item positions, postab_of)
+        a.b(0xA5, 0x0E, 0x38, 0xE9, 0x01, 0x0A, 0x0A, 0xAA, 0xA0, 0x00)
+        a.label("ip").abs(0xBD, "postab").abs(0x99, INFO + 0x29).b(0xE8, 0xC8, 0xC0, 0x04).br(0xD0, "ip")
+    else:
+        a.b(0xA2, 0x03).label("ip").abs(0xBD, "postab").abs(0x9D, INFO + 0x29).b(0xCA).br(0x10, "ip")
     a.b(0xA6, 0x0F).abs(0xBD, "flo").abs(0x8D, INFO + 0x31).abs(0xBD, "fhi").abs(0x8D, INFO + 0x32)
     a.b(0xA5, 0x0F, 0x0A, 0xAA).abs(0xBD, "mtab").b(0x85, P).abs(0xBD, "mtab1").b(0x85, P + 1)
     a.b(0xA0, 0x00, 0xB1, P).abs(0x8D, INFO + 0x2D).b(0xC8, 0xB1, P).abs(0x8D, INFO + 0x2E)
@@ -555,11 +595,14 @@ def decoder(groups, ptr_table, maps, info):
     # (40% key, 25% bombs, 20% five rupees, 1% blue potion, 14% nothing). Each: 75% dropped when all its enemies are
     # dead, 25% on the floor (a room with no enemies: on the floor).
     a.b(0xA9, 0xFF, 0x85, 0x08, 0xA9, 0x00).abs(0x8D, S_POS)
+    # (1.0: the triforce, map, compass and drops are the generator's, lol_gen._items_v10; only the deck's spots here)
     a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xB0, "pl_nt")
+    if V10.ON:
+        a.abs(0x4C, "pl_nt")
     a.b(0xA9, 0x1D).abs(0x8D, S_T).b(0xA9, 0x11).abs(0x8D, S_CNT).abs(0x20, "pl_pick").b(0xE0, 0xFF).br(0xF0, "pl_nt")
     a.abs(0x8E, INFO + 0x30).b(0xA9, 0x01).abs(0x8D, S_POS).b(0xA9, G.I_TRIFORCE).abs(0x20, "pl_put")
     a.label("pl_nt").b(0xA9, 0x00).abs(0x8D, S_POS)
-    for it, cond in ((G.I_MAP, None), (G.I_COMPASS, None), (G.I_BLUE_POTION, "18"), (0x19, "12")):
+    for it, cond in (((G.I_MAP, None), (G.I_COMPASS, None)) if not V10.ON else ()) + ((G.I_BLUE_POTION, "18"), (0x19, "12")):
         lab = f"pl_{it:02x}"
         if cond == "18":
             a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xB0, lab)
@@ -575,7 +618,10 @@ def decoder(groups, ptr_table, maps, info):
     a.abs(0x20, "cl_ptr").b(0xA0, 0x01)
     a.label("pr_l").b(0xB1, P, 0xAA).abs(0xBD, ATTR[4]).b(0x29, 0x1C, 0xC9, 0x10).br(0xF0, "pr_y").abs(0x4C, "px_n")
     a.label("pr_y")
-    a.b(0x98, 0x48).abs(0x20, "prng").b(0xC9, DROP_EMPTY).br(0x90, "pr_no")
+    a.b(0x98, 0x48)
+    if V10.ON:                          # (1.0: a mark the deck didn't take holds nothing)
+        a.abs(0x4C, "pr_no")
+    a.abs(0x20, "prng").b(0xC9, DROP_EMPTY).br(0x90, "pr_no")
     a.abs(0x20, "prng").b(0xA0, 0x00)
     a.label("pr_t").abs(0xD9, "rthr").br(0x90, "pr_it").b(0xC8, 0xC0, len(DROPS)).br(0xD0, "pr_t")
     a.label("pr_no").b(0xA9, 0x03).abs(0x9D, ATTR[4]).br(0xD0, "pr_d")
@@ -694,7 +740,14 @@ def decoder(groups, ptr_table, maps, info):
     a.label("gid").b(*gid)
     a.label("gcnt").b(*gcnt)
     a.label("gtrap").b(*gtrap)
-    a.label("postab").b(*G.POS_TABLE)
+    if V10.ON:
+        out_ = build_variants()[1]
+        tabs = []
+        for dst, r in zip(DESTS, lol_fixed.records()):
+            tabs += out_[(r[0] - 1, SLOT_CLASS[dst])][r[1] & 3].get("postab") or G.POS_TABLE
+        a.label("postab").b(*tabs)
+    else:
+        a.label("postab").b(*G.POS_TABLE)
     fl = floor_levels()                   # the levels that get a floor badge / XP, by slot code $0E
     a.label("flr").b(*[1 if i in fl else 0 for i in range(16)])
     ds, _ = build_variants()
@@ -865,6 +918,8 @@ def apply(rom: bytearray, notes: list) -> None:
     import lol_v10 as V10
     expand(rom)
     ds, out = build_variants()
+    if V10.ON:
+        notes.append(V10.decor(out, [(r[0] - 1, SLOT_CLASS[d], r[1] & 3) for d, r in zip(DESTS, lol_fixed.records())]))
     from zora.generate.shapes.minimap import synthesize_minimap
     groups = enemy_groups()
     nd = len(ds)

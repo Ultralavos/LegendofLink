@@ -152,6 +152,17 @@ def _probe():
 PROBE = _probe()
 
 
+def usable_in(layout, postab):
+    """(1.0) The item positions a layout allows: ZORA's (T5's base row against the level's own four positions, SH-ROOM-11)
+    for a level with its own table (1Q, 2Q, Random shapes); LoL's otherwise. A push block room may hold an item
+    where its plain layout would (owner 2026-11-28)."""
+    if postab is None:
+        return usable(layout & 0x3F if layout & 0x40 else layout)
+    from zora.generate.shapes.t5_positions import T5_BASE
+    row = T5_BASE.get(layout) or T5_BASE.get(layout & 0x3F, ())
+    return tuple(i for i, p in enumerate(postab) if p in row)
+
+
 def usable(layout):
     """The item positions whose tiles are floor in this layout (measured in the game), never a block or water."""
     if layout in PROBE:
@@ -206,7 +217,8 @@ N_BOSS = {"L13": 2, "L4": 3, "L57": 5, "L8": 5, "SH": 2, "L9": 5,
           "L1": 2, "L2": 2, "L3": 2, "L5": 3, "L6": 3, "L7": 5, "SA": 2, "SB": 2, "SC": 2, "SD": 2}
 
 
-def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None):
+def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None,
+             postab=None):
     """rule: a quest's (item stairs, transports, walk-through share, floor item) in place of LoL's counts."""
     lvcls = cls                           # the level's own class (its walls, layouts, bosses)
     if cls in GROUP:
@@ -351,8 +363,111 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         return True
 
     free = lambda: sorted(c for c in cells if c not in roles)
+    v10 = _seeded()                       # (1.0, owner 2026-11-28: ZORA's items, Ganon / Zelda; level 9's old man)
 
-    if cls == "L9":
+    # the old man's choice: anywhere. A north doorway (behind him: he stops Link going north) is a gate that
+    # opens when he leaves - so the rooms past it are reached only through his room, never from behind first
+    def behind_ok(c):
+        y = nb(c, N_)
+        if not (y in cells and passable(c, N_)):
+            return True
+        g = graph()
+        g = {k: [x for x in v if x != c] for k, v in g.items() if k != c}
+        seen, todo = {ent}, [ent]
+        while todo:
+            k = todo.pop()
+            for x in g.get(k, ()):
+                if x not in seen:
+                    seen.add(x); todo.append(x)
+        return y not in seen
+
+    def reach_without(z):
+        g = graph()
+        g = {k: [x for x in v if x != z] for k, v in g.items() if k != z}
+        seen, todo = {ent}, [ent]
+        while todo:
+            k = todo.pop()
+            for x in g.get(k, ()):
+                if x not in seen:
+                    seen.add(x); todo.append(x)
+        return seen
+
+    def zelda_at(z):
+        """(1.0) Zelda in room z: every way in a shutter on the far side, opened by the Triforce of Power (the room's
+        trigger LAST_BOSS: 'zguard' rooms; Ganon's has it already); a way from another special room walled up."""
+        saved = {x: list(walls[x]) for x in cells}
+        guards, ways = [], 0
+        for t in range(4):
+            y = nb(z, t)
+            if y not in cells or piece[y] != piece[z]:
+                continue
+            door = walls[z][t] != WALL or walls[y][OPP[t]] != WALL
+            if y in roles and roles[y] != "ganon" or y in hidden:
+                walls[z][t] = walls[y][OPP[t]] = WALL
+            elif door:
+                walls[z][t], walls[y][OPP[t]] = OPEN, SHUT
+                ways += 1
+                if roles.get(y) != "ganon":
+                    guards.append(y)
+        if not ways:
+            opts = [t for t in range(4) if nb(z, t) in cells and piece[nb(z, t)] == piece[z]
+                    and nb(z, t) not in roles and nb(z, t) not in hidden]
+            if opts:
+                t = rng.choice(opts); y = nb(z, t)
+                walls[z][t], walls[y][OPP[t]] = OPEN, SHUT
+                guards.append(y); ways = 1
+        if not ways or len(reach_without(z)) != len(cells) - 1 or len(reach(graph())) != len(cells):
+            for x in cells:
+                walls[x] = saved[x]
+            return False
+        roles[z] = "zelda"
+        for y in guards:
+            roles[y] = "zguard"
+        return True
+
+    if cls == "L9" and v10:
+        # the triforce check north of the entrance (as before); Ganon and Zelda in random rooms (ZORA SH-ROOM-06),
+        # Ganon's ways out shutters (the Triforce of Power opens them), Zelda's ways in likewise; an old man's choice
+        chk = nb(ent, N_)
+        for s in (E_, W_):
+            y = nb(ent, s)
+            if y in cells:
+                walls[ent][s] = walls[y][OPP[s]] = WALL
+        walls[ent][N_] = walls[chk][S_] = OPEN
+        for s in (N_, E_, W_):
+            y = nb(chk, s)
+            if y in cells:
+                if walls[chk][s] == WALL:
+                    walls[chk][s] = walls[y][OPP[s]] = OPEN
+                walls[chk][s] = SHUT
+                if walls[y][OPP[s]] in (WALL, SHUT):
+                    walls[y][OPP[s]] = OPEN
+        roles[chk] = "check"
+        fix_reach()
+        cand = [c for c in free() if c not in hidden]
+        if not cand:
+            raise Fail("no ganon")
+        gan = rng.choice(cand)
+        roles[gan] = "ganon"
+        zs = [c for c in free() if c not in hidden]
+        rng.shuffle(zs)
+        for z in zs:
+            if zelda_at(z):
+                zel = z
+                break
+        else:
+            raise Fail("no zelda")
+        for t in range(4):
+            if walls[gan][t] == OPEN and nb(gan, t) in cells:
+                walls[gan][t] = SHUT
+        dist = dist_from_ent()
+        pool = [c for c in free() if c not in hidden and behind_ok(c)]
+        if not pool:
+            raise Fail("no old man room")
+        choice = rng.choice(pool)
+        roles[choice] = "choice"
+        tri, boss = zel, gan                    # (the compass points to Zelda)
+    elif cls == "L9":
         # the triforce check: his room north of the entrance, its other ways shutters (he opens them); the
         # entrance's other sides walls
         chk = nb(ent, N_)
@@ -431,26 +546,17 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         if not _seeded():
             _shut_boss(walls, boss, deg)
         tri = boss                                  # (the game picks the triforce's room at load)
-        # the old man's choice: anywhere. A north doorway (behind him: he stops Link going north) is a gate that
-        # opens when he leaves - so the rooms past it are reached only through his room, never from behind first
-        def behind_ok(c):
-            y = nb(c, N_)
-            if not (y in cells and passable(c, N_)):
-                return True
-            g = graph()
-            g = {k: [x for x in v if x != c] for k, v in g.items() if k != c}
-            seen, todo = {ent}, [ent]
-            while todo:
-                k = todo.pop()
-                for x in g.get(k, ()):
-                    if x not in seen:
-                        seen.add(x); todo.append(x)
-            return y not in seen
         pool = [c for c in free() if behind_ok(c)]
         if not pool:
             raise Fail("no old man room")
         choice = rng.choice(pool)
         roles[choice] = "choice"
+        if v10:                                 # (1.0) ZORA's triforce room (SH-ROOM-01): its own room, layout $29
+            cand = [c for c in free() if c not in hidden]
+            if not cand:
+                raise Fail("no triforce room")
+            tri = rng.choice(cand)
+            roles[tri] = "triforce"
     if len(reach(graph())) != len(cells):
         raise Fail("after specials")
 
@@ -470,6 +576,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             cand = [c for c in free() if c not in hidden and dist.get(c, 0) >= 2] or \
                    [c for c in free() if c not in hidden and c != nb(ent, N_)]
             if not cand:
+                if v10:                           # (1.0: a small level's triforce room took its place)
+                    break
                 raise Fail("no room for a boss")
             c = rng.choice(cand)
             roles[c] = "patra" if cls == "L9" else "boss"
@@ -545,6 +653,9 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             r.update(layout=L, eclass=3, trigger=T_ALL_DEAD)
         elif role == "prize":
             r.update(layout=0x29, eclass=0, trigger=T_NONE)            # the triforce room, no enemies
+        elif role == "triforce" and v10:              # (1.0: ZORA's, standing; at $89)
+            r.update(layout=0x29, eclass=0, trigger=T_NONE, item=I_TRIFORCE,
+                     pos=0 if postab is None else postab.index(0x89))
         elif role in ("item_stairs", "transport"):
             if role == "item_stairs" and cls == "L13":
                 lays = PUSH_STAIRS
@@ -574,6 +685,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             r.update(layout=L, eclass=2 if (L & 0x3F) in NO_TRAPS else 1)
             if L & 0x40:
                 r["trigger"] = T_BLOCK_DOOR
+            if role == "zguard":                  # (1.0) Zelda's way: opened by the Triforce of Power
+                r.update(layout=L & 0x3F, trigger=T_LAST_BOSS)
     if len(reach(graph())) != len(cells):
         raise Fail("after layouts")
 
@@ -599,6 +712,11 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     if shrine:
         rooms[tri]["item"], rooms[tri]["pos"] = I_TRIFORCE, 0
 
+    for c in cells:
+        if roles.get(c) == "zguard":
+            for t in range(4):
+                if walls[c][t] == SHUT and roles.get(nb(c, t)) != "zelda":
+                    walls[c][t] = OPEN
     # a push block that reveals stairs: never a shutter in that room
     for c in cells:
         if rooms[c]["trigger"] == T_BLOCK_STAIRS:
@@ -624,7 +742,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     # block's) become open doors while there are more than its share
     pairs = [(c, t) for c in cells for t in (E_, S_) if nb(c, t) in cells and piece[nb(c, t)] == piece[c]
              and (walls[c][t] != WALL or walls[nb(c, t)][OPP[t]] != WALL or True)]
-    kept = ("prize", "ganon", "check", "zelda") if _seeded() else ("boss", "patra", "ganon", "check", "zelda")
+    kept = ("prize", "ganon", "check", "zelda", "zguard") if _seeded() else ("boss", "patra", "ganon", "check", "zelda")
     keep = lambda c: roles.get(c) in kept or rooms[c]["trigger"] == T_BLOCK_DOOR
     def is_shut(c, t):
         y = nb(c, t)
@@ -639,9 +757,12 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             if walls[x][side] == SHUT:
                 walls[x][side] = OPEN
         shut.remove((c, t))
+    if v10:
+        _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok=lambda c, t: nb(c, t) in cells,
+                   postab=postab)
     # the item marks: rooms that may hold an item, a usable spot, the center usable?, standing only?
     nmark = ncenter = 0
-    for c in cells:
+    for c in ([] if v10 else cells):
         r = rooms[c]
         if r["item"] is not None:
             continue
@@ -658,9 +779,9 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         m = MARK | (1 if 0 in opts else 0) | (2 if r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"] else 0)
         r["item"], r["pos"] = m, rng.choice(opts)
         nmark += 1; ncenter += m & 1
-    if not shrine and cls != "L9" and not ncenter:
+    if not shrine and cls != "L9" and not ncenter and not v10:
         raise Fail("no triforce room")
-    if nmark < 6:
+    if nmark < 6 and not v10:
         raise Fail("too few item rooms")
     # a shrine's prize room: its one way in a shutter from the guard's (boss) room; every other side solid
     if shrine:
@@ -684,12 +805,74 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
         rooms[c]["walls"] = walls[c]
     if len(reach(graph())) != len(cells):
         raise Fail("final")
-    return dict(cells=rooms, stairs=stairs, start=ent, boss=boss, tri=tri,
+    return dict(cells=rooms, stairs=stairs, start=ent, boss=boss, tri=tri, postab=postab,
                 choice=None if shrine else choice, item_stairs=item_stairs, trans=trans,
                 bosses=sorted(bosses_ok) if bosses_ok else [])
 
 
-def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None):
+DECK_MARKS = 2                            # (1.0) levels 1-8: rooms left marked for the deck's spots (the blue potion
+                                          #  room, the floor item): the game places those at load
+
+
+def _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok, postab=None):
+    """(1.0, owner 2026-11-28) ZORA's room items (SH-ROOM-12/13, T3): each item room draws bombs / nothing / five
+    rupees / a key by its level's odds (a no-item draw redrawn while the level has under four item rooms); then the
+    compass and the map each take an item room's place (SH-ITEM-01). Push block rooms may hold a standing item.
+    Triggers: a push block's stays (standing); no enemies: standing; else 2 in 3 dropped when all are dead.
+    Levels 1-8 keep DECK_MARKS rooms without an item marked for the deck's spots."""
+    lv = int(lvcls[1]) if lvcls[0] == "L" and lvcls[1:].isdigit() else None
+    t3 = T3[lv] if lv else weights(cls, T3)
+    elig = []
+    for c in sorted(cells):
+        r = rooms[c]
+        lay = r["layout"]
+        if r["item"] is not None or roles.get(c) in ("entrance", "choice", "check", "zelda", "ganon", "prize",
+                                                       "zguard", "triforce") or (lay & 0x3F) in NO_ITEM_LAYOUTS:
+            continue
+        opts = list(usable_in(lay, postab))
+        if (lay & 0x3F) in CHUTE_SIDES:
+            if not any(passable(c, t) and nb_ok(c, t) for t in CHUTE_SIDES[lay & 0x3F]):
+                continue
+            ctr = 0 if postab is None else postab.index(0x89) if 0x89 in postab else -1
+            opts = [p for p in opts if p == ctr]
+        if opts:
+            elig.append((c, opts))
+    draw = lambda: rng.choices((I_BOMBS, None, I_RUPEES, I_KEY), t3)[0]
+    held, vc = [], 0
+    for c, opts in elig:
+        it = draw()
+        n = 0
+        while it is None and vc < 4 and n < 32:
+            it = draw(); n += 1
+        if it is None:
+            continue
+        r = rooms[c]
+        r["item"], r["pos"] = it, rng.choice(opts)
+        vc += 1
+        held.append(c)
+        if r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"]:
+            continue
+        r["trigger"] = T_ALL_DEAD_ITEM if rng.random() < 2 / 3 else T_ALL_DEAD
+    for code in (I_COMPASS, I_MAP):
+        cnt = [c for c in held if rooms[c]["item"] in (I_BOMBS, I_RUPEES, I_KEY)]
+        if not cnt:
+            raise Fail("no room for the map / compass")
+        rooms[rng.choice(cnt)]["item"] = code
+    if lvcls[0] == "L" and lv and lv <= 8:
+        empty = [(c, o) for c, o in elig if rooms[c]["item"] is None]
+        if len(empty) < DECK_MARKS:             # (a small level: item rooms give way, not the map or compass)
+            more = [(c, o) for c, o in elig if rooms[c]["item"] in (I_BOMBS, I_RUPEES, I_KEY)]
+            empty += rng.sample(more, min(len(more), DECK_MARKS - len(empty)))
+        if len(empty) < DECK_MARKS:
+            raise Fail("no rooms for the deck's spots")
+        for c, opts in rng.sample(empty, DECK_MARKS):
+            r = rooms[c]
+            m = MARK | (1 if (0 if postab is None else postab.index(0x89) if 0x89 in postab else -1) in opts else 0) | (2 if r["trigger"] in (T_BLOCK_DOOR, T_BLOCK_STAIRS) or not r["eclass"] else 0)
+            r["item"], r["pos"] = m, rng.choice(opts)
+
+
+def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars, hidden=(), n_boss=None, rule=None,
+                  postab=None):
     out = []
     rng = random.Random(seed)
     tries = 0
@@ -698,7 +881,8 @@ def make_variants(cells, cls, k, seed, free_item_cellars, free_transport_cellars
         if tries > 400:
             raise RuntimeError(f"could not generate {cls}")
         try:
-            out.append(generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden, n_boss, rule))
+            out.append(generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden, n_boss, rule,
+                                postab=postab))
         except Fail:
             continue
     return out

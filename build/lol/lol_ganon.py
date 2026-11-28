@@ -118,7 +118,11 @@ def apply(rom: bytearray, notes: list) -> None:
     def nd(o):
         # the death hook (bank 2, X): a called-up monster drops nothing
         a = Asm(o)
-        a.label("nodrop").abs(0xBD, MK).br(0xF0, "n_r").b(0xA9, 0x00).abs(0x9D, MK).b(0xA9, NO_DROP).abs(0x9D, 0x0412)
+        a.label("nodrop")
+        import lol_fixed
+        if lol_fixed.FIXED:             # (seeded: only in Ganon's room - lol_pictures' queue shares MK's bytes)
+            a.b(0xA5, 0xEB).abs(0xCD, GROOM).br(0xD0, "n_r").b(0xA5, 0x10, 0xC9, 0x09).br(0xD0, "n_r")
+        a.abs(0xBD, MK).br(0xF0, "n_r").b(0xA9, 0x00).abs(0x9D, MK).b(0xA9, NO_DROP).abs(0x9D, 0x0412)
         a.label("n_r").b(0x60)
         return a
     nn = len(nd(0x8000).bytes())

@@ -107,6 +107,9 @@ def apply(rom: bytearray, notes: list) -> None:
         a = Asm(org)
         a.label("load").b(0xE0, 0x02).br(0xD0, "l_full").abs(0x4C, "qload")   # (X 2: one ware queued)
         a.label("l_full").abs(0x8E, U_MODE).b(0xA5, 0x00, 0x48, 0xA5, 0x01, 0x48)
+        import lol_fixed
+        if lol_fixed.FIXED:             # (seeded: written now, whatever U_Q holds - lol_ganon's marks share it)
+            a.b(0xA9, 0x00).abs(0x8D, U_Q)
         a.b(0xA9, 0x00).abs(0x8D, Q_N).abs(0x8D, 0x2001)                   # (a queued one dropped) the picture off
         a.b(0xA5, 0xFF, 0x29, 0x7B).abs(0x8D, 0x2000)                      # (+1 a write, NMI off)
         a.b(0xA9, 0x00).abs(0x8D, U_SLOT).b(0xA2, 0x00)
