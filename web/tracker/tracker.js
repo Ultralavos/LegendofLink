@@ -363,13 +363,14 @@ function renderMap() {
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
       if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
-      // left click: what's here; right-click / long press: an X ("don't need it"), again to take it off
+      // (owner 2026-11-28, swapped) left click / tap: an X ("don't need it"), again to take it off; right-click /
+      // long press: what's here
       const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : S.ow[s] === "armos" ? openArmos(s, cell)
         : /^tri\d$/.test(S.ow[s] || "") ? openTriPick(s, cell) : openPicker(s, cell));
       const xout = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
-      cell.onclick = (e) => { e.stopPropagation(); menu(); };
-      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); xout(); };
-      longPress(cell, xout);
+      cell.onclick = (e) => { e.stopPropagation(); xout(); };
+      cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); menu(); };
+      longPress(cell, menu);
     }
     map.append(cell);
   }
