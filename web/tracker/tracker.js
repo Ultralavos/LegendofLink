@@ -1111,14 +1111,15 @@ function ugButton(btn, title, tier, cur, pick) {
 }
 function upPick(btn, title, tier, cur, pick) {
   const p = $("rpick"); rpicking = -2; p.replaceChildren();
-  p.append(el("div", { className: "ptitle", textContent: `${title}: which upgrade? (right-click: bought)` }));
+  // (owner 2026-11-28) one found in a level or shrine is Link's: filled in up above (UPGRADES) at once
+  p.append(el("div", { className: "ptitle", textContent: `${title}: which upgrade?` }));
   const grid = el("div", { className: "omgrid" });
   UPGRADES.forEach((name, i) => {
     if (tier >= 0 && tierOf(i) !== tier) return;
     const ok = !UP_NEEDS[i] || UP_NEEDS[i](), v = `up:${i}`;
     if ((!ok || (S.ups[i] || 0) === 2) && cur !== v) return;
     const b = el("button", { type: "button", className: "omi" + (cur === v ? " sel" : ""), title: name }, [icon(v)]);
-    b.onclick = () => { pick(v, false); closeRoomItems(); renderAll(); };
+    b.onclick = () => { pick(v, true); closeRoomItems(); renderAll(); };
     b.oncontextmenu = (e) => { e.preventDefault(); pick(v, true); closeRoomItems(); renderAll(); };
     grid.append(b);
   });
