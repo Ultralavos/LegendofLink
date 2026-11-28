@@ -442,6 +442,15 @@ renderAccess();
   $("access").before(c);                                            // (a bar under the overworld: owner's pick)
 }
 renderAccessCounts();
+// (owner 2026-11-28) an overworld window: its middle at the pointer's height (the square's middle without one),
+// kept inside the panel
+let lastPtrY = null;
+document.addEventListener("pointerdown", (e) => { lastPtrY = e.clientY; }, true);
+function owTop(p, r, host) {
+  const y = lastPtrY !== null && lastPtrY >= r.top - 2 && lastPtrY <= r.bottom + 2 ? lastPtrY : (r.top + r.bottom) / 2;
+  const h = p.offsetHeight;
+  return Math.max(4, Math.min(y - host.top - h / 2, host.height - h - 4));
+}
 // (owner 2026-11-28) every overworld window: Undo (the square back to unmarked) and X (don't need it; again: off)
 function owActions(s) {
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo", title: "Back to unmarked" });
@@ -498,7 +507,7 @@ function openPicker(s, cell) {
   const w = Math.min(320, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 // (owner 2026-11-28) a triforce cave: how many triforces its old man asks for (3-8); at most two on the map, each
 // number once
@@ -529,7 +538,7 @@ function openTriPick(s, cell) {
   const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 // a shop's square, clicked: its wares; the one bought: an X on the map and into the inventory
 function openShop(s, cell) {
@@ -556,7 +565,7 @@ function openShop(s, cell) {
   const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 // (1.0) the wood sword cave's shop (heart level 11 on): its wares, each bought or not (it stays open)
 const WOOD_WARES = [["key", "Key", null], ["bombs", "Bombs", null], ["arrow1", "Arrows", "arrow1"],
@@ -589,7 +598,7 @@ function openWoodShop(s, cell) {
   const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 // (1.0) the Armos item's square, clicked: what it was (into the inventory)
 function openArmos(s, cell) {
@@ -628,7 +637,7 @@ function openArmos(s, cell) {
   const w = Math.min(300, host.width - 16);
   p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
-  p.style.top = (r.bottom - host.top + 4) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 function closePicker() { $("picker").hidden = true; picking = null; }
 document.addEventListener("click", (e) => { if (picking !== null && !$("picker").contains(e.target)) closePicker(); });
