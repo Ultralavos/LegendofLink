@@ -353,6 +353,61 @@ def deal_routine(rom):
 DEAL_BANK, DEAL_AT, DEAL_END = 12, 0xAF00, 0xB100   # (below lol_odds' engine: lol_genload's variants stop below it)
 
 
+WS12_AT, WS12_END = 0xBA00, 0xBB60            # (1.0) bank 12, above lol_odds' engine: the triforce caves' choosers
+
+
+def _chooser(a, p, lst, vec):
+    """A = the prize: the first entry of lst Link may have (the wood / white sword alike; a ring none with Zombie
+    Link; swords none with the heart snubber, swordless a bomb upgrade below 32 bombs; UPGRADE_ENTRY: lol_upmix's
+    vec); everything: a bomb upgrade, at the most bombs an orange XP bag (owner 2026-11-28). C clear."""
+    import lol_uptable as T, lol_v3core as V3
+    n = len(lst)
+    a.label(p).b(0xA2, 0x00)
+    a.label(p + "lp")
+    if any(e[0] == UPGRADE_ENTRY[0] for e in lst):
+        a.abs(0xBD, p + "i").b(0xC9, UPGRADE_ENTRY[0]).br(0xD0, p + "in").b(0x8A, 0x48)
+        a.b(*V3.far(14, vec, DEAL_BANK)).b(0xA8, 0x68, 0xAA, 0x98).br(0xB0, p + "nx").b(0x18, 0x60)
+        a.label(p + "in")
+    a.abs(0xBC, p + "a").abs(0xB9, 0x0600).abs(0xDD, p + "m").br(0xB0, p + "nx")
+    a.abs(0xBD, p + "i").b(0xC9, 0x12).br(0xF0, p + "rg").b(0xC9, 0x13).br(0xD0, p + "nr")
+    a.label(p + "rg").abs(0xAD, T.bit("zombie link")[0]).b(0x29, T.bit("zombie link")[1]).br(0xD0, p + "nx")
+    a.br(0xF0, p + "put")
+    a.label(p + "nr").b(0xC9, 0x04).br(0xB0, p + "put").b(0xC9, 0x01).br(0x90, p + "put")
+    a.abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, p + "nx")
+    a.abs(0xAD, 0x7FF7).br(0xF0, p + "put")
+    a.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, p + "nx").b(0xA9, 0x24, 0x18, 0x60)
+    a.label(p + "nx").b(0xE8, 0xE0, n).br(0xD0, p + "lp")
+    a.abs(0x4C, "full")
+    a.label(p + "put").abs(0xBD, p + "i").b(0x18, 0x60)
+    a.label(p + "i").b(*[e[0] for e in lst]).label(p + "a").b(*[e[1] & 0xFF for e in lst])
+    a.label(p + "m").b(*[e[2] for e in lst])
+
+
+def ws12(ws_list):
+    """(1.0) The triforce caves' choosers (far from lol_upgrades' ws / ms, bank 1): WS12_AT the 4-triforce cave's,
+    MS12 the 8-triforce cave's. Placed by late()."""
+    from lol_af import Asm
+    import lol_upmix as UM
+    global MS12
+    def build(org):
+        a = Asm(org)
+        _chooser(a, "w", ws_list, UM.V_U4)
+        _chooser(a, "m", tri8_table(), UM.V_U8)
+        a.label("full").b(0xA9, 0x14).abs(0xAC, 0x7FF7).br(0xF0, "cp").b(0xA9, 0x20)   # (lol_bombup's cap: 20 / 32)
+        a.label("cp").abs(0xCD, 0x067C).br(0xF0, "fu").br(0x90, "fu").b(0xA9, 0x24, 0x18, 0x60)
+        a.label("fu").b(0xA9, 0x29, 0x18, 0x60)
+        return a
+    a = build(WS12_AT)
+    code = a.bytes()
+    assert WS12_AT + len(code) <= WS12_END, len(code)
+    assert a.labels["w"] == WS12_AT
+    MS12 = a.labels["m"]
+    _C["ws12"] = code
+
+
+MS12 = None
+
+
 def fill_slots(rom, dealt):
     """The spots' save bytes: entrances (lol_entrances' order) that are neither a dungeon nor a hint cave."""
     import lol_entrances as E
@@ -372,6 +427,8 @@ def late(rom):
     a = _C["build"](DEAL_AT)
     assert a.labels["deal"] == DEAL
     place(rom, DEAL_BANK, DEAL_AT, a.bytes())
+    if "ws12" in _C:
+        place(rom, DEAL_BANK, WS12_AT, _C["ws12"])
 
 
 def describe_deck():
@@ -478,7 +535,7 @@ def decor(out, chosen):
 # ---------------- the 4-triforce cave (owner 2026-11-28) ----------------
 # Its old man asks for 3, 4 or 5 triforces (the seed's pick); with that many, the cave's prize: the first item of the
 # seed's rolled list (TRI4_ODDS) Link doesn't have (a candle upgrade: his next candle; the white sword without the
-# wood sword: the wood sword); everything: a key, as before.
+# wood sword: the wood sword); everything: a bomb upgrade, or at the most bombs an orange XP bag.
 TRI4_ODDS = {"blue ring": 1, "white sword": 25, "bow": 20, "wand": 15, "red book": 4, "ladder": 10, "recorder": 10,
              "power bracelet": 5, "raft": 5, "candle upgrade": 5}
 assert sum(TRI4_ODDS.values()) == 100
@@ -511,3 +568,33 @@ def tri4_upgrade():
 
 
 UPGRADE_ENTRY = (0xFE, 0x00, 0x01)      # (tri4_table: the upgrade's entry, lol_upgrades' ws far-calls lol_upmix's u4)
+
+
+# ---------------- the 8-triforce cave (owner 2026-11-28) ----------------
+# Its old man asks for 6, 7 or 8 triforces (the seed's pick); with that many, the first item of the seed's rolled list
+# (TRI8_ODDS) Link doesn't have, an upgrade's next step (arrows: wood then silver; swords: wood, white, magical; books:
+# red then blue; rings: blue then red); everything: a bomb upgrade, at the most bombs an orange XP bag. Upgrade mix: 1
+# in 20 seeds a tier 3 upgrade in the book upgrade's place (picked once, the first Link may have; the next prize if
+# he owns three upgrades).
+TRI8_ODDS = {"arrow upgrade": 20, "magic key": 5, "book upgrade": 10, "ring upgrade": 5, "sword upgrade": 30, "bow": 30}
+assert sum(TRI8_ODDS.values()) == 100
+TRI8_ENTRIES = {"arrow upgrade": [(0x08, ARROWS, 1), (0x09, ARROWS, 2)], "magic key": [(0x0B, MAGIC_KEY, 1)],
+                "book upgrade": [(0x11, BOOK, 1), (0x25, BOOK, 2)], "ring upgrade": [(0x12, RING, 1), (0x13, RING, 2)],
+                "sword upgrade": [(0x01, SWORD, 1), (0x02, SWORD, 2), (0x03, SWORD, 3)], "bow": [(0x0A, BOW, 1)]}
+
+
+def tri8_count():
+    return rng("8-triforce cave count").randint(6, 8)
+
+
+def tri8_list():
+    return roll(TRI8_ODDS, rng("8-triforce cave"))
+
+
+def tri8_upgrade():
+    return lol_fixed.UPMIX and rng("8-triforce cave upgrade").randrange(20) == 0
+
+
+def tri8_table():
+    return [e for nm in tri8_list() for e in
+            ([UPGRADE_ENTRY] if nm == "book upgrade" and tri8_upgrade() else TRI8_ENTRIES[nm])]

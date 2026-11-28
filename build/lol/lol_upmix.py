@@ -34,7 +34,8 @@ N_ENT = 71
 VEC = 0xBB50
 NOSHOOT_AT = 0xBB00                     # (every build) noshoot, below the vectors; the Upgrade mix's code below it
 V_NOSHOOT = VEC + 3 * 7
-V_U4 = VEC + 3 * 8                      # (1.0) the 4-triforce cave's upgrade (lol_upgrades' ws)
+V_U4 = VEC + 3 * 8                      # (1.0) the 4-triforce cave's upgrade (lol_v10's chooser)
+V_U8 = VEC + 3 * 9                      # (1.0) the 8-triforce cave's
 V_URES, V_UCHECK, V_UL9, V_UCARD, V_UITEM, V_UCAVE, V_UTAKE = (VEC + 3 * k for k in range(7))
 UCONV = 0x01A3                          # (stack page, unused) 1 while in an upgrade cave turned plain shop
 PLAIN_CAVE = 13                         # the plain shop's wares and prices: shop cave 13's (the shield, bombs, arrows)
@@ -156,18 +157,21 @@ def apply(rom: bytearray, notes: list) -> None:
         # a tier 1 upgrade, the first Link may have, picked once (its entrance's hint byte, as an old man's); C set:
         # none (Link owns three, none left, or it is his): the cave's next prize. Else A = $2E, its picture loaded.
         import lol_v10 as V10
-        if V10.ON and V10.tri4_upgrade():
-            import lol_entrances as LE
-            # (its entrance: the one whose destination is the 4-triforce cave; SLOT)
-            a.label("u4").abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0xB0, "u4_s").b(0xA0, N_ENT - 1)
-            a.label("u4_f").abs(0xB9, STORE).b(0x29, 0x3F, 0xC9, LE.WHITE).br(0xF0, "u4_y").b(0x88).br(0x10, "u4_f")
-            a.br(0x30, "u4_s")
-            a.label("u4_y").abs(0x8C, SLOT).abs(0xB9, HINT_QS).br(0xD0, "u4_h")
-            a.b(0xA9, TIER_OF[0]).abs(0x20, "upick").br(0xB0, "u4_n")
-            a.b(0x8A, 0x09, 0x80).abs(0xAC, SLOT).abs(0x99, HINT_QS).br(0xD0, "u4_h")
-            a.label("u4_n").b(0xA9, 0xC0).abs(0xAC, SLOT).abs(0x99, HINT_QS)
-            a.label("u4_s").b(0x38, 0x60)
-            a.label("u4_h").b(0xC9, 0xC0).br(0xF0, "u4_s").b(0x29, 0x3F, 0xAA).b(*f0(E["uget"])).br(0xD0, "u4_s")
+        import lol_entrances as LE
+        for u, dest, tier, on in (("u4", LE.WHITE, TIER_OF[0], V10.ON and V10.tri4_upgrade()),
+                                  ("u8", LE.MAGIC, TIER_OF[1], V10.ON and V10.tri8_upgrade())):
+            if not on:          # (u8: the 8-triforce cave's, tier 3 in the book upgrade's place)
+                continue
+            # (its entrance: the one whose destination is the cave; SLOT)
+            a.label(u).abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0xB0, u + "_s").b(0xA0, N_ENT - 1)
+            a.label(u + "_f").abs(0xB9, STORE).b(0x29, 0x3F, 0xC9, dest).br(0xF0, u + "_y").b(0x88).br(0x10, u + "_f")
+            a.br(0x30, u + "_s")
+            a.label(u + "_y").abs(0x8C, SLOT).abs(0xB9, HINT_QS).br(0xD0, u + "_h")
+            a.b(0xA9, tier).abs(0x20, "upick").br(0xB0, u + "_n")
+            a.b(0x8A, 0x09, 0x80).abs(0xAC, SLOT).abs(0x99, HINT_QS).br(0xD0, u + "_h")
+            a.label(u + "_n").b(0xA9, 0xC0).abs(0xAC, SLOT).abs(0x99, HINT_QS)
+            a.label(u + "_s").b(0x38, 0x60)
+            a.label(u + "_h").b(0xC9, 0xC0).br(0xF0, u + "_s").b(0x29, 0x3F, 0xAA).b(*f0(E["uget"])).br(0xD0, u + "_s")
             a.b(0x8A).abs(0x8D, UT.WIX).b(0xA0, 0x00).abs(0x20, "uload").b(0xA9, CODE_OM, 0x18, 0x60)
         # ul9 (lol_genload's dfx: level 9's red potion, $FD): an upgrade of any tier instead while Link owns fewer
         # than three when it first shows (UPL9 as UPDECK); else the red potion
@@ -276,5 +280,6 @@ def late(rom: bytearray) -> None:
     bk, at, code, vec = _PENDING
     place(rom, bk, at, code)
     place(rom, bk, VEC, vec)
-    if "u4" in _PENDING_LABELS:
-        place(rom, bk, V_U4, Asm(V_U4).abs(0x4C, _PENDING_LABELS["u4"]).bytes())
+    for u, v in (("u4", V_U4), ("u8", V_U8)):
+        if u in _PENDING_LABELS:
+            place(rom, bk, v, Asm(v).abs(0x4C, _PENDING_LABELS[u]).bytes())

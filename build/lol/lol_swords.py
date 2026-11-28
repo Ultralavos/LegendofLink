@@ -28,8 +28,8 @@ def apply(rom: bytearray, notes: list) -> None:
     # triforce pieces (bits of $0671) >= 4 (cave 2's person $6C) or 8: carry set
     a.label("tri").abs(0xAD, 0x0671).b(0xA0, 0x00)
     a.label("t_lp").b(0xC9, 0x00).br(0xF0, "t_dn").b(0x0A).br(0x90, "t_lp").b(0xC8).br(0xD0, "t_lp")
-    a.label("t_dn").abs(0xAD, 0x0350).b(0xC9, 0x6C).br(0xF0, "t_w").b(0xC0, 0x08, 0x60)
     import lol_v10 as V10
+    a.label("t_dn").abs(0xAD, 0x0350).b(0xC9, 0x6C).br(0xF0, "t_w").b(0xC0, V10.tri8_count() if V10.ON else 0x08, 0x60)
     a.label("t_w").b(0xC0, V10.tri4_count() if V10.ON else 0x04, 0x60)
     import lol_v10 as V10
     texts = dict(TEXTS)
@@ -37,6 +37,7 @@ def apply(rom: bytearray, notes: list) -> None:
     if V10.ON:                                 # (1.0: 3-5 triforces, the seed's)
         need4 = V10.tri4_count()
         texts[5] = [f"DO YOU HAVE {need4}", "TRIFORCES YET?"]
+        texts[15] = [f"DO YOU HAVE {V10.tri8_count()}", "TRIFORCES YET?"]      # (6-8, the seed's)
     tx = Asm(TEXT_AT)                          # the two quotes (bank 1's common-area tail: free in every bank)
     for q, lines in texts.items():
         tx.label(f"q{q}").b(*_encode_quote(base.centered(lines)))
@@ -56,4 +57,4 @@ def apply(rom: bytearray, notes: list) -> None:
     w = CAVE_WARES + 3 * MAGIC_CAVE + 1
     assert rom[w] & 0x3F == 0x03 and rom[CAVE_WARES + 3 * WHITE_CAVE + 1] & 0x3F == 0x02
     rom[w] = (rom[w] & 0xC0) | SILVER_ARROWS
-    notes.append(f"sword caves: white sword cave at {need4} triforces, the 8-triforce cave's list at 8 ({len(code)} + {len(tcode)} bytes)")
+    notes.append(f"sword caves: white sword cave at {need4} triforces, the 8-triforce cave's list at {V10.tri8_count() if V10.ON else 8} ({len(code)} + {len(tcode)} bytes)")
