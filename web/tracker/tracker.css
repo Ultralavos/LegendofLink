@@ -53,7 +53,8 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .shrine.on { color: #fff; background: var(--pink); border-color: var(--pink); }
 .omrow { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .om { position: relative; aspect-ratio: 1; background: #0b0b10; border: 2px solid var(--line); border-radius: 6px; padding: 0; display: grid; place-items: center; }
-.om img { width: 62%; height: 62%; opacity: .18; filter: grayscale(1); }
+.om img { width: 62%; height: 62%; opacity: .18; filter: grayscale(1);
+  position: absolute; inset: 0; margin: auto; object-fit: contain; }   /* (never sizes the box: an upgrade's 64px art) */
 .om.on { border-color: #b0453a; } .om.on img { opacity: 1; filter: none; }
 .om.took { border-color: var(--green); }
 /* (owner 2026-11-28) what the old man gave: its picture fills the box (an upgrade's art as large as it can be) */
@@ -316,6 +317,8 @@ body.stream .tpiece, body.stream .om { aspect-ratio: 1.6; }
 body.stream .trirow, body.stream .omrow { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 body.stream .tpiece, body.stream .om { min-width: 0; }
 body.stream .tpiece img, body.stream .om img { height: 75%; width: auto; max-width: 90%; }
+body.stream .om img { width: 90%; }
+body.stream .om.took img { height: 88%; }
 
 body.stream .mapwrap { overflow: visible; padding-bottom: 0; }
 body.stream .owmap { min-width: 0; }
