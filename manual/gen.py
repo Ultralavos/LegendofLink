@@ -158,7 +158,7 @@ P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME</h1>
 <h2>Settings</h2>
 <dl>
 <dt>Seed (numbers only)</dt><dd>The seed decides the whole game: dungeons, caves, upgrades and hints. Players with the same seed and settings play the same game. Leave it blank and one is picked for you.</dd>
-<dt>Dungeon set</dt><dd>Where the dungeon shapes come from: Legend of Link's own maps, the 1st, 2nd, 3rd or 4th Quest shapes, random shapes, Chaos (any four grids; any design can be any level or shrine, levels 7-9 at least 25 rooms) or Mixed (each level from any set). Shrines always use Legend of Link maps or random shapes.</dd>
+<dt>Dungeon set</dt><dd>Where the dungeon shapes come from: Legend of Link's own maps, the 1st, 2nd, 3rd or 4th Quest shapes, random shapes, Chaos (any four grids; any design can be any level or shrine, levels 7-9 at least 25 rooms) or Mixed (seeded: one quest's levels 1-6 and another's levels 7-9, the shrines from Legend of Link maps or a third quest's levels 1-6; unseeded: each level from any set). Otherwise shrines use Legend of Link maps or random shapes.</dd>
 <dt>Link's colors</dt><dd>His tunic color with no ring, the blue ring and the red ring. "From your ROM" keeps your ROM's colors.</dd>
 <dt>Reduce flashing</dt><dd>Turns off the screen flashes: a bomb's blast, picking up a triforce, the Triforce of Power and the ending. It only changes how the game looks: the seed and its code stay the same.</dd>
 <dt>Race Rom</dt><dd>Scrambles the map, dungeon and cave data inside the ROM, so map viewers and ROM tools can't show the seed. Race Roms get their own seed code.</dd>

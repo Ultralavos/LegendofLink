@@ -346,6 +346,9 @@ def build_set(which, seed):
         return shapes_set(seed)
     if which in ("1q", "2q", "3q", "4q"):
         return quest_set(which, rng)
+    import lol_fixed
+    if which == "mixed" and lol_fixed.FIXED:   # (1.0: seeded's Mixed; unseeded keeps the old one)
+        return mixed_quests_set(rng)
     import lol_quests
     lol = _lol_pool()
     for attempt in range(50):
@@ -464,6 +467,14 @@ def quest_set(quest, rng):
     shrines = dict(zip(pick, SHRINES))
     out = {}
     for gi, (block, lvs) in enumerate((("1-6", range(1, 7)), ("7-9", range(7, 10))), 1):
+        out[gi] = _quest_block(quest, fp, qr, block, lvs)
+    _lol_shrine_grids(out, lol, pair, shrines)
+    return out
+
+
+def _quest_block(quest, fp, qr, block, lvs):
+    """A quest's block (1-6 or 7-9) as it is: its levels, their stair rules (fewer when the block can't hold them)."""
+    if True:
         names = {LETTERS[i]: f"{quest.upper()} L{lv}" for i, lv in enumerate(lvs)}
         occ = {c: LETTERS[i] for i, lv in enumerate(lvs) for c in fp[lv][1]}
         rows = ["".join(occ.get(r * COLS + c, ".") for c in range(COLS)) for r in range(ROWS)]
@@ -482,9 +493,13 @@ def quest_set(quest, rng):
                 rl[nm][0] -= 1
             else:
                 raise RuntimeError(f"{quest} block {block}: no room for its stairs")
-        out[gi] = {"rows": rows, "names": names,
-                   "classes": {f"{quest.upper()} L{lv}": (f"L{lv}",) for lv in lvs}, "hidden": {},
-                   "rules": {n: tuple(r) for n, r in rl.items()}}
+        return {"rows": rows, "names": names,
+                "classes": {f"{quest.upper()} L{lv}": (f"L{lv}",) for lv in lvs}, "hidden": {},
+                "rules": {n: tuple(r) for n, r in rl.items()}}
+
+
+def _lol_shrine_grids(out, lol, pair, shrines):
+    """Grids 3 and 4: the two LoL grids whose designs give the four shrines."""
     for gi, src in zip((3, 4), pair):
         g = lol[src]
         used = sorted(nm for (g2, nm) in shrines if g2 == src)       # (owner: a design not used on a grid can
@@ -494,6 +509,59 @@ def quest_set(quest, rng):
         out[gi] = {"rows": rows, "names": {v: k for k, v in letters.items()},
                    "classes": {nm: (shrines[(src, nm)],) for nm in used},
                    "hidden": {nm: h for nm, h in g["hidden"].items() if nm in letters}}
+
+
+def _lol_shrine_pair(lol, rng):
+    """(quest_set's draw) two LoL grids and four of their 12-20 room designs for the shrines."""
+    lo, hi = RANGES["SH"]
+    while True:
+        pair = rng.sample([g for g in sorted(lol) if g in SHRINE_GRIDS], 2)
+        cand = [(gi, nm) for gi in pair for nm, cs in sorted(lol[gi]["des"].items()) if lo <= len(cs) <= hi
+                and map_ok(cs)]
+        if len(cand) < 4:
+            continue
+        return pair, dict(zip(rng.sample(cand, 4), SHRINES))
+
+
+def mixed_quests_set(rng):
+    """(1.0, seeded; owner 2026-11-28) Mixed: one quest's levels 1-6 block and another's 7-9 block, as they are (each
+    level its quest's own). The shrines' two grids: each either a LoL grid (a quest set's six) or the 1-6 block of a
+    quest the levels didn't take; the four shrines are any four of both maps' designs (a LoL grid's of 12-20 rooms, a
+    quest block's levels 1-6). The designs not taken leave their grids."""
+    import lol_quests
+    qs = ["1q", "2q", "3q", "4q"]
+    a = rng.choice(qs)
+    b = rng.choice([q for q in qs if q != a])
+    out = {}
+    for gi, (q, block, lvs) in enumerate(((a, "1-6", range(1, 7)), (b, "7-9", range(7, 10))), 1):
+        out[gi] = _quest_block(q, lol_quests.footprints(q), lol_quests.rules(q), block, lvs)
+    lol = lol_grids()
+    lo, hi = RANGES["SH"]
+    while True:
+        lgrids = [g for g in sorted(lol) if g in SHRINE_GRIDS]
+        quests = [q for q in qs if q not in (a, b)]
+        slots = []
+        for _ in range(2):
+            if quests and (not lgrids or rng.random() < 0.5):
+                q = rng.choice(quests); quests.remove(q)
+                fp = lol_quests.footprints(q)
+                slots.append(("q", q, {f"{q.upper()} L{lv}": fp[lv][1] for lv in range(1, 7)}))
+            else:
+                g = rng.choice(lgrids); lgrids.remove(g)
+                slots.append(("lol", g, {nm: cs for nm, cs in sorted(lol[g]["des"].items())
+                                         if lo <= len(cs) <= hi and map_ok(cs)}))
+        cand = [(i, nm) for i, (_, _, des) in enumerate(slots) for nm in des]
+        if len(cand) >= 4:
+            break
+    shrines = dict(zip(rng.sample(cand, 4), SHRINES))
+    for i, (kind, src, des) in enumerate(slots):
+        used = sorted(nm for (j, nm) in shrines if j == i)
+        letters = {nm: LETTERS[k] for k, nm in enumerate(used)}
+        occ = {c: letters[nm] for nm in used for c in des[nm]}
+        rows = ["".join(occ.get(r * COLS + c, ".") for c in range(COLS)) for r in range(ROWS)]
+        hid = {nm: h for nm, h in lol[src]["hidden"].items() if nm in letters} if kind == "lol" else {}
+        out[3 + i] = {"rows": rows, "names": {v: k for k, v in letters.items()},
+                      "classes": {nm: (shrines[(i, nm)],) for nm in used}, "hidden": hid}
     return out
 
 

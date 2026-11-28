@@ -96,11 +96,13 @@
       <option value="4q">4th Quest shapes</option>
       <option value="shapes">Random shapes</option>
       <option value="random">Chaos (any four grids, any level any shape)</option>
-      <option value="mixed">Mixed (each level from any set)</option>
+      <option value="mixed">Mixed (seeded: two quests' grids; unseeded: each level from any set)</option>
     </select>
     <p class="hint">Quest shapes keep each level's outline of rooms; Legend of Link makes its doors, rooms, enemies and
-      items. With a quest, its two grids stay as they are and two Legend of Link grids hold the shrines (Mixed: Legend of
-      Link shrine maps or random shapes).</p>
+      items. With a quest, its two grids stay as they are and two Legend of Link grids hold the shrines. Mixed (seeded):
+      one quest's levels 1-6 grid and another quest's 7-9 grid, each level its quest's own; the shrines come from two
+      more maps, each a Legend of Link grid or a third quest's 1-6 grid. (Unseeded Mixed: each level from any set, the
+      shrines Legend of Link maps or random shapes.)</p>
 
     <!-- (owner 2026-11-25) no mode choice for now: always normal; the secret modes can still be found in the game -->
     <input type="hidden" id="start" value="normal">
@@ -155,6 +157,6 @@
 
   <footer>Legend of Link is a fan project built on ZORA. You need your own copy of the game; no game data is hosted here.</footer>
 </main>
-<script src="app.js?v=0.431"></script>
+<script src="app.js?v=0.432"></script>
 </body>
 </html>
