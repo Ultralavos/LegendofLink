@@ -16,12 +16,13 @@ FRESH = ("lol_", "lolpaths", "new_grids", "build_q3", "build_mock", "release")
 def _b(x):                                       # a JS Uint8Array (JsProxy) or bytes -> bytes
     return x.to_bytes() if hasattr(x, "to_bytes") else bytes(x)
 
-def run_build(rom_bytes, original_bytes, seed, start, dset, set_seed, mix=False, fixed=False, tunic=None, noflash=False, race=False, upmix=False):
+def run_build(rom_bytes, original_bytes, seed, start, dset, set_seed, mix=False, fixed=False, tunic=None, noflash=False, race=False, upmix=False, ctrl1=False):
     os.environ["LOL_GEN"] = "1"
     os.environ["LOL_FIXED"] = "1" if fixed else "0"
     os.environ["LOL_MIX"] = "1" if mix else "0"
     os.environ["LOL_START"] = start
     os.environ["LOL_NOFLASH"] = "1" if noflash else "0"
+    os.environ["LOL_CTRL1"] = "1" if ctrl1 else "0"
     os.environ["LOL_RACE"] = "1" if race else "0"
     os.environ["LOL_UPMIX"] = "1" if upmix else "0"
     if tunic:
@@ -71,7 +72,7 @@ onmessage = async (ev) => {
     postMessage({ type: "status", text: "Building your game..." });
     const run = pyodide.globals.get("run_build");
     const res = run(new Uint8Array(msg.rom), new Uint8Array(msg.original), msg.seed, msg.start, msg.dset,
-                    msg.setSeed, !!msg.mix, !!msg.fixed, msg.tunic || null, !!msg.noflash, !!msg.race, !!msg.upmix);
+                    msg.setSeed, !!msg.mix, !!msg.fixed, msg.tunic || null, !!msg.noflash, !!msg.race, !!msg.upmix, !!msg.ctrl1);
     const [rom, ips, log, icons] = res.toJs();
     res.destroy();
     const romBytes = new Uint8Array(rom);           // (Python bytes arrive as Uint8Array)
