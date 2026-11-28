@@ -730,9 +730,16 @@ function renderBrushes() {
   }
 }
 // the room grid: 8 x 8 rooms, a door slot between each two neighbours. A door: click green, right-click a wall (a
-// thin red line; the same again: none), the mouse wheel through green, yellow, dark blue, red, purple. A room: right-click / click as the
+// thin red line; the same again: none), the mouse wheel (up) through yellow, dark blue, purple, red; down the other way, from red. A room: right-click / click as the
 // brush says; the wheel (down) opens its item list (map, compass, key, bomb, triforce, potion, I).
 const DOORS = ["green", "yellow", "navy", "red", "purple"];
+// (owner 2026-11-28) the wheel: no green; up from none starts at gold, down at red (up: gold, dark blue, purple, red)
+const WHEEL_DOORS = [2, 3, 5, 4];
+function wheelDoor(v, w) {
+  const i = WHEEL_DOORS.indexOf(v), n = WHEEL_DOORS.length;
+  if (i < 0) return w < 0 ? WHEEL_DOORS[0] : WHEEL_DOORS[n - 1];
+  return WHEEL_DOORS[(i + (w < 0 ? 1 : -1) + n) % n];
+}
 const WALL_V = 9;                      // (owner 2026-11-27) right-click: a wall, a thin red line along the side
 const RITEMS = [["map", "map.png", "Map"], ["compass", "compass.png", "Compass"], ["key", "key.png", "Key"],
   ["bomb", "bombs.png", "Bomb"], ["tri", "triforce.png", "Triforce"], ["potion", "potion1.png", "Potion"], ["rupee5", "rupee.png", "5 rupees"], ["I", null, "I"]];
@@ -864,9 +871,9 @@ function renderDun() {
       door.addEventListener("wheel", (e) => {
         e.preventDefault();
         const w = wheelDir(e); if (!w) return;
-        set(v ? ((v - 1 + w + DOORS.length) % DOORS.length) + 1 : (w > 0 ? 1 : DOORS.length));
+        set(wheelDoor(v, w));
       }, { passive: false });
-      longPress(door, () => set(v ? (v % DOORS.length) + 1 : 1));
+      longPress(door, () => set(wheelDoor(v, 1)));
       g.append(door);
     }
   }
