@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.425"
+VERSION = "0.426"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)

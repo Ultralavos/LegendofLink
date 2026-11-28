@@ -41,6 +41,8 @@ const ENTRANCES = [1, 3, 4, 5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22
   103, 104, 106, 107, 109, 111, 112, 113, 116, 117, 118, 120, 123, 124, 125, 36];   // (C5: 1.0's Armos stairs)
 // (1.0, owner 2026-11-28) the Armos item's five screens (C5, B13, D5, D14, E15): one holds the item, the others stairs
 const ARMOS = [36, 28, 52, 61, 78];
+// (1.0) the item deck's spots (the cellars, floor items, potion rooms, coast and Armos): any item, a bomb upgrade,
+// a card, an XP bag, a potion, or the letter once the deck is out
 const ARMOS_OPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])), ["bombs", "Bomb upgrade"],
   ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
 const FIXED = { 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "road"], 73: ["ROAD", "road"], 121: ["ROAD", "road"] };
@@ -330,6 +332,12 @@ function renderMap() {
           else { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
           save(); renderMap();
         };
+        // (1.0) from heart level 11 the cave is a shop that stays open: a click once the sword is taken shows its wares
+        if (S.hearts >= 11 && S.owDone[s]) {
+          cell.append(el("span", { className: "tag shop woodshop", textContent: "SHOP" }));
+          cell.title = "H8: the wood sword cave's shop (heart level 11+): click for what you bought";
+          cell.onclick = (e) => { e.stopPropagation(); openWoodShop(s, cell); };
+        } else
         cell.onclick = (e) => { e.stopPropagation(); flip(!S.owDone[s]); };
         cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); flip(false); };
       } else cell.disabled = true;
@@ -480,6 +488,34 @@ function openShop(s, cell) {
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "Not bought" });
   undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
   p.append(grid, el("div", { className: "prow" }, [change, undo]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+// (1.0) the wood sword cave's shop (heart level 11 on): its wares, each bought or not (it stays open)
+const WOOD_WARES = [["key", "Key", null], ["bombs", "Bombs", null], ["arrow1", "Arrows", "arrow1"],
+  ["heart", "Pity heart", null], ["shield", "Magical shield", "shield"]];
+function openWoodShop(s, cell) {
+  const p = $("picker"); picking = s; p.replaceChildren();
+  S.woodBuys = S.woodBuys || {};
+  p.append(el("div", { className: "ptitle", textContent: "Wood sword cave shop: what did you buy? (again: not bought)" }));
+  const grid = el("div", { className: "omgrid" });
+  for (const [img, name, gives] of WOOD_WARES) {
+    const b = el("button", { type: "button", className: "omi" + (S.woodBuys[img] ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (S.woodBuys[img]) { delete S.woodBuys[img]; revoke("wood:" + img); }
+      else { S.woodBuys[img] = 1; if (gives) grant("wood:" + img, gives); }
+      save(); closePicker(); renderAll();
+    };
+    grid.append(b);
+  }
+  const sword = el("button", { type: "button", className: "wide quiet", textContent: "Wood sword not taken" });
+  sword.onclick = () => { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; save(); closePicker(); renderAll(); };
+  p.append(grid, el("div", { className: "prow" }, [sword]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -980,7 +1016,7 @@ function sideDone(k) {
   const sd = (S.side || {})[k]; if (!sd) return false;
   if (/[A-D]/.test(k)) return !!sd.prize;
   const lv = +k, st = sd.st || [], bx = sd.box || [];
-  if (lv === 9) return !!(st[0] && st[1] && sd.ganon && sd.zelda);
+  if (lv === 9) return !!(st[0] && st[1] && sd.ganon && sd.zelda && (S.om[9] || {}).found);
   const o = S.om[lv] || {};
   const [nst, flr] = layoutOf(lv);
   return S.tri.includes(lv) && !!sd.pot && !!(o.item || o.found) && (!flr || !!bx[0]) &&
@@ -1072,9 +1108,12 @@ function renderSide() {
     const o = S.om[lv] || {};
     sbtn("om" + (o.item ? " on" : ""), `Level ${lv} old man` + (o.item ? ": took " + optName(OM_ITEMS, o.item) : ""),
       [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
-    sbtn("pot" + (sd.pot ? " on" : ""), "Blue potion", [icon("potion1")], () => {
-      sd.pot = !sd.pot; if (sd.pot) grant(`side:${k}:pot`, "potion1"); else revoke(`side:${k}:pot`); save();
-    });
+    // (1.0) the blue potion room: the item deck's, like the cellars (an old save's "taken": the blue potion)
+    if (sd.pot === true) sd.pot = "potion1";
+    sbtn("pot" + (sd.pot ? " on" : ""), "Potion room (the deck's item)" + (sd.pot ? ": " + optName(ARMOS_OPTS, sd.pot) : ""),
+      [icon(sd.pot || "potion1")], (b) => sidePick(b, "Potion room: what was it?", ARMOS_OPTS, sd.pot,
+        (img, lit) => { sd.pot = img; grant(`side:${k}:pot`, img, lit); save(); },
+        () => { sd.pot = null; revoke(`side:${k}:pot`); save(); }, 1));
     const slot = (arr, i, opts, title, stairs) => {
       const v = sd[arr][i];
       const kids = stairs ? [stairArt()] : [];
@@ -1084,8 +1123,8 @@ function renderSide() {
           () => { sd[arr][i] = null; revoke(`side:${k}:${arr}:${i}`); save(); }, 1));
     };
     const [nst, flr] = layoutOf(lv);                                     // (the map's set: LAYOUT)
-    if (flr) slot("box", 0, BOXOPTS, "Floor item");
-    for (let i = 0; i < nst; i++) slot("st", i, BOXOPTS, "Item stairs", true);
+    if (flr) slot("box", 0, ARMOS_OPTS, "Floor item");
+    for (let i = 0; i < nst; i++) slot("st", i, ARMOS_OPTS, "Item stairs", true);
   } else {
     const slot = (i) => {
       const v = sd.st[i];
@@ -1094,6 +1133,9 @@ function renderSide() {
           () => { sd.st[i] = null; revoke(`side:9:st:${i}`); save(); }, -1));
     };
     slot(0); slot(1);
+    const o9 = S.om[9] || {};                     // (1.0) level 9's old man's choice
+    sbtn("om" + (o9.item ? " on" : ""), "Level 9 old man" + (o9.item ? ": took " + optName(OM_ITEMS, o9.item) : ""),
+      [icon(o9.item || "cardD")], (b) => openOMRoom(9, b));
     sbtn("boss" + (sd.ganon ? " on" : ""), "Ganon", [icon("en_ganon")], () => { sd.ganon = !sd.ganon; save(); });
     sbtn("boss" + (sd.zelda ? " on" : ""), "Zelda", [icon("en_zelda")], () => { sd.zelda = !sd.zelda; save(); });
   }
