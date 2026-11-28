@@ -365,8 +365,9 @@ def encode_variant(v, gi):
     item_sq, stair_rm = [0xFF, 0xFF], [0xFF, 0xFF]
     ii = 0
     for sq, kind, a_, b_, x, y in v["stairs"]:
-        if kind == "item":
-            lit.append(bytes([sq, a_, b_, (x << 4) | y, 0x3F, 0x19, 0]))
+        if kind == "item":              # (its item at ($80, $90), the center tile: the slot's table may have it
+            pt = v.get("postab") or G.POS_TABLE     #  elsewhere than first - 3Q's levels 1 and 4, owner 2026-11-28)
+            lit.append(bytes([sq, a_, b_, (x << 4) | y, 0x3F, 0x19, (list(pt).index(0x89) << 4) if 0x89 in pt else 0]))
             item_sq[ii] = sq; stair_rm[ii] = a_; ii += 1
         else:
             lit.append(bytes([sq, a_, b_, (x << 4) | y, 0x3E, 0x03, 0]))
