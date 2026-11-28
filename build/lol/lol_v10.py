@@ -450,7 +450,9 @@ def decor(out, chosen):
                     and x["trigger"] in (G.T_NONE, G.T_ALL_DEAD, G.T_ALL_DEAD_ITEM) and not x["layout"] & 0x40
                     and (x["layout"] & 0x3F) not in G.CHUTE_SIDES and x["eclass"] in (1, 2)
                     and (x["item"] is None or x["item"] in (G.I_BOMBS, G.I_RUPEES, G.I_KEY)
-                         or (lay == GANON_LAYOUT and x["item"] == G.I_MAP))]
+                         or (lay == GANON_LAYOUT and x["item"] == G.I_MAP))
+                    and (lay == ZELDA_LAYOUT or x["item"] is None
+                         or G.spot_slots(lay, v["postab"], {t for t in range(4) if x["walls"][t] != G.WALL}))]
             if pool:
                 break
         else:
@@ -464,7 +466,8 @@ def decor(out, chosen):
             if x["trigger"] == G.T_ALL_DEAD_ITEM:
                 x["trigger"] = G.T_ALL_DEAD
         elif x["item"] is not None:
-            x["pos"] = r.choice(G.usable_in(lay, v.get("postab")) or (0,))
+            sides = {t for t in range(4) if x["walls"][t] != G.WALL}
+            x["pos"] = r.choice(G.spot_slots(lay, v["postab"], sides))
             if x["trigger"] == G.T_ALL_DEAD_ITEM:
                 x["trigger"] = G.T_ALL_DEAD                 # (standing)
         said.append(f"{name} room's layout in level {lv} ({G.name(c)})")

@@ -163,6 +163,70 @@ def usable_in(layout, postab):
     return tuple(i for i, p in enumerate(postab) if p in row)
 
 
+# (1.0, owner 2026-11-28) item tiles: never a door's tile, a block, statue, water or stairs tile, a tile Link can't
+# walk to from the room's ways in, nor where a staircase appears or drops Link off
+DOOR_TILES = {0x76, 0x86, 0x7C, 0x8C, 0x29, 0xD9}
+WALKABLE = (0x74, 0x68, 0x24)                   # floor, sand, a dark room's floor
+LOL_TILE_POOL = [(c << 4) | r for c in range(2, 14) for r in range(6, 13)
+                 if (c << 4) | r not in DOOR_TILES and (c << 4) | r != 0x89]
+_FLOORS = {}
+
+
+def floors():
+    if not _FLOORS:
+        import lolpaths
+        from zora.rom.parse.room_layouts import underworld_floors
+        _FLOORS.update(underworld_floors(bytes(lolpaths.source_rom())))
+    return _FLOORS
+
+
+def tile_ok(layout, tile, sides=None):
+    """Whether an item may lie on tile ($XY) of a room with this layout (full code), entered by sides (N/E/S/W; None:
+    any) - or, a stairs room, from its stairs."""
+    if tile in DOOR_TILES:
+        return False
+    fl = floors()[layout & 0x3F]
+    walk = lambda t: fl[(t >> 4) - 2][(t & 15) - 6] in WALKABLE
+    if not walk(tile):
+        return False
+    exit_ = STAIR_EXIT.get(layout) or STAIR_EXIT.get(layout & 0x3F)
+    if exit_ and tile == (exit_[0] << 4) | exit_[1]:
+        return False
+    starts = []
+    fronts = {N_: (0x76, 0x86), S_: (0x7C, 0x8C), W_: (0x29,), E_: (0xD9,)}
+    for t in range(4):
+        if sides is None or t in sides:
+            starts += [x for x in fronts[t] if walk(x)]
+    if exit_:
+        starts.append((exit_[0] << 4) | exit_[1])
+    seen, todo = set(starts), list(starts)
+    while todo:
+        x = todo.pop()
+        c, r = x >> 4, x & 15
+        for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            y = ((c + dc) << 4) | (r + dr)
+            if 2 <= c + dc <= 13 and 6 <= r + dr <= 12 and y not in seen and walk(y):
+                seen.add(y); todo.append(y)
+    return tile in seen
+
+
+def spot_slots(layout, postab, sides=None):
+    """(1.0) The slots (0-3) of the level's four item tiles an item may take in this room: a ZORA table's (1Q, 2Q, Random
+    shapes) also only where T5 allows; the triforce room's layout only the center."""
+    if (layout & 0x3F) == 0x29:
+        return (postab.index(0x89),)
+    t5 = None
+    if not getattr(postab, "lol", False):
+        from zora.generate.shapes.t5_positions import T5_BASE
+        t5 = T5_BASE.get(layout) or T5_BASE.get(layout & 0x3F, ())
+    return tuple(i for i, p in enumerate(postab) if (t5 is None or p in t5) and tile_ok(layout, p, sides))
+
+
+class LolTab(list):
+    """(1.0, owner 2026-11-28) a LoL dungeon's own four item tiles: the center and three drawn for it."""
+    lol = True
+
+
 def usable(layout):
     """The item positions whose tiles are floor in this layout (measured in the game), never a block or water."""
     if layout in PROBE:
@@ -226,6 +290,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     """One variant of the dungeon on `cells` as level type `cls`."""
     cells = set(cells)
     shrine = cls == "SH"
+    if _seeded() and postab is None:      # (1.0) a LoL dungeon: the center and three tiles of its own
+        postab = LolTab([0x89] + rng.sample(LOL_TILE_POOL, 3))
     piece = pieces(cells)
     walls = {c: [WALL] * 4 for c in cells}
     rooms = {c: dict(layout=None, item=None, pos=0, trigger=T_NONE, role="room", eclass=1) for c in cells}
@@ -829,12 +895,8 @@ def _items_v10(rooms, roles, cells, cls, lvcls, rng, passable, nb_ok, postab=Non
         if r["item"] is not None or roles.get(c) in ("entrance", "choice", "check", "zelda", "ganon", "prize",
                                                        "zguard", "triforce") or (lay & 0x3F) in NO_ITEM_LAYOUTS:
             continue
-        opts = list(usable_in(lay, postab))
-        if (lay & 0x3F) in CHUTE_SIDES:
-            if not any(passable(c, t) and nb_ok(c, t) for t in CHUTE_SIDES[lay & 0x3F]):
-                continue
-            ctr = 0 if postab is None else postab.index(0x89) if 0x89 in postab else -1
-            opts = [p for p in opts if p == ctr]
+        sides = {t for t in range(4) if nb_ok(c, t) and passable(c, t)}
+        opts = list(spot_slots(lay, postab, sides))
         if opts:
             elig.append((c, opts))
     draw = lambda: rng.choices((I_BOMBS, None, I_RUPEES, I_KEY), t3)[0]
