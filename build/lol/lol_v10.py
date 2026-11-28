@@ -216,8 +216,8 @@ HINTS = {"LEVELS 1-8 ALL HAVE AN OLD MAN, SEEK THEM": "LEVELS 1-9 ALL HAVE AN OL
 # comes to them. The deck (rolled when the seed is built): 1-7 items by DECK_ODDS (no repeats), 1-3 each of the S, D
 # and X cards, the rest a blue potion, a small (+15) or a large (+25) XP bag (1 in 3 each); shuffled. Dealt in the game
 # in order, a card Link can't use skipped (owned; an upgrade at its top tier gives its next tier; a fourth card of a
-# kind; a potion past 2, or 4 with the potion pouch; XP at heart level 16); none left: the letter in a Race Rom, else
-# an orange XP bag.
+# kind; a potion past 2, or 4 with the potion pouch; XP at heart level 16); none left: the letter (a Race Rom, 1 seed in
+# 25: has_letter), else a big XP bag.
 # Kinds (the deck's bytes): 0-14 an inventory byte's next tier (KINDS), 15 bomb upgrade, 16 blue potion, 17-19 the
 # S / D / X cards, 20 / 21 small / large XP; $FE (lol_upmix) the upgrade card.
 KINDS = [("ring upgrade", RING, [0x12, 0x13]), ("sword upgrade", SWORD, [0x01, 0x02, 0x03]),
@@ -234,6 +234,11 @@ DECK_ODDS = {"ring upgrade": 1, "sword upgrade": 1, "arrow upgrade": 1, "book up
              "recorder": 5, "power bracelet": 10, "raft": 10, "bomb upgrade": 15, "bait": 15, "blue potion": 15}
 assert sum(DECK_ODDS.values()) == 100
 LETTER = 0x15
+
+
+def has_letter():
+    """(owner 2026-11-28) whether this seed has the letter (the empty deck's card): Race Roms, about 1 seed in 25."""
+    return os.environ.get("LOL_RACE") == "1" and rng("letter").randrange(25) == 0
 SPOT_N = 26                             # spot = (level - 1) * 3 + its index (0 / 1 the cellars / floor room, 2 the
 COAST, ARMOS = 24, 25                   #  blue potion room); the coast, the Armos
 
@@ -303,8 +308,9 @@ def deal_routine(rom):
         else:
             a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0xB0, "empty").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
             a.abs(0x20, "res").br(0xB0, "next").br(0x90, "store")
-        # (owner 2026-11-28) the letter in a Race Rom only (lol_infoshop); else an orange XP bag
-        a.label("empty").b(0xA9, LETTER if os.environ.get("LOL_RACE") == "1" else 0x29)
+        # (owner 2026-11-28) the letter in a Race Rom only, about 1 seed in 25 (has_letter; lol_infoshop); else a big
+        # (blue, +25) XP bag
+        a.label("empty").b(0xA9, LETTER if has_letter() else 0x2A)
         a.label("store").b(0x09, 0x80).abs(0x99, HINT_QS)
         a.label("have").b(0xC9, 0xFE).br(0xF0, "ret").b(0x29, 0x7F)
         a.label("ret").abs(0x8D, T).b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, T).b(0x60)

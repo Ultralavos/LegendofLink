@@ -47,7 +47,7 @@ _PENDING = []
 
 def on():
     import lol_v10 as V10
-    return V10.ON and os.environ.get("LOL_RACE") == "1"
+    return V10.ON and V10.has_letter()          # (only seeds with the letter)
 
 
 def scramble(data: bytes) -> bytes:
