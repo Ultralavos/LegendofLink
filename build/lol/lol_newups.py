@@ -87,8 +87,13 @@ def put3(rom, bank, build):
     return put3_best(rom, build)
 
 
-def put3_best(rom, build, lo=0xB300, hi=0xBE00):
-    """put3, best fit: the smallest free run of bank 3's tail that holds it (keeps the big runs for big code)."""
+def put3_best(rom, build, lo=None, hi=0xBE00):
+    """put3, best fit: the smallest free run of bank 3's tail that holds it (keeps the big runs for big code).
+    (1.0, seeded: lol_odds' engine is in bank 12, so its old place, bank 3 $ACA0-$B2FF, is free too: a Race Rom's
+    secret spot on E2 needs it.)"""
+    if lo is None:
+        import lol_odds
+        lo = 0xACA0 if lol_odds.LATE else 0xB300
     n = len(build(0xB300).bytes())
     base = BANK(3) - 0x8000
     best, c = None, lo
