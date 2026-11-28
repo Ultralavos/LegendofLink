@@ -14,7 +14,7 @@ import hashlib
 import os
 from lol_af import Asm, BANK, place, patch
 
-VERSION = "0.419"
+VERSION = "0.420"
 TITLE_ROWS = {0x2240: "LEGEND OF LINK", 0x2260: "BETA " + VERSION}   # (24 free columns: 4-27)
 SEED_ROW = 0x2280                     # PUSH START BUTTON's (22 free columns: 6-27)
 HEADING = 0x1A128                     # file offset: the heading record's length byte (bank 6 $A118)
@@ -62,6 +62,10 @@ LINK_COLOR_BYTES = tuple((o, 3) for o in TUNIC_COPIES) + tuple(
 FLASH_BYTES = ((0x06A5B, 2), (0x061A3, 2), (0x0AA2F, 4), (0x16895, 2))
 FLASH_PATCH = ((bytes.fromhex("85fe"), bytes.fromhex("eaea")), (bytes.fromhex("8414"), bytes.fromhex("eaea")),
                (bytes.fromhex("0f12162a"), bytes.fromhex("0f0f0f0f")), (bytes.fromhex("8414"), bytes.fromhex("eaea")))
+# (owner 2026-11-28) the page's "Save menu on controller 1": UpdateMenuActive's Up+A test (bank 5 $80DA, ZORA's
+# death-warp-controller1-up-a setting) reads controller 1's held buttons ($FA) instead of controller 2's ($FB)
+CTRL1_BYTES = ((0x140EA, 2),)
+CTRL1_PATCH = ((bytes.fromhex("a5fb"), bytes.fromhex("a5fa")),)
 LINK_COLOR_VANILLA = bytes.fromhex("293216293216" + "2717" * 3 + "3717" + "2717" * 6 + "3717" + "2707" * 3)   # (PRG1's)
 
 
@@ -149,6 +153,9 @@ def apply_code(rom: bytearray, notes: list) -> None:
     for at, n in SPRITE_BLOCKS + BG_BLOCKS + tuple(lol_bombup.SPRITE_COPIES) + LINK_COLOR_BYTES + FLASH_BYTES:  # (and Link's
         # colors, and the flashes)
         plain[at:at + n] = bytes(n)
+    for (at, n), (old, new) in zip(CTRL1_BYTES, CTRL1_PATCH):   # (the controller setting: as without it)
+        if plain[at:at + n] == new:
+            plain[at:at + n] = old
     race = b"race rom\x00" if os.environ.get("LOL_RACE") == "1" else b""   # (owner 2026-11-25: a Race Rom's
     digest = hashlib.sha256(DOMAIN + race + bytes(plain)).digest()       #  code is its own)
     items = [ITEMS[b % len(ITEMS)] for b in digest[:4]]

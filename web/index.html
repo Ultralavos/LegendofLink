@@ -56,6 +56,21 @@
   .tunics span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .tunics select { width: auto; min-width: 130px; }
   .tunics .sw { width: 14px; height: 14px; border: 1px solid #888; display: inline-block; }
+  /* (owner 2026-11-28) settings in two tabs: the game's and the player's (they don't change the seed) */
+  .tabs { display: flex; gap: 6px; margin: 0 0 16px; border-bottom: 1px solid #2c2c38; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px;
+    padding: 8px 12px; color: var(--muted); font-weight: 600; }
+  .tabs button[aria-selected=true] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tabnote { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  label.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 14px; }
+  label.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  label.switch .track { flex: none; width: 40px; height: 22px; border-radius: 11px; background: #3a3a48; position: relative;
+    transition: background .15s; }
+  label.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+    border-radius: 50%; background: #e8e8ee; transition: transform .15s; }
+  label.switch input:checked + .track { background: var(--accent); }
+  label.switch input:checked + .track::after { transform: translateX(18px); }
+  label.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -77,6 +92,11 @@
 
   <section>
     <h2>2. Settings</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-pane="pane-game">Game</button>
+      <button type="button" role="tab" aria-selected="false" data-pane="pane-player">Player</button>
+    </div>
+    <div class="tabpane" id="pane-game">
     <label for="seed">Seed (numbers only)</label>
     <div class="row">
       <input id="seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10"
@@ -110,6 +130,18 @@
       share; a blank seed gets one picked. Unseeded: the game rolls these itself when a file starts and as Link finds
       them, as before (a blank seed: a different game on every new file).</p>
 
+    <label class="check"><input id="race" type="checkbox"> Race Rom</label>
+    <p class="hint">Scrambles the map, dungeon and cave data inside the ROM, so map viewers and ROM tools can't show
+      the seed. Race Roms get their own seed code.</p>
+
+    <label class="check"><input id="mix" type="checkbox"> Mix enemy groups</label>
+    <p class="hint">Deals the dungeon and overworld enemies into new groups (Moblins in dungeons, Stalfos outside...).
+      Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and Keese stay in dungeons; Octoroks, Peahats, Leevers,
+      boulders, Zoras, Ghinis and Armos stay outside. Then the overworld screens' monsters are dealt to other screens
+      (Zoras and Ghinis stay where they are; screens without monsters keep none).</p>
+    </div>
+    <div class="tabpane" id="pane-player" hidden>
+    <p class="tabnote">These only change how the game looks and plays for you: the seed, its code and the game stay the same.</p>
     <label>Link's colors</label>
     <div class="tunics">
       <span><i id="tunic0-sw" class="sw"></i>No ring <select id="tunic0"></select></span>
@@ -122,15 +154,10 @@
     <p class="hint">Turns off the screen flashes: a bomb's blast, picking up a triforce, the Triforce of Power and the
       ending. Only how it looks: the seed, its code and the game stay the same.</p>
 
-    <label class="check"><input id="race" type="checkbox"> Race Rom</label>
-    <p class="hint">Scrambles the map, dungeon and cave data inside the ROM, so map viewers and ROM tools can't show
-      the seed. Race Roms get their own seed code.</p>
-
-    <label class="check"><input id="mix" type="checkbox"> Mix enemy groups</label>
-    <p class="hint">Deals the dungeon and overworld enemies into new groups (Moblins in dungeons, Stalfos outside...).
-      Wallmasters, Vires, Like Likes, Zols, Lanmolas, Wizzrobes, Gels and Keese stay in dungeons; Octoroks, Peahats, Leevers,
-      boulders, Zoras, Ghinis and Armos stay outside. Then the overworld screens' monsters are dealt to other screens
-      (Zoras and Ghinis stay where they are; screens without monsters keep none).</p>
+    <label class="switch"><input id="ctrl1" type="checkbox"><span class="track"></span> Save menu on controller 1</label>
+    <p class="hint">Off: as in the original game, Up + A on controller 2 opens Continue / Save / Retry from the item screen.
+      On: Up + A on controller 1 does it instead.</p>
+    </div>
   </section>
 
   <section>
@@ -150,6 +177,15 @@
 
   <footer>Legend of Link is a fan project built on ZORA. You need your own copy of the game; no game data is hosted here.</footer>
 </main>
-<script src="app.js?v=0.419"></script>
+<script>
+// (owner 2026-11-28) the settings' two tabs: the game's (they make the seed) and the player's (they don't)
+for (const b of document.querySelectorAll(".tabs button")) {
+  b.addEventListener("click", () => {
+    for (const x of document.querySelectorAll(".tabs button")) x.setAttribute("aria-selected", x === b ? "true" : "false");
+    for (const pane of document.querySelectorAll(".tabpane")) pane.hidden = pane.id !== b.dataset.pane;
+  });
+}
+</script>
+<script src="app.js?v=0.420"></script>
 </body>
 </html>

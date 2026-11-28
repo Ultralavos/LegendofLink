@@ -229,6 +229,13 @@ def main():
         for (o, n), (old, new) in zip(lol_seedcode.FLASH_BYTES, lol_seedcode.FLASH_PATCH):
             assert rom[o:o + n] == old, (hex(o), rom[o:o + n].hex())
             rom[o:o + n] = new
+    # (owner 2026-11-28) the page's "Save menu on controller 1" (LOL_CTRL1=1): Up+A on controller 1 opens the
+    # Continue / Save / Retry menu from the item screen (a player setting: the seed and its code stay the same)
+    if os.environ.get("LOL_CTRL1") == "1":
+        import lol_seedcode
+        for (o, n), (old, new) in zip(lol_seedcode.CTRL1_BYTES, lol_seedcode.CTRL1_PATCH):
+            assert rom[o:o + n] == old, (hex(o), rom[o:o + n].hex())
+            rom[o:o + n] = new
     assert rom[HOOK:HOOK + 10] == HOOK_BYTES, rom[HOOK:HOOK + 10].hex()
     at = BANK4 + (FREE - 0x8000)
     code = build_helper(FREE)
