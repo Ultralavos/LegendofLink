@@ -50,7 +50,13 @@ def _pick():
     rng = random.Random(f"lol secret spot {seed}")
     if rng.randrange(ODDS):
         return None
-    return rng.randrange(len(SPOTS)), rng.randrange(len(HINTS))
+    s, h = rng.randrange(len(SPOTS)), rng.randrange(len(HINTS))
+    import lol_odds
+    if SPOTS[s][0] == E2 and not getattr(lol_odds, "LATE", False):
+        # (owner 2026-11-28) E2's cave code doesn't fit bank 3 while lol_odds' engine is there (1.0 moves it): one of
+        # the other four instead, until then
+        s = [k for k in range(len(SPOTS)) if SPOTS[k][0] != E2][rng.randrange(len(SPOTS) - 1)]
+    return s, h
 
 
 PICK = _pick()
