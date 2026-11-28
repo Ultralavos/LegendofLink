@@ -136,7 +136,7 @@ function renderItems() {
     const b = el("button", { type: "button", className: "item" + (v ? " on" : ""), title: v ? names[v - 1] : names[0] });
     b.append(icon(steps[Math.max(0, v - 1)]));
     if (steps.length > 1 && v) b.append(el("span", { className: "tier", textContent: v }));
-    stepper(b, (d) => { S.items[id] = (v + d + steps.length + 1) % (steps.length + 1); save(); renderItems(); });
+    stepper(b, (d) => { S.items[id] = (v + d + steps.length + 1) % (steps.length + 1); save(); renderItems(); renderMap(); });
     box.append(b);
   }
 }
@@ -299,7 +299,7 @@ function renderUps() {
         title: `${name} (${PRICE[i]})` + (ok ? "" : ": not offered yet") });
       b.append(el("img", { src: `../manual/img/up_${String(i).padStart(2, "0")}.png`, className: "px", alt: name, draggable: false }));
       b.onmouseenter = () => { $("up-name").textContent = `${name} · ${PRICE[i]} rupees` + (ok ? "" : " · not offered yet"); };
-      stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
+      stepper(b, (d) => { S.ups[i] = (v + d + 3) % 3; save(); renderUps(); renderMap(); $("up-name").textContent = `${name} · ${["not seen", "seen", "bought"][S.ups[i]]}`; });
       row.append(b);
     });
     // (owner 2026-11-27) the hidden ones keep their room, as blank squares after the shown ones: the bar's size never
@@ -318,6 +318,7 @@ const MARK = Object.fromEntries(MARKS.map((m) => [m[0], m]));
 let picking = null;
 function renderMap() {
   const map = $("map");
+  coastGot();
   map.querySelectorAll(".cell, .dim").forEach((c) => c.remove());
   // screens with nothing to find: greyed out
   const has = new Set([...ENTRANCES, ...Object.keys(FIXED).map(Number)]);
@@ -463,6 +464,19 @@ function owTop(p, r, host) {
   const y = lastPtrY !== null && lastPtrY >= r.top - 2 && lastPtrY <= r.bottom + 2 ? lastPtrY : (r.top + r.bottom) / 2;
   const h = p.offsetHeight;
   return Math.max(4, Math.min(y - host.top - h / 2, host.height - h - 4));
+}
+// (owner 2026-11-28) a coast item only seen there, that Link then gets some other way: off the coast
+function coastGot() {
+  const c = S.coast;
+  if (!c || c.taken || !c.img) return;
+  const u = UPI(c.img);
+  let got = false;
+  if (u) got = (S.ups[+u[1]] || 0) === 2;
+  else {
+    const it = ITEMS.find(([, steps]) => steps.includes(c.img));
+    if (it) got = (S.items[it[0]] || 0) >= it[1].indexOf(c.img) + 1;
+  }
+  if (got) { delete S.coast; save(); }
 }
 // (owner 2026-11-28) the coast item's window: click a picture: seen; right-click: taken (given, in colour)
 function openCoast(cell) {
