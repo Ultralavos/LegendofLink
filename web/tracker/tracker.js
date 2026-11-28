@@ -33,9 +33,10 @@ const UPGRADES = ["Sword Beams", "Boomstick", "Regeneration", "Skull Ring", "Swo
   "Bat Potion", "Bow Mastery", "Ganon Visible", "Slow Fireballs", "Key Hoarder", "Unlimited Blue Candle", "Miser's Bow",
   "Refilling Bomb Bag", "Map Master", "Spider Bomber", "Bow of Greed", "Holy Fire", "XP Boost", "Ghost Hunter",
   "Healerang", "Shield Breaker", "Membership Card", "Poison Bait", "Heart Snubber", "Divining Rod", "Song of Chaos",
-  "Zombie Link", "Brain Potion", "X-ray Glasses", "Boomerang Mastery", "Bookworm"];   // (lol_uptable's order: the icons up_00..up_36)
+  "Zombie Link", "Brain Potion", "X-ray Glasses", "Boomerang Mastery", "Bookworm",
+  "Heavy Bracelet", "Song of Discovery"];   // (lol_uptable's order: the icons up_00..up_40)
 const PRICE = [50, 100, 125, 50, 100, 150, 50, 100, 150, 50, 100, 150, 50, 125, 150, 25, 50, 50, 50, 50, 50, 50, 75,
-  100, 100, 100, 125, 150, 150, 200, 50, 200, 100, 25, 75, 50, 200, 75, 200];
+  100, 100, 100, 125, 150, 150, 200, 50, 200, 100, 25, 75, 50, 200, 75, 200, 75, 75];
 // overworld screens (row * 16 + column) with a randomized entrance; the wood sword cave and the Any Road stairs
 const ENTRANCES = [1, 3, 4, 5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25, 26, 27, 28, 30, 31, 33, 34, 37, 38,
   39, 40, 44, 45, 47, 51, 52, 55, 60, 61, 66, 68, 69, 70, 71, 72, 74, 75, 77, 78, 81, 86, 88, 91, 94, 98, 99, 100, 102,
@@ -282,6 +283,7 @@ const UP_NEEDS = {
   30: () => has("bait"), 31: () => has("sword") && S.hearts <= 3, 32: () => has("wand") && !own(1),
   33: () => has("recorder") && S.tri.length >= 1, 34: () => S.hearts === 3 && !has("ring") && !own(2),
   35: () => own(34) && has("potion") && !own(13), 37: () => has("boom"), 38: () => S.hearts >= 8,
+  39: () => has("bracelet"), 40: () => has("recorder"),   // (owner 2026-11-28: the Heavy Bracelet, the Song of Discovery)
 };
 const TIERS = [["Tier 1", "25-50"], ["Tier 2", "75-125"], ["Tier 3", "150-200"]];
 const tierOf = (i) => (PRICE[i] <= 50 ? 0 : PRICE[i] <= 125 ? 1 : 2);
