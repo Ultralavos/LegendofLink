@@ -70,7 +70,7 @@ PRICES = {"key": 20, "bomb pack": 5, "bait": 20, "pity heart": 10, "bomb upgrade
           "silver arrows": 150, "blue candle": 40, "red candle": 80, "boomerang": 40, "magic boomer": 50,
           "power bracelet": 50, "raft": 50, "ladder": 75, "recorder": 75, "bow": 80, "wand": 125,
           "white sword": 150, "magical sword": 225, "magic shield": 50, "blue ring": 150, "red ring": 225,
-          "red book": 75, "blue book": 125, "magic key": 200, "wood sword": 10}
+          "red book": 75, "blue book": 125, "magic key": 200, "wood sword": 50}
 BANDS = [(1, 3)] + [(h, h) for h in range(4, 17)]
 
 
