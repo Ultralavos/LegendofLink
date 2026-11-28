@@ -1,5 +1,5 @@
 "use strict";
-// Legend of Link tracker: items, triforce and shrines, cards, upgrades, the overworld's 71 entrances and a room grid
+// Legend of Link tracker: items, triforce and shrines, cards, upgrades, the overworld's 72 entrances and a room grid
 // per level and shrine. Everything is kept in localStorage (one key), so a refresh keeps the run.
 
 const KEY = "lol-tracker-v1";
@@ -38,7 +38,11 @@ const PRICE = [50, 100, 125, 50, 100, 150, 50, 100, 150, 50, 100, 150, 50, 125, 
 // overworld screens (row * 16 + column) with a randomized entrance; the wood sword cave and the Any Road stairs
 const ENTRANCES = [1, 3, 4, 5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25, 26, 27, 28, 30, 31, 33, 34, 37, 38,
   39, 40, 44, 45, 47, 51, 52, 55, 60, 61, 66, 68, 69, 70, 71, 72, 74, 75, 77, 78, 81, 86, 88, 91, 94, 98, 99, 100, 102,
-  103, 104, 106, 107, 109, 111, 112, 113, 116, 117, 118, 120, 123, 124, 125];
+  103, 104, 106, 107, 109, 111, 112, 113, 116, 117, 118, 120, 123, 124, 125, 36];   // (C5: 1.0's Armos stairs)
+// (1.0, owner 2026-11-28) the Armos item's five screens (C5, B13, D5, D14, E15): one holds the item, the others stairs
+const ARMOS = [36, 28, 52, 61, 78];
+const ARMOS_OPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])), ["bombs", "Bomb upgrade"],
+  ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
 const FIXED = { 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "road"], 73: ["ROAD", "road"], 121: ["ROAD", "road"] };
 const MARKS = [   // value, label on the map, class, picker text
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [`L${n}`, `${n}`, "lvl", `Level ${n}`]),
@@ -46,6 +50,7 @@ const MARKS = [   // value, label on the map, class, picker text
   ["shop", "SHOP", "shop", "Shop"], ["up", "UPG", "up", "Upgrade cave"], ["hint", "HINT", "hint", "Hint"],
   ["gamble", "BET", "misc", "Gambling"], ["rupee", "$", "misc", "Secret rupees"],
   ["tri4", "4▲", "tri", "4-triforce cave"], ["tri8", "8▲", "tri", "8-triforce cave"],
+  ["armos", "ARM", "arm", "Armos item"],
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 // a mark's box; (owner 2026-11-27) the 4 and 8 triforce caves: an orange box, a triangle, the number in bold black
@@ -81,7 +86,7 @@ const OM_ITEMS = [["boom1", "Boomerang"], ["candle1", "Blue candle"], ["raft", "
   ["sword2", "White sword"], ["wand", "Wand"], ["bow", "Bow"], ["arrow2", "Silver arrows"], ["shield", "Magical shield"],
   ["candle2", "Red candle"], ["sword3", "Magical sword"], ["potion2", "Red potion"]];
 const fresh = () => ({ side: {}, items: {}, hearts: 3, om: {}, bombups: 0, tri: [], shrines: [], cards: { S: 0, D: 0, X: 0 }, ups: {},
-  ow: {}, owDone: {}, owX: {}, owBuy: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
+  ow: {}, owDone: {}, owX: {}, owBuy: {}, owArm: {}, dun: {}, cur: "1", notes: "", timer: { acc: 0, start: null } });
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* new run */ }
 let upQueued = false;
@@ -331,13 +336,16 @@ function renderMap() {
     }
     else {
       const m = MARK[S.ow[s]];
-      if (m) cell.append(markTag(m[2], m[1]));
+      if (m && m[0] === "armos" && S.owArm[s]) {     // the Armos item: its picture
+        const t = markTag("arm", ""); t.append(icon(S.owArm[s])); cell.append(t);
+        cell.title += ": Armos item, " + optName(ARMOS_OPTS, S.owArm[s]);
+      } else if (m) cell.append(markTag(m[2], m[1]));
       else cell.classList.add("open");
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
       if (S.owBuy[s]) cell.title += ": bought " + SHOP_WARES.find((x) => x[0] === S.owBuy[s])[1];
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
       // left click: what's here; right-click / long press: an X ("don't need it"), again to take it off
-      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : openPicker(s, cell));
+      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : S.ow[s] === "armos" ? openArmos(s, cell) : openPicker(s, cell));
       const xout = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
       cell.onclick = (e) => { e.stopPropagation(); menu(); };
       cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); xout(); };
@@ -356,7 +364,7 @@ const B_ = [0x01, 0x03, 0x05, 0x07, 0x0D, 0x10, 0x12, 0x13, 0x14, 0x16, 0x1E, 0x
 const CANDLE_ = [0x28, 0x46, 0x47, 0x48, 0x4B, 0x4D, 0x51, 0x56, 0x5B, 0x62, 0x63, 0x68, 0x6A, 0x6B, 0x6D, 0x78];
 const ACCESS = [   // id, icon (null: a label), name, screens (ACCESS_OK: whether Link can open them now)
   ["open", null, "Open caves and the Armos' stairs", [0x04, 0x0A, 0x0B, 0x0C, 0x0E, 0x0F, 0x1A, 0x1C, 0x1F, 0x21, 0x22,
-    0x25, 0x34, 0x37, 0x3C, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75]],
+    0x25, 0x34, 0x37, 0x3C, 0x3D, 0x44, 0x4A, 0x4E, 0x5E, 0x64, 0x66, 0x6F, 0x70, 0x74, 0x75, 0x24]],
   ["bomb", "bombs", "Bomb walls", B_],
   // (owner 2026-11-27) the blue candle burns only F2, G3, G4, F7, C9 and G11; the red candle every bush
   ["candle1", "candle1", "Bushes the blue candle burns", [0x51, 0x62, 0x63, 0x56, 0x28, 0x6A]],
@@ -419,14 +427,18 @@ function openPicker(s, cell) {
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
   const grid = el("div", { className: "pgrid" });
   for (const [v, label, cls, text] of MARKS) {
+    if (v === "armos" && !ARMOS.includes(s)) continue;
     // (owner 2026-11-27) a level, shrine or triforce cave already on another square: blacked out until it's taken off there
-    const taken = (cls === "lvl" || cls === "shr" || cls === "tri") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
+    const taken = (cls === "lvl" || cls === "shr" || cls === "tri" || cls === "arm") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : "") + (taken ? " taken" : ""),
       title: taken ? `${text}: already on the map` : text, disabled: taken },
       // (owner 2026-11-27) a level or shrine: just its big box, the number or letter (no "Level" text)
       cls === "lvl" || cls === "shr" ? [markTag(cls, label)] : [markTag(cls, label), el("small", { textContent: text })]);
-    b.onclick = () => {
+    b.onclick = (e) => {
+      if (v === "armos") e.stopPropagation();      // (its item picker opens next: this click mustn't close it)
+      if (S.ow[s] === "armos" && v !== "armos") { delete S.owArm[s]; revoke("armos:" + s); }
       S.ow[s] = v; save(); closePicker(); renderMap();
+      if (v === "armos") { openArmos(s, $("map").querySelector(`.cell[data-s="${s}"]`)); return; }
       if (/^[LS]/.test(v)) {                       // a level or shrine: its map below
         S.cur = v.slice(1); save();
         if (brush === "O" && isShrine(S.cur)) brush = "room";
@@ -438,7 +450,7 @@ function openPicker(s, cell) {
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
   const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
+  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; delete S.owArm[s]; revoke("shop:" + s); revoke("armos:" + s); save(); closePicker(); renderAll(); };
   p.append(grid, el("div", { className: "prow" }, [done, clear]));
   p.hidden = false;
   // place it under the tile, inside the panel
@@ -467,6 +479,45 @@ function openShop(s, cell) {
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "Not bought" });
   undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
+  p.append(grid, el("div", { className: "prow" }, [change, undo]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+// (1.0) the Armos item's square, clicked: what it was (into the inventory)
+function openArmos(s, cell) {
+  const p = $("picker"); picking = s; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: the Armos item, what was it?` }));
+  const grid = el("div", { className: "omgrid" });
+  const pick = (img) => { S.owArm[s] = img; grant("armos:" + s, img, true); save(); closePicker(); renderAll(); };
+  for (const [img, name] of ARMOS_OPTS) {
+    const b = el("button", { type: "button", className: "omi" + (S.owArm[s] === img ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = () => pick(img);
+    grid.append(b);
+  }
+  if (S.ug) {                                      // (Upgrade mix: the upgrade card)
+    const b = el("button", { type: "button", className: "omi ug" + (UPI(S.owArm[s]) ? " sel" : ""), title: "An upgrade", textContent: "UG" });
+    b.onclick = (e) => {                           // (the upgrades, in this picker: right-click also marks it bought)
+      e.stopPropagation(); grid.replaceChildren();
+      UPGRADES.forEach((name, i) => {
+        const v = `up:${i}`;
+        if ((S.ups[i] || 0) === 2 && S.owArm[s] !== v) return;
+        const u = el("button", { type: "button", className: "omi" + (S.owArm[s] === v ? " sel" : ""), title: name }, [icon(v)]);
+        const set = (lit) => { S.owArm[s] = v; grant("armos:" + s, v, lit); save(); closePicker(); renderAll(); };
+        u.onclick = (ev) => { ev.stopPropagation(); set(false); };
+        u.oncontextmenu = (ev) => { ev.preventDefault(); ev.stopPropagation(); set(true); };
+        grid.append(u);
+      });
+    };
+    grid.append(b);
+  }
+  const change = el("button", { type: "button", className: "wide", textContent: "Change mark" });
+  change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
+  const undo = el("button", { type: "button", className: "wide quiet", textContent: "Clear item" });
+  undo.onclick = () => { delete S.owArm[s]; revoke("armos:" + s); save(); closePicker(); renderAll(); };
   p.append(grid, el("div", { className: "prow" }, [change, undo]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();

@@ -54,6 +54,11 @@ SAFE_Y = {"A2": 0x8D, "A4": 0x8D, "A5": 0x8D, "A6": 0x8D, "A8": 0x8D, "A11": 0xA
           "H5": 0x8D, "H6": 0x8D, "H7": 0x8D, "H8": 0x8D, "H9": 0x8D, "H12": 0x8D, "H13": 0x8D, "H14": 0x8D}
 
 
+import lol_fixed as _F
+if _F.FIXED:                    # (1.0: C5 may hold the Armos' stairs, lol_v10.apply_armos; seeded only)
+    SAFE_Y["C5"] = 0x8D
+
+
 def rows(spec):
     """{'1-3': [...], '4': [...]} -> a list of 16 rows (containers 1..16)."""
     out = [None] * 16
@@ -103,7 +108,7 @@ def wlist(weights, outs, mask=0x3F):
 
 def apply(rom: bytearray, notes: list) -> None:
     OW = 0x18410
-    ents = [s for s in range(128) if rom[OW + 0x80 + s] >> 2 and rom[OW + 0x280 + s] >> 6 != 2
+    ents = [s for s in range(128) if rom[OW + 0x80 + s] >> 2 and rom[OW + 0x280 + s] >> 6 not in ((2, 3) if _F.FIXED else (2,))
             and rom[OW + 0x80 + s] >> 2 != 0x14]
     name = lambda s: "ABCDEFGH"[s // 16] + str(s % 16 + 1)
     ents = [s for s in ents if name(s) not in EXCLUDED]

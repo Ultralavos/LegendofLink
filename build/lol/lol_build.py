@@ -311,6 +311,8 @@ def main():
     import lol_dodongo
     lol_dodongo.apply(rom, notes)
     import lol_entrances
+    import lol_v10
+    lol_v10.apply_armos(rom, notes)               # (1.0: the Armos item's screen; before the entrances' list)
     lol_entrances.apply(rom, notes)
     import lol_select
     lol_select.apply(rom, notes)

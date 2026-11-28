@@ -376,3 +376,48 @@ def describe_deck():
     if lol_fixed.UPMIX:
         names.insert(upos, "upgrade card")
     return f"1.0 deck ({deck_spots()} spots): " + ", ".join(names)
+
+
+# ---------------- step 3: the Armos item's screen (owner 2026-11-28; ZORA's Shuffle Armos, OW-CAVE-05) ----------------
+# Bank 4's Armos tables ($8CB2: 7 screens, $8CB9: their Xs; the first the item's, the rest stairs). Each X rolled from
+# the formation's choices; the item swapped with one of the five screens' entries (C5 36, B13 28, D5 52, D14 61, E15
+# 78). C5 (no cave of its own) always gets the stairs' screen settings; the screen the item moves to gives C5 its cave
+# and hides its own (quest visibility: neither).
+ARMOS_SCREENS_FILE, ARMOS_X_FILE = 0x10CC2, 0x10CC9
+ARMOS_FORMATION = ((36, (32, 80, 128, 176, 224)), (11, (48, 80, 144, 176)), (28, (112, 144, 176, 208)),
+                   (34, (48, 64, 80, 160, 176, 192)), (52, (32, 64, 96)), (61, (96, 144)), (78, (80, 160)))
+ARMOS_SWAP = (0, 2, 4, 5, 6)
+OW = 0x18410
+
+
+def armos():
+    """(screens, xs): the seed's Armos tables."""
+    r = rng("armos")
+    screens = [s for s, _ in ARMOS_FORMATION]
+    xs = [ch[r.randrange(len(ch))] for _, ch in ARMOS_FORMATION]
+    sw = ARMOS_SWAP[r.randrange(len(ARMOS_SWAP))]
+    for t in (screens, xs):
+        t[0], t[sw] = t[sw], t[0]
+    return screens, xs
+
+
+def apply_armos(rom, notes):
+    if not ON:
+        return
+    assert list(rom[ARMOS_SCREENS_FILE:ARMOS_SCREENS_FILE + 7]) == [s for s, _ in ARMOS_FORMATION]
+    screens, xs = armos()
+    rom[ARMOS_SCREENS_FILE:ARMOS_SCREENS_FILE + 7] = bytes(screens)
+    rom[ARMOS_X_FILE:ARMOS_X_FILE + 7] = bytes(xs)
+    a = screens[0]
+    c5 = 36
+    assert rom[OW + 0x80 + c5] >> 2 == 0
+    rom[OW + c5] = 0x43                             # exit X 4, outer palette 3, no Zora, no sea sound
+    rom[OW + 0x280 + c5] = 0x03                     # both quests, exit row 3
+    if a != c5:
+        cave = rom[OW + 0x80 + a] >> 2
+        assert cave and rom[OW + 0x280 + a] >> 6 == 0, (a, hex(rom[OW + 0x80 + a]), hex(rom[OW + 0x280 + a]))
+        rom[OW + 0x80 + c5] = cave << 2 | 3
+        rom[OW + 0x280 + a] |= 0xC0
+    nm = lambda s: "ABCDEFGH"[s // 16] + str(s % 16 + 1)
+    notes.append(f"1.0 Armos: the item on {nm(a)} (X {xs[0]}); stairs " + ", ".join(f"{nm(s)} X {x}" for s, x in
+                                                                                  zip(screens[1:], xs[1:])))

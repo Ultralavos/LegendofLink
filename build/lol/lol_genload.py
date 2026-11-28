@@ -373,11 +373,11 @@ TRAMPD = 0xBB70                         # bank 6 and the data banks: deal the en
 
 def deal_info(rom):
     """The entrances (lol_entrances' order), the contents to deal (71), A15's index, the gated screens' indexes."""
-    import lol_entrances as E
+    import lol_entrances as E, lol_fixed
     from lol_af import screen
     OW = 0x18410
     name = lambda x: "ABCDEFGH"[x // 16] + str(x % 16 + 1)
-    ents = [x for x in range(128) if rom[OW + 0x80 + x] >> 2 and rom[OW + 0x280 + x] >> 6 != 2
+    ents = [x for x in range(128) if rom[OW + 0x80 + x] >> 2 and rom[OW + 0x280 + x] >> 6 not in ((2, 3) if lol_fixed.FIXED else (2,))
             and rom[OW + 0x80 + x] >> 2 != 0x14 and name(x) not in E.EXCLUDED]
     cont = [d for d, n in sorted(E.MAX_GEN.items()) for _ in range(n)]
     assert len(cont) == len(ents) == 71
