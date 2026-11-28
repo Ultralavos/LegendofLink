@@ -442,6 +442,15 @@ renderAccess();
   $("access").before(c);                                            // (a bar under the overworld: owner's pick)
 }
 renderAccessCounts();
+// (owner 2026-11-28) every overworld window: Undo (the square back to unmarked) and X (don't need it; again: off)
+function owActions(s) {
+  const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo", title: "Back to unmarked" });
+  undo.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; delete S.owArm[s]; revoke("shop:" + s); revoke("armos:" + s); save(); closePicker(); renderAll(); };
+  const x = el("button", { type: "button", className: "wide xbtn" + (S.owX[s] ? " sel" : ""), textContent: "✕",
+    title: S.owX[s] ? "Take the X off" : "X it out (don't need it)" });
+  x.onclick = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); closePicker(); renderMap(); };
+  return el("div", { className: "prow" }, [undo, x]);
+}
 function openPicker(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
   p.append(el("div", { className: "ptitle", textContent: `${"ABCDEFGH"[s >> 4]}${(s & 15) + 1}: what's here?` }));
@@ -482,9 +491,7 @@ function openPicker(s, cell) {
   }
   const done = el("button", { type: "button", className: "wide", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
-  const clear = el("button", { type: "button", className: "wide quiet", textContent: "Clear" });
-  clear.onclick = () => { delete S.ow[s]; delete S.owDone[s]; delete S.owX[s]; delete S.owBuy[s]; delete S.owArm[s]; revoke("shop:" + s); revoke("armos:" + s); save(); closePicker(); renderAll(); };
-  p.append(grid, el("div", { className: "prow" }, [done, clear]));
+  p.append(grid, el("div", { className: "prow" }, [done]), owActions(s));
   p.hidden = false;
   // place it under the tile, inside the panel
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
@@ -516,7 +523,7 @@ function openTriPick(s, cell) {
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const done = el("button", { type: "button", className: "wide quiet", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
-  p.append(grid, el("div", { className: "prow" }, [change, done]));
+  p.append(grid, el("div", { className: "prow" }, [change, done]), owActions(s));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -543,7 +550,7 @@ function openShop(s, cell) {
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "Not bought" });
   undo.onclick = () => { delete S.owBuy[s]; delete S.owX[s]; revoke("shop:" + s); save(); closePicker(); renderAll(); };
-  p.append(grid, el("div", { className: "prow" }, [change, undo]));
+  p.append(grid, el("div", { className: "prow" }, [change, undo]), owActions(s));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -615,7 +622,7 @@ function openArmos(s, cell) {
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "Clear item" });
   undo.onclick = () => { delete S.owArm[s]; revoke("armos:" + s); save(); closePicker(); renderAll(); };
-  p.append(grid, el("div", { className: "prow" }, [change, undo]));
+  p.append(grid, el("div", { className: "prow" }, [change, undo]), owActions(s));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -1175,7 +1182,7 @@ function renderSide() {
     // (1.0) the blue potion room: the item deck's, like the cellars (an old save's "taken": the blue potion)
     if (sd.pot === true) sd.pot = "potion1";
     sbtn("pot" + (sd.pot ? " on" : ""), "Potion room (the deck's item)" + (sd.pot ? ": " + optName(ARMOS_OPTS, sd.pot) : ""),
-      [icon(sd.pot || "potion1")], (b) => sidePick(b, "Potion room: what was it?", ARMOS_OPTS, sd.pot,
+      sd.pot ? [icon(sd.pot)] : [], (b) => sidePick(b, "Potion room: what was it?", ARMOS_OPTS, sd.pot,
         (img, lit) => { sd.pot = img; grant(`side:${k}:pot`, img, lit); save(); },
         () => { sd.pot = null; revoke(`side:${k}:pot`); save(); }, 1));
     const slot = (arr, i, opts, title, stairs) => {

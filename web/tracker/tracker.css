@@ -109,8 +109,13 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
   font-size: clamp(9px, 1.5vw, 22px); overflow: hidden; }
 .cell.fixed .tag { font-size: clamp(7px, 0.95vw, 13px); }
 .cell.xd .tag { opacity: .45; }
-.xmark { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; pointer-events: none;
-  font: bold clamp(16px, 2.6vw, 38px)/1 sans-serif; color: #ff4a3a; text-shadow: 0 0 3px #000, 0 1px 0 #000; }
+.xmark { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; pointer-events: none;
+  font: 900 clamp(20px, 3.2vw, 46px)/1 sans-serif; color: #ff3b2b; -webkit-text-stroke: 2px #ff3b2b;
+  text-shadow: 0 0 3px #000, 0 0 1px #000, 0 2px 0 #000; }
+/* (owner 2026-11-28) an X'd square darkened like the screens without an entrance (.dim) */
+.cell.xd::before { content: ""; position: absolute; inset: 0; background: rgba(12, 12, 18, .62); z-index: 1; pointer-events: none; }
+.prow .xbtn { color: #ff3b2b; font-weight: 900; font-size: 16px; }
+.prow .xbtn.sel { background: #4a2020; border-color: #ff3b2b; }
 .cell.xd.open::after { opacity: .3; }
 .check { z-index: 1; position: absolute; right: 4%; bottom: 4%; font: bold clamp(10px, 1.2vw, 16px)/1 sans-serif; color: #fff; background: var(--green); border-radius: 50%; padding: 1px 3px; }
 .picker { position: absolute; z-index: 10; background: #23232f; border: 1px solid #44445a; border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
