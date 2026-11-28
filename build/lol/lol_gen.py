@@ -290,8 +290,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     """One variant of the dungeon on `cells` as level type `cls`."""
     cells = set(cells)
     shrine = cls == "SH"
-    if shrine and _seeded():              # (1.0: a shrine's doors are open, locked or shutters, two bomb walls at most:
-        hidden = ()                       #  no hidden rooms, all bombed into)
+    if shrine and _seeded():              # (1.0: a shrine's bomb walls two at most: no hidden rooms, all bombed into)
+        hidden = ()
     if _seeded() and postab is None:      # (1.0) a LoL dungeon: the center and three tiles of its own
         postab = LolTab([0x89] + rng.sample(LOL_TILE_POOL, 3))
     piece = pieces(cells)
@@ -332,8 +332,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
     wts = WALLS[lvcls] if lvcls in WALLS else weights(cls, T1)    # the vanilla level's mix (no walk-through walls)
     max_walls = {"L13": 0, "L4": 1}.get(cls, 99)
     nwalls = nbombs = 0
-    # (1.0, owner 2026-11-28) a shrine's doors: open, locked or shutters only, and at most two bomb walls (its hidden
-    # rooms' count); no walk-through walls (its prize room keeps its sealed sides)
+    # (1.0, owner 2026-11-28) a shrine's doors: open, locked, shutters or solid walls, and at most two bomb walls; no
+    # walk-through walls
     sh10 = shrine and _seeded()
     nbomb = [sum(1 for c in hidden for t in range(4) if nb(c, t) in cells and piece[nb(c, t)] == piece[c])]
     SH_MAX_BOMBS = 2
@@ -344,8 +344,8 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
                 continue
             k = rng.choices(range(8), wts)[0]
             if sh10:
-                k = rng.choices((OPEN, KEY, SHUT, BOMB),
-                                [wts[OPEN], wts[KEY], wts[SHUT], wts[BOMB] if nbomb[0] < SH_MAX_BOMBS else 0])[0]
+                k = rng.choices((OPEN, KEY, SHUT, WALL, BOMB), [wts[OPEN], wts[KEY], wts[SHUT], wts[WALL],
+                                                                wts[BOMB] if nbomb[0] < SH_MAX_BOMBS else 0])[0]
                 nbomb[0] += k == BOMB
             elif rule is not None and rule[2] and rng.random() < rule[2]:
                 k = WALK1                         # the quest's share of walk-through walls (both sides)
@@ -743,7 +743,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
                 lays = PUSH_STAIRS
             else:
                 lays = OPEN_STAIRS + PUSH_STAIRS
-            lays = [L for L in lays if fits(L, c) and not (sh10 and L == 0x1B)]   # (a shrine: no walled-in corridor)
+            lays = [L for L in lays if fits(L, c)]
             if not lays and role == "item_stairs" and cls == "L13":
                 raise Fail("no push stairs")       # (level 2 turns them into a floor item)
             lays = lays or [0x1C]
@@ -882,7 +882,7 @@ def generate(cells, cls, rng, free_item_cellars, free_transport_cellars, hidden=
             for t in (E_, S_):
                 y = nb(c, t)
                 if y in cells and piece[y] == piece[c] and tri not in (c, y) and \
-                        not {walls[c][t], walls[y][OPP[t]]} <= {OPEN, KEY, SHUT, BOMB}:
+                        not {walls[c][t], walls[y][OPP[t]]} <= {OPEN, KEY, SHUT, BOMB, WALL}:
                     raise Fail("shrine door kinds")
     # (owner 2026-11-27) level 9's entrance: solid east and west (both sides), its way on north only
     if cls == "L9":
