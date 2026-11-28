@@ -49,15 +49,21 @@ const FIXED = { 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "roa
 const MARKS = [   // value, label on the map, class, picker text
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [`L${n}`, `${n}`, "lvl", `Level ${n}`]),
   ...["A", "B", "C", "D"].map((c) => [`S${c}`, c, "shr", `Shrine ${c}`]),
-  ["shop", "SHOP", "shop", "Shop"], ["up", "UPG", "up", "Upgrade cave"], ["hint", "HINT", "hint", "Hint"],
-  ["gamble", "BET", "misc", "Gambling"], ["rupee", "$", "misc", "Secret rupees"],
+  ["shop", "SHOP", "shop", "Shop"], ["up", "UPG", "upg", "Upgrade cave"], ["hint", "HINT", "hint", "Hint"],
+  // (owner 2026-11-28) gambling: a die; the secrets by size: a cent sign (small), a rupee (medium), a dollar sign (large)
+  ["gamble", "", "dice", "Gambling"], ["sec1", "¢", "sec", "Small secret"], ["sec2", "", "rup", "Medium secret"],
+  ["sec3", "$", "sec", "Large secret"], ["rupee", "$", "misc", "Secret rupees"],
   ["tri4", "4▲", "tri", "4-triforce cave"], ["tri8", "8▲", "tri", "8-triforce cave"],
   ["armos", "ARM", "arm", "Armos item"],
 ];
 const DUNGEONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 // a mark's box; (owner 2026-11-27) the 4 and 8 triforce caves: an orange box, a triangle, the number in bold black
+const DIE = '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="2" width="16" height="16" rx="3.5"/>'
+  + [[6, 6], [14, 6], [10, 10], [6, 14], [14, 14]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.7"/>`).join("") + "</svg>";
 function markTag(cls, label) {
   const t = el("span", { className: "tag " + cls });
+  if (cls === "dice") { t.innerHTML = DIE; t.title = "Gambling"; return t; }
+  if (cls === "rup") { t.append(icon("rupee")); t.title = "Medium secret"; return t; }
   if (cls !== "tri") { t.textContent = label; return t; }
   t.innerHTML = '<svg viewBox="0 0 20 18" aria-hidden="true"><path d="M10 1 L19 17 H1 Z"/></svg>';
   t.append(el("b", { textContent: label.replace("▲", "") }));
@@ -325,17 +331,19 @@ function renderMap() {
     if (FIXED[s]) {
       cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] }));
       if (s === 119) {                         // (owner 2026-11-27) the wood sword cave: a click checks it and gives the sword
-        if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
+        // (owner 2026-11-28) taken: an X on it (and the wood sword lit)
+        if (S.owDone[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
         cell.title += ": the wood sword (click when taken)";
         const flip = (on) => {
           if (on) { S.owDone[s] = 1; if (!(S.items.sword > 0)) S.items.sword = 1; }
           else { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
           save(); renderMap();
         };
-        // (1.0) from heart level 11 the cave is a shop that stays open: a click once the sword is taken shows its wares
-        if (S.hearts >= 11 && S.owDone[s]) {
-          cell.append(el("span", { className: "tag shop woodshop", textContent: "SHOP" }));
-          cell.title = "H8: the wood sword cave's shop (heart level 11+): click for what you bought";
+        // (1.0) from heart level 9 (owner 2026-11-28) the cave shows a shop that stays open: a click shows its wares
+        if (S.hearts >= 9) {
+          cell.querySelectorAll(".tag, .xmark").forEach((x) => x.remove()); cell.classList.remove("xd");
+          cell.append(el("span", { className: "tag shop", textContent: "SHOP" }));
+          cell.title = "H8: the wood sword cave's shop (heart level 9+): click for what you bought";
           cell.onclick = (e) => { e.stopPropagation(); openWoodShop(s, cell); };
         } else
         cell.onclick = (e) => { e.stopPropagation(); flip(!S.owDone[s]); };
@@ -436,6 +444,7 @@ function openPicker(s, cell) {
   const grid = el("div", { className: "pgrid" });
   for (const [v, label, cls, text] of MARKS) {
     if (v === "armos" && !ARMOS.includes(s)) continue;
+    if (v === "rupee") continue;                  // (old saves' secret mark: shown, not offered)
     // (owner 2026-11-27) a level, shrine or triforce cave already on another square: blacked out until it's taken off there
     const taken = (cls === "lvl" || cls === "shr" || cls === "tri" || cls === "arm") && Object.entries(S.ow).some(([k, x]) => +k !== s && x === v);
     const b = el("button", { type: "button", className: "pick " + cls + (S.ow[s] === v ? " sel" : "") + (taken ? " taken" : ""),
@@ -513,8 +522,13 @@ function openWoodShop(s, cell) {
     };
     grid.append(b);
   }
-  const sword = el("button", { type: "button", className: "wide quiet", textContent: "Wood sword not taken" });
-  sword.onclick = () => { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; save(); closePicker(); renderAll(); };
+  const took = !!S.owDone[s];
+  const sword = el("button", { type: "button", className: "wide quiet", textContent: took ? "Wood sword not taken" : "Wood sword taken" });
+  sword.onclick = () => {
+    if (took) { delete S.owDone[s]; if (S.items.sword === 1) S.items.sword = 0; }
+    else { S.owDone[s] = 1; if (!(S.items.sword > 0)) S.items.sword = 1; }
+    save(); closePicker(); renderAll();
+  };
   p.append(grid, el("div", { className: "prow" }, [sword]));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
