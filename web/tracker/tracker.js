@@ -607,7 +607,7 @@ const RENEMIES = [["dig", "en_digdogger.png", "Digdogger"], ["gohma", "en_gohma.
 // a room's kind (right-click with the Room brush): a plain room, three moats, the old man, item stairs, numbers 1-8
 const RKINDS = [["blank", "Blank room"], ["vmoat", "Vertical moat"], ["hmoat", "Horizontal moat"], ["hmoat2", "Double horizontal moat"],
   ["chevy", "Chevy moat"], ["circle", "Square moat"], ["hchute", "Horizontal chute"], ["vchute", "Vertical chute"],
-  ["O", "Old man"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["q", "?"], ["x", "Remove room"]];
+  ["O", "Old man"], ["ganon", "Ganon's room"], ["zelda", "Zelda's room"], ["stair", "Item stairs"], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ["n" + n, String(n)]), ["q", "?"], ["x", "Remove room"]];
 const ART = {
   // (owner 2026-11-27) the moats as the rooms have them: the vertical one east of the middle, the horizontal one
   // north of it; the Chevy room all water but the land: its chevy shape in the middle and a spot by each door
@@ -623,6 +623,9 @@ const ART = {
 };
 function roomArt(kind) {
   if (kind === "O") return el("img", { src: "img/cardD.png", className: "rk px", alt: "Old man", draggable: false });
+  // (1.0, owner 2026-11-28) Ganon's and Zelda's rooms (and the one room a game with each one's layout): their faces
+  if (kind === "ganon" || kind === "zelda")
+    return el("img", { src: `img/en_${kind}.png`, className: "rk px", alt: kind === "ganon" ? "Ganon's room" : "Zelda's room", draggable: false });
   if (kind === "x") return el("b", { className: "rk rx", textContent: "✕" });
   if (/^n\d$/.test(kind)) return el("b", { className: "rk rn c" + kind.slice(1), textContent: kind.slice(1) });
   if (kind === "q") return el("b", { className: "rk rn rq", textContent: "?" });            // (owner 2026-11-27) not sure yet
