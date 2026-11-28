@@ -159,13 +159,21 @@ P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME</h1>
 <dl>
 <dt>Seed (numbers only)</dt><dd>The seed decides the whole game: dungeons, caves, upgrades and hints. Players with the same seed and settings play the same game. Leave it blank and one is picked for you.</dd>
 <dt>Dungeon set</dt><dd>Where the dungeon shapes come from: Legend of Link's own maps, the 1st, 2nd, 3rd or 4th Quest shapes, random shapes, Chaos (any four grids; any design can be any level or shrine, levels 7-9 at least 25 rooms) or Mixed (seeded: one quest's levels 1-6 and another's levels 7-9, the shrines from Legend of Link maps or a third quest's levels 1-6; unseeded: each level from any set). Otherwise shrines use Legend of Link maps or random shapes.</dd>
-<dt>Link's colors</dt><dd>His tunic color with no ring, the blue ring and the red ring. "From your ROM" keeps your ROM's colors.</dd>
-<dt>Reduce flashing</dt><dd>Turns off the screen flashes: a bomb's blast, picking up a triforce, the Triforce of Power and the ending. It only changes how the game looks: the seed and its code stay the same.</dd>
 <dt>Race Rom</dt><dd>Scrambles the map, dungeon and cave data inside the ROM, so map viewers and ROM tools can't show the seed. Race Roms get their own seed code.</dd>
 <dt>Mix enemy groups</dt><dd>Deals the enemies into new groups, so new mixes of enemies meet in dungeons and on the overworld.</dd>
+<dt>Upgrade mix</dt><dd>Upgrades turn up outside the upgrade caves too: one in the item deck, and more from old men, shrine prizes, Level 9 and the triforce caves. Link still keeps at most three. Seeded games only.</dd>
 <dt>Unseeded</dt><dd>The old way: each new file deals its own dungeons and caves inside the game.</dd>
 </dl>
 <p>Press <b>Build</b> and download either the finished game or an IPS patch.</p>
+</section>''')
+P(f'''<section class="page"><h1 class="band">BUILDING YOUR GAME (CONT.)</h1>
+<h2>Player Settings</h2>
+<p>The page's <b>Player</b> tab holds settings that only change how the game looks and plays for you. The seed, its code and the game stay the same:</p>
+<dl>
+<dt>Link's colors</dt><dd>His tunic color with no ring, the blue ring and the red ring. "From your ROM" keeps your ROM's colors.</dd>
+<dt>Reduce flashing</dt><dd>Turns off the screen flashes: a bomb's blast, picking up a triforce, the Triforce of Power and the ending.</dd>
+<dt>Save menu on controller 1</dt><dd>Up + A on controller 1, instead of controller 2, opens Continue / Save / Retry from the item screen.</dd>
+</dl>
 <div class="hint"><b>CUSTOM GRAPHICS</b> A ROM whose only changes are the sprites of Link, the items and the enemies, the background tiles (bushes, Armos statues, walls...), the title screen's graphics, or Link's colors, works too: your graphics and colors are kept. Anything else changed (other colors included) and the page turns it down.</div>
 </section>''')
 
@@ -185,12 +193,12 @@ P(f'''<section class="page"><h1 class="band">WHAT'S NEW</h1>
 <li><b>Enemies grow with you.</b> Some enemies change as Link gains hearts.</li>
 <li><b>New dungeons every seed.</b> Nine levels and four shrines (A-D), each with its own nickname.</li>
 <li><b>Every door is a surprise.</b> Each cave, shop and dungeon entrance on the overworld is dealt out at random.</li>
-<li><b>Old men offer choices.</b> In each level an old man lets you take one of two items.</li>
+<li><b>Old men offer choices.</b> In every level, 1 to 9, an old man lets you take one of two items.</li>
 <li><b>Shrines and prizes.</b> Beat a shrine's guardian to claim its prize.</li>
 <li><b>Upgrades.</b> 41 upgrades for sale, three upgrade caves to find, and one purchase in each.</li>
 <li><b>Old men cards.</b> Collect cards in dungeons that bring better items from shops, old men and shrines.</li>
-<li><b>New items.</b> The bomb upgrade, the blue book and XP bags.</li>
-<li><b>Triforce caves.</b> Rewards for 4 and for all 8 triforce pieces.</li>
+<li><b>New items.</b> The bomb upgrade, the blue book and XP bags, dealt from a shuffled item deck.</li>
+<li><b>Triforce caves.</b> Rewards for 3-5 and for 6-8 triforce pieces.</li>
 <li><b>Secret modes.</b> Swordless and Hard mode can be found in any game.</li>
 <li><b>A final report.</b> Your time, cards, upgrades and treasure after the credits.</li>
 </ul>
@@ -229,12 +237,19 @@ P(f'''<section class="page"><h1 class="band">THE OVERWORLD</h1>
 <table class="grid">
 <tr><td>Levels 1-9</td><td>9</td><td>Upgrade caves</td><td>3</td></tr>
 <tr><td>Shrines A-D</td><td>4</td><td>Gambling caves</td><td>5</td></tr>
-<tr><td>Shops</td><td>12</td><td>Secret rupees (10, 30, 100)</td><td>13</td></tr>
+<tr><td>Shops</td><td>12</td><td>Secret rupees</td><td>15</td></tr>
 <tr><td>4-triforce cave</td><td>1</td><td>8-triforce cave</td><td>1</td></tr>
 <tr><td colspan="2">Hint caves</td><td colspan="2">all the rest</td></tr>
 </table>
+<p>Secret rupees come in three sizes, and the seed picks each size's amount: small (1-20), medium (20-45) and large (51-150).</p>
 <h2>Shops</h2>
-<p>Shops offer three items picked for Link's level. The offer changes as he gains hearts or shop cards. One shop is special: it sells as if Link were one level higher.</p>
+<p>Shops offer three items picked for Link's level. The offer changes as he gains hearts or shop cards. One purchase and that shop is gone for good. Each seed sets its own prices. One shop is special: it sells as if Link were one level higher.</p>
+</section>''')
+P(f'''<section class="page"><h1 class="band">THE OVERWORLD (CONT.)</h1>
+<h2>The Wood Sword Cave</h2>
+<p>Once Link's shop level (his hearts plus his shop cards) reaches 11, the wood sword cave becomes a shop that never closes: keys, bombs, arrows, a heart and the magical shield.</p>
+<h2>The Coast and the Armos</h2>
+<p>The coast's item and the item under an Armos come from the item deck (page @@DECK@@). Which Armos hides it changes with the seed.</p>
 <h2>Hint Caves</h2>
 <p>Old men share hints: some about dungeons and enemies, some about the upgrades for sale in this seed, and some just for fun. Each hint cave has its own quote.</p>
 <h2>Burning Bushes</h2>
@@ -248,20 +263,23 @@ P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES</h1>
 <h2>Levels 1-8</h2>
 <ul>
 <li>An <b>old man</b> with a choice of items. Take one and the other disappears.</li>
-<li>A <b>triforce piece</b>.</li>
+<li>A <b>triforce piece</b>, in any room. The <b>compass</b> points to it. Like other room items it stands on the floor or drops when the room's enemies are defeated.</li>
+<li>The <b>map</b> and <b>compass</b>, in rooms of their own.</li>
 <li><b>Item spots</b>: the cellars, a floor item and a blue potion room. In a seeded game each one, and the coast's and the Armos' items, takes the next card of the seed's <b>item deck</b> the first time Link reaches it: an item, an old men card, a blue potion or an XP bag. Cards Link can't use are skipped, and an empty deck gives an XP bag.</li>
 <li>Unseeded: <b>old men cards</b> or <b>XP bags</b> in the cellars, and at least one <b>blue potion</b>.</li>
 </ul>
-<h2>Shrines A-D</h2>
-<p>Shrines are smaller dungeons with a <b>guardian</b> boss. Beat it to reach the shrine's <b>prize</b>, an item picked for Link's level. The status bar reads SHRINE-A to SHRINE-D.</p>
-{shot("img/subscreen.png", "Shrine letters beside TRIFORCE: here A and C are done.", "mid")}
+<h2>Roars</h2>
+<p>In Level 9 and the shrines, the rooms next to Ganon or a shrine's guardian echo with its roar while it lives. Follow the sound.</p>
 </section>''')
 
 P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES (CONT.)</h1>
+<h2>Shrines A-D</h2>
+<p>Shrines are smaller dungeons with a <b>guardian</b> boss. Beat it to reach the shrine's <b>prize</b>, an item picked for Link's level. The status bar reads SHRINE-A to SHRINE-D.</p>
+{shot("img/subscreen.png", "Shrine letters beside TRIFORCE: here A and C are done.", "mid")}
 <h2>The Item Screen</h2>
 <p>Once a shrine's prize is taken, its letter appears beside the word TRIFORCE: A and B on the left, C and D on the right.</p>
-<h2>Roars</h2>
-<p>In Level 9 and the shrines, the rooms next to Ganon or a shrine's guardian echo with its roar while it lives. Follow the sound.</p>
+</section>''')
+P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES (CONT.)</h1>
 <h2>Secret Walls</h2>
 <p>With the <b>X-ray Glasses</b>, walls you can bomb glow grey and walls you can walk through glow orange.</p>
 {shot("img/xray.png", "X-ray Glasses: a grey bomb wall above, orange walk-through walls to each side.", "mid")}
@@ -272,11 +290,12 @@ P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES (CONT.)</h1>
 P(f'''<section class="page"><h1 class="band">LEVEL 9</h1>
 <p>An old man guards Level 9's entrance. He will not let Link pass until he holds all <b>8 triforce pieces</b>.</p>
 <ul>
-<li>Level 9's <b>compass</b> points to Princess Zelda's room.</li>
-<li>Its <b>item staircase</b> gives the next thing Link is missing from: a book, a ring, a sword, arrows or the magic key. With all of them, a red potion.</li>
+<li>Level 9's <b>compass</b> points to Princess Zelda's room. Her way in only opens once Ganon falls and Link takes the <b>Triforce of Power</b>.</li>
+<li>Like levels 1-8, it has an <b>old man</b> with a choice of items.</li>
+<li>Of its two <b>item staircases</b>, one holds a red potion. The other gives the next thing Link is missing from: a book, a ring, a sword, arrows or the magic key. With all of them, a red potion. The seed decides which staircase is which.</li>
 <li>Ganon waits within. With <b>Ganon Visible</b> he cannot hide, and with <b>Ganon Boomerang</b> your boomerang wounds him.</li>
 </ul>
-<div class="hint"><b>HINT</b> The 8-triforce cave (page @@TRI@@) has a reward waiting once you have all eight pieces.</div>
+<div class="hint"><b>HINT</b> The triforce caves (page @@TRI@@) have rewards waiting for the pieces you collect.</div>
 </section>''')
 
 # ---------------- item offers
@@ -357,12 +376,13 @@ P(f'''<section class="page"><h1 class="band">HEART SNUBBER AND ZOMBIE LINK</h1>
 # ---------------- triforce caves
 P(f'''<section class="page"><h1 class="band">THE TRIFORCE CAVES</h1>
 <div class="two">{shot("img/tri4.png", "The 4-triforce cave.")}{shot("img/tri8.png", "The 8-triforce cave.")}</div>
-<h2>4 Triforce Pieces</h2>
-<p>This old man rewards 4 triforce pieces with the first item Link is missing. Once he has the white sword, that's a book (red, then blue). Otherwise the white sword, then the bow, arrows, wand, ladder, recorder, bracelet, raft, book, boomerang and more.</p>
-<h2>All 8 Pieces</h2>
-<p>This old man gives the first item from this list that Link can still use:</p>
-<p class="list">Silver arrows, magic key, book (red, then blue), sword (white, then magical), ring (blue, then red), bow, ladder, recorder, power bracelet, raft, wand. With everything, a red potion.</p>
-<div class="hint"><b>HINT</b> Each triforce cave gives its reward once.</div>
+<p>Each seed decides how many pieces each old man asks for ("DO YOU HAVE 4 TRIFORCES YET?"), and rolls the order of his list. He gives the first thing on it that Link can still use. An upgrade comes one step at a time: the wood sword before the white, the blue candle before the red, and so on.</p>
+<h2>The First Cave: 3 to 5 Pieces</h2>
+<p class="list">Its list: white sword, bow, wand, ladder, recorder, power bracelet, raft, candle, red book, blue ring.</p>
+<h2>The Second Cave: 6 to 8 Pieces</h2>
+<p class="list">Its list: sword, bow, arrows (wood, then silver), book (red, then blue), ring (blue, then red), magic key.</p>
+<p>When Link already has everything on the list, the old man hands over a bomb upgrade. If his bomb bag is already as big as it gets, he gets an orange XP bag instead.</p>
+<div class="hint"><b>HINT</b> Each triforce cave gives its reward once. With Upgrade mix, a cave's list may hold an upgrade.</div>
 </section>''')
 
 # ---------------- secret modes
@@ -396,6 +416,7 @@ P(f'''<section class="page"><h1 class="band">OLD MEN'S HINTS AND TIPS</h1>
 <li>Blue Pols Voice can only be damaged with bombs.</li>
 <li>Have you ever tried to poison that meat you have?</li>
 <li>Grow too strong and Gleeok sees red.</li>
+<li>The letter is rumored to exist. If you ever find it, take it back where it belongs.</li>
 </ul>
 <div class="end">GOOD LUCK, HERO!</div>
 <p class="small">Legend of Link is a free fan project and is not affiliated with or endorsed by Nintendo. You need your own copy of The Legend of Zelda (USA) to play.</p>
@@ -405,7 +426,7 @@ def find(mark):
     return next(i for i, pg in enumerate(pages) if ('class="band">' + mark) in pg)
 rows = "".join(f'<div class="tr"><span>{html.escape(t)}</span><span class="dots"></span><span>{find(m) + 1}</span></div>' for t, m in toc)
 pages[1] = pages[1].replace("@@TOC@@", rows)
-pages[:] = [pg.replace("@@TRI@@", str(find("THE TRIFORCE CAVES") + 1)).replace("@@CARDS@@", str(find("OLD MEN CARDS") + 1)) for pg in pages]
+pages[:] = [pg.replace("@@TRI@@", str(find("THE TRIFORCE CAVES") + 1)).replace("@@CARDS@@", str(find("OLD MEN CARDS") + 1)).replace("@@DECK@@", str(find("DUNGEONS AND SHRINES</h1>") + 1)) for pg in pages]
 for i, p in enumerate(pages):
     if i:
         pages[i] = p.replace("</section>", f'<div class="pg">{i + 1}</div></section>')
