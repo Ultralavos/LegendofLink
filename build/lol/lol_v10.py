@@ -356,7 +356,8 @@ DEAL_BANK, DEAL_AT, DEAL_END = 12, 0xAF00, 0xB100   # (below lol_odds' engine: l
 def fill_slots(rom, dealt):
     """The spots' save bytes: entrances (lol_entrances' order) that are neither a dungeon nor a hint cave."""
     import lol_entrances as E
-    free = [i for i, c in enumerate(dealt) if not 0x01 <= c <= 0x0F and c != E.HINT]
+    free = [i for i, c in enumerate(dealt) if not 0x01 <= c <= 0x0F and c != E.HINT
+            and c not in (E.WHITE, E.MAGIC)]      # (the triforce caves' bytes: the 4-triforce cave's upgrade)
     assert len(free) >= SPOT_N, len(free)
     _C["slots"] = free[:SPOT_N]
     return free[:SPOT_N]
@@ -472,3 +473,41 @@ def decor(out, chosen):
                 x["trigger"] = G.T_ALL_DEAD                 # (standing)
         said.append(f"{name} room's layout in level {lv} ({G.name(c)})")
     return "1.0 dungeons: " + ", ".join(said)
+
+
+# ---------------- the 4-triforce cave (owner 2026-11-28) ----------------
+# Its old man asks for 3, 4 or 5 triforces (the seed's pick); with that many, the cave's prize: the first item of the
+# seed's rolled list (TRI4_ODDS) Link doesn't have (a candle upgrade: his next candle; the white sword without the
+# wood sword: the wood sword); everything: a key, as before.
+TRI4_ODDS = {"blue ring": 1, "white sword": 25, "bow": 20, "wand": 15, "red book": 4, "ladder": 10, "recorder": 10,
+             "power bracelet": 5, "raft": 5, "candle upgrade": 5}
+assert sum(TRI4_ODDS.values()) == 100
+TRI4_ENTRIES = {"blue ring": [(0x12, RING, 1)], "white sword": [(0x01, SWORD, 1), (0x02, SWORD, 2)],
+                "bow": [(0x0A, BOW, 1)], "wand": [(0x10, WAND, 1)], "red book": [(0x11, BOOK, 1)],
+                "ladder": [(0x0D, LADDER, 1)], "recorder": [(0x05, RECORDER, 1)],
+                "power bracelet": [(0x14, BRACELET, 1)], "raft": [(0x0C, RAFT, 1)],
+                "candle upgrade": [(0x06, CANDLE, 1), (0x07, CANDLE, 2)]}
+
+
+def tri4_count():
+    return rng("4-triforce cave count").randint(3, 5)
+
+
+def tri4_list():
+    """The seed's rolled list (names)."""
+    return roll(TRI4_ODDS, rng("4-triforce cave"))
+
+
+def tri4_table():
+    """(item, inventory byte, offered while below) in the rolled order, an upgrade's tiers in a row (the Upgrade
+    mix's 1 in 20: the wand's place an upgrade's, UPGRADE_ENTRY)."""
+    return [e for nm in tri4_list() for e in
+            ([UPGRADE_ENTRY] if nm == "wand" and tri4_upgrade() else TRI4_ENTRIES[nm])]
+
+
+def tri4_upgrade():
+    """(the Upgrade mix) whether the seed's 4-triforce cave has an upgrade in the wand's place (1 in 20)."""
+    return lol_fixed.UPMIX and rng("4-triforce cave upgrade").randrange(20) == 0
+
+
+UPGRADE_ENTRY = (0xFE, 0x00, 0x01)      # (tri4_table: the upgrade's entry, lol_upgrades' ws far-calls lol_upmix's u4)

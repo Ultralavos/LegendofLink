@@ -34,6 +34,7 @@ N_ENT = 71
 VEC = 0xBB50
 NOSHOOT_AT = 0xBB00                     # (every build) noshoot, below the vectors; the Upgrade mix's code below it
 V_NOSHOOT = VEC + 3 * 7
+V_U4 = VEC + 3 * 8                      # (1.0) the 4-triforce cave's upgrade (lol_upgrades' ws)
 V_URES, V_UCHECK, V_UL9, V_UCARD, V_UITEM, V_UCAVE, V_UTAKE = (VEC + 3 * k for k in range(7))
 UCONV = 0x01A3                          # (stack page, unused) 1 while in an upgrade cave turned plain shop
 PLAIN_CAVE = 13                         # the plain shop's wares and prices: shop cave 13's (the shield, bombs, arrows)
@@ -41,7 +42,8 @@ TIER_OF = (0, 2)                        # old men: tier 1; shrine prizes: tier 3
 CODE_OM, CODE_SH = 0x2E, 0x2F           # their ware slots' items (0, 1); the deck's and level 9's: $30 (slot 2)
 import lol_v10 as _V10
 MOVES = 0x1F if _V10.ON else 0x0F       # (1.0's deck is longer: the moves in bits 0-4)
-UCARD = UITEM = BANKX = UAT = _PENDING = None                    # bank 0 (set in apply): the deck's next card; the upgrade card's item
+UCARD = UITEM = BANKX = UAT = _PENDING = None
+_PENDING_LABELS = {}                    # bank 0 (set in apply): the deck's next card; the upgrade card's item
 
 
 def apply(rom: bytearray, notes: list) -> None:
@@ -150,6 +152,23 @@ def apply(rom: bytearray, notes: list) -> None:
         a.abs(0xAC, KIND).b(0x8A).abs(0x99, UT.WIX).abs(0x20, "uload")
         a.abs(0xAD, KIND).b(0x18, 0x69, CODE_OM, 0x60)
         a.label("uload").b(0xA2, 0x02).b(*f0(PIC.LOAD["load"])).b(0x60)            # (Y the ware: queued)
+        # (1.0, owner 2026-11-28) u4: the 4-triforce cave's upgrade entry (the seed's 1 in 20, in the wand's place):
+        # a tier 1 upgrade, the first Link may have, picked once (its entrance's hint byte, as an old man's); C set:
+        # none (Link owns three, none left, or it is his): the cave's next prize. Else A = $2E, its picture loaded.
+        import lol_v10 as V10
+        if V10.ON and V10.tri4_upgrade():
+            import lol_entrances as LE
+            # (its entrance: the one whose destination is the 4-triforce cave; SLOT)
+            a.label("u4").abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0xB0, "u4_s").b(0xA0, N_ENT - 1)
+            a.label("u4_f").abs(0xB9, STORE).b(0x29, 0x3F, 0xC9, LE.WHITE).br(0xF0, "u4_y").b(0x88).br(0x10, "u4_f")
+            a.br(0x30, "u4_s")
+            a.label("u4_y").abs(0x8C, SLOT).abs(0xB9, HINT_QS).br(0xD0, "u4_h")
+            a.b(0xA9, TIER_OF[0]).abs(0x20, "upick").br(0xB0, "u4_n")
+            a.b(0x8A, 0x09, 0x80).abs(0xAC, SLOT).abs(0x99, HINT_QS).br(0xD0, "u4_h")
+            a.label("u4_n").b(0xA9, 0xC0).abs(0xAC, SLOT).abs(0x99, HINT_QS)
+            a.label("u4_s").b(0x38, 0x60)
+            a.label("u4_h").b(0xC9, 0xC0).br(0xF0, "u4_s").b(0x29, 0x3F, 0xAA).b(*f0(E["uget"])).br(0xD0, "u4_s")
+            a.b(0x8A).abs(0x8D, UT.WIX).b(0xA0, 0x00).abs(0x20, "uload").b(0xA9, CODE_OM, 0x18, 0x60)
         # ul9 (lol_genload's dfx: level 9's red potion, $FD): an upgrade of any tier instead while Link owns fewer
         # than three when it first shows (UPL9 as UPDECK); else the red potion
         a.label("ul9").abs(0xAD, UT.OWN_N).b(0xC9, 0x03).br(0x90, "l9_go").b(0xA9, 0x20, 0x60)   # (three: potion)
@@ -209,7 +228,8 @@ def apply(rom: bytearray, notes: list) -> None:
     for name in ("ures", "ucheck", "ul9", "ucard", "uitem", "ucave", "utake"):
         vec.abs(0x4C, L[name])
     global _PENDING
-    _PENDING = (bk, at, a.bytes(), vec.bytes())            # (placed by late(): the data banks exist once lol_genload is in)
+    _PENDING = (bk, at, a.bytes(), vec.bytes())
+    _PENDING_LABELS.update(a.labels)            # (placed by late(): the data banks exist once lol_genload is in)
     L = a.labels
     global UCARD, UITEM, BANKX
     UCARD, UITEM, BANKX = L["ucard"], L["uitem"], bk
@@ -256,3 +276,5 @@ def late(rom: bytearray) -> None:
     bk, at, code, vec = _PENDING
     place(rom, bk, at, code)
     place(rom, bk, VEC, vec)
+    if "u4" in _PENDING_LABELS:
+        place(rom, bk, V_U4, Asm(V_U4).abs(0x4C, _PENDING_LABELS["u4"]).bytes())

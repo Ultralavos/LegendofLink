@@ -887,19 +887,32 @@ def apply_caves(rom: bytearray, notes: list) -> None:
       return w
     ms_at = free_in(rom, 1, len(ms_build(0x8000).bytes()), 0xB000)
     place(rom, 1, ms_at, ms_build(ms_at).bytes())
+    import lol_v10 as _V10
+    ws_list = _V10.tri4_table() if _V10.ON else WS_LIST     # (1.0: the seed's rolled list)
     def ws_build(org):
       w = Asm(org)
       w.b(0xC9, 0x6C).br(0xF0, "ws").b(0xC9, MS_PERSON).br(0xD0, "ms_no").abs(0x4C, ms_at)
       w.label("ms_no").abs(0x4C, fill)
       w.label("ws").b(0xA2, 0x00)
-      w.label("ws_lp").abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
-      w.b(0xE0, 0x06).br(0xB0, "ws_bk").abs(0xAD, 0x0657).b(0xC9, 0x02).br(0x90, "ws_nx")    # the books: a white sword
-      w.label("ws_bk").abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
+      w.label("ws_lp")
+      if _V10.ON and _V10.tri4_upgrade():   # (1.0 Upgrade mix: the upgrade entry, lol_upmix's u4; C set: the next)
+          w.abs(0xBD, WS_TABLE).b(0xC9, 0xFE).br(0xD0, "ws_in").b(0x8A, 0x48)
+          import lol_v3core as _V3, lol_upmix as _um4
+          w.b(*_V3.far(14, _um4.V_U4)).b(0xA8, 0x68, 0xAA, 0x98).br(0xB0, "ws_nx").br(0x90, "ws_st")
+          w.label("ws_in")
+      w.abs(0xBC, WS_TABLE + 1).abs(0xB9, 0x0600).abs(0xDD, WS_TABLE + 2).br(0xB0, "ws_nx")
+      if _V10.ON:                       # (1.0: the seed's rolled list - no book rule; the wood / white sword alike;
+          w.abs(0xBD, WS_TABLE).b(0xC9, 0x12).br(0xD0, "ws_nr")        #  a ring: none with Zombie Link)
+          w.abs(0xAD, T.bit("zombie link")[0]).b(0x29, T.bit("zombie link")[1]).br(0xD0, "ws_nx").br(0xF0, "ws_put")
+          w.label("ws_nr").b(0xC9, 0x03).br(0xB0, "ws_b").b(0xC9, 0x01).br(0x90, "ws_b")
+      else:
+          w.b(0xE0, 0x06).br(0xB0, "ws_bk").abs(0xAD, 0x0657).b(0xC9, 0x02).br(0x90, "ws_nx")    # the books: a white sword
+          w.label("ws_bk").abs(0xBD, WS_TABLE).b(0xC9, 0x02).br(0xD0, "ws_b")
       w.abs(0xAD, T.bit("heart snubber")[0]).b(0x29, T.bit("heart snubber")[1]).br(0xD0, "ws_nx")   # (snubber: none)
       w.abs(0xAD, 0x7FF7).br(0xF0, "ws_put")                                   # swordless:
       w.abs(0xAD, 0x067C).b(0xC9, 32).br(0xB0, "ws_nx").b(0xA9, 0x24).br(0xD0, "ws_st")            # a bomb upgrade
       w.label("ws_b").b(0xC9, 0x1D).br(0xD0, "ws_put").abs(0xAC, 0x0675).br(0xF0, "ws_put")   # no boomerang of any kind
-      w.label("ws_nx").b(0xE8, 0xE8, 0xE8, 0xE0, 3 * len(WS_LIST)).br(0xD0, "ws_lp")
+      w.label("ws_nx").b(0xE8, 0xE8, 0xE8, 0xE0, 3 * len(ws_list)).br(0xD0, "ws_lp")
       w.b(0xA9, 0x19).br(0xD0, "ws_st")                                       # everything: a key
       w.label("ws_put").abs(0xBD, WS_TABLE)
       w.label("ws_st").abs(0x8D, 0x019C).abs(0xAD, CAVE_WARES + 7).b(0x29, 0xC0).abs(0x0D, 0x019C).abs(0x8D, CAVE_WARES + 7)
@@ -911,7 +924,9 @@ def apply_caves(rom: bytearray, notes: list) -> None:
     place(rom, 1, ws_at[0], cw)
     place_again = b_hooks(at1).bytes()                                        # (its jump to the new place)
     rom[BANK(1) + at1 - 0x8000:BANK(1) + at1 - 0x8000 + len(place_again)] = place_again
-    tbl = bytes(x for item, addr, most in WS_LIST for x in (item, addr & 0xFF, most))
+    tbl = bytes(x for item, addr, most in ws_list for x in (item, addr & 0xFF, most))
+    if _V10.ON:
+        notes.append(f"1.0 4-triforce cave: {_V10.tri4_count()} triforces; " + ", ".join(_V10.tri4_list()))
     assert WS_TABLE + len(tbl) <= 0x8D00
     place(rom, 1, WS_TABLE, tbl)
     patch(rom, 1, 0x891E, bytes([0x20, lol_books.TAKE & 0xFF, lol_books.TAKE >> 8]), bytes([0x20, t.labels["take"] & 0xFF, t.labels["take"] >> 8]))
