@@ -456,6 +456,7 @@ def decoder(groups, ptr_table, maps, info):
     """DECODE (each data bank). In: $08 = variant index, $09 seed, $0A group, $0B boss, $0E slot code, $0F design.
     Writes the rooms, the level info (start, triforce, boss, cellars, item positions, room flags, map).
     Out: $03 old man, $04/$05 stairs rooms, $06/$07 cellars, $08 level 1 / 2's floor item room ($FF none)."""
+    import lol_v10 as V10
     import lol_sets
     S_N, S_CLS, S_POS, S_LAY, S_T, S_CNT, S_X, S_HI, S_R, S_BX, L1, L2, L3, S_RT, S_G = range(SCR, SCR + 15)
     P = 0x0C                                                                  # pointer $0C/$0D
@@ -567,6 +568,8 @@ def decoder(groups, ptr_table, maps, info):
         a.b(0xA9, 0x1C).abs(0x8D, S_T).b(0xA9, 0x10).abs(0x8D, S_CNT).abs(0x20, "pl_pick").b(0xE0, 0xFF).br(0xF0, lab)
         if cond == "12":
             a.b(0x86, 0x08)
+        if cond == "18" and V10.ON:     # (1.0: the blue potion room's item is the deck's: the reward hook's third room)
+            a.abs(0x8E, SUB_RM + 2)
         a.b(0xA9, it).abs(0x20, "pl_put")
         a.label(lab)
     a.abs(0x20, "cl_ptr").b(0xA0, 0x01)
@@ -859,6 +862,7 @@ def finish(rom: bytearray) -> None:
 
 def apply(rom: bytearray, notes: list) -> None:
     import lol_sets, lol_fixed
+    import lol_v10 as V10
     expand(rom)
     ds, out = build_variants()
     from zora.generate.shapes.minimap import synthesize_minimap
@@ -891,7 +895,8 @@ def apply(rom: bytearray, notes: list) -> None:
                 lim = lol_xray.XRAY_AT
             import lol_odds
             if lol_odds.LATE and b == lol_odds.ENGINE_BANK:     # (1.0: the odds engine at the top)
-                lim = min(lim, lol_odds.ENGINE)
+                import lol_v10
+                lim = min(lim, lol_odds.ENGINE, lol_v10.DEAL_AT if lol_v10.ON else 0xFFFF)
             if fill[b] + len(body) <= lim:
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break
@@ -933,6 +938,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("full").b(0xA4, 0x16).abs(0xB9, 0x062D).abs(0x4C, 0x810E)      # the vanilla start (JMP'd over)
     a.label("newfull").abs(0x20, "full")
     a.b(0xA9, 0xFF).abs(0x8D, CUR_GEN).abs(0x8D, GEN_CHOICE).abs(0x8D, SUB_RM).abs(0x8D, SUB_RM + 1)
+    if V10.ON:                          # (1.0: the blue potion room, the third: SUB_IT's first byte, unused)
+        a.abs(0x8D, SUB_RM + 2)
     a.b(0xA5, 0x10).br(0xD0, "nf_lv").b(0x60)
     a.label("nf_lv")
     for z in range(0x00, 0x10):
@@ -956,11 +963,15 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0x98, 0x48, 0xA9, 0x08).abs(0x20, TRAMP).b(0x68, 0xA8)
     a.b(0xA5, 0x03).abs(0x8D, GEN_CHOICE)
     # cellar items: levels: the record's two; level 9: a red potion and the record's item
-    a.abs(0xB9, REC + 4).b(0x85, 0x01)
-    a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "nf_lvi")
-    a.b(0xA9, 0xFD if lol_fixed.UPMIX else 0x20).abs(0x8D, SUB_IT).b(0xA5, 0x01).abs(0x8D, SUB_IT + 1).br(0xD0, "nf_c")   # ($FD: lol_upmix's)
-    a.label("nf_lvi").b(0xA5, 0x01, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT)
-    a.b(0xA5, 0x01, 0x4A, 0x4A, 0x4A, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT + 1)
+    if V10.ON:                          # (1.0: no SUB_IT; the deal knows each room's item, lol_v10)
+        a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "nf_lvi").abs(0x4C, "nf_c")
+        a.label("nf_lvi")
+    else:
+        a.abs(0xB9, REC + 4).b(0x85, 0x01)
+        a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "nf_lvi")
+        a.b(0xA9, 0xFD if lol_fixed.UPMIX else 0x20).abs(0x8D, SUB_IT).b(0xA5, 0x01).abs(0x8D, SUB_IT + 1).br(0xD0, "nf_c")   # ($FD: lol_upmix's)
+        a.label("nf_lvi").b(0xA5, 0x01, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT)
+        a.b(0xA5, 0x01, 0x4A, 0x4A, 0x4A, 0x29, 0x07, 0xAA).abs(0xBD, "citems").abs(0x8D, SUB_IT + 1)
     if lol_sets.quest_l2():               # (2Q, 3Q, 4Q: level 2 as their other levels)
         a.b(0xA5, 0x0E)
     else:
@@ -973,7 +984,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.abs(0x4C, "nf_end")
     a.label("nf_add").b(0xC9, 0xFF).br(0xF0, "na_x").b(0xE0, 0x02).br(0xB0, "na_x").abs(0x9D, SUB_RM).b(0xE8)
     a.label("na_x").b(0x60)
-    a.label("nf_c").b(0xA5, 0x06).abs(0x8D, SUB_RM).b(0xA5, 0x07).abs(0x8D, SUB_RM + 1)
+    l9 = (0x07, 0x06) if V10.ON and V10.l9_swap() else (0x06, 0x07)     # (1.0: which holds the red potion: the seed's)
+    a.label("nf_c").b(0xA5, l9[0]).abs(0x8D, SUB_RM).b(0xA5, l9[1]).abs(0x8D, SUB_RM + 1)
     a.label("nf_end")
     for z in reversed(range(0x00, 0x10)):
         a.b(0x68, 0x85, z)
@@ -990,7 +1002,35 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("citems").b(*CELLAR_ITEMS, 0xFE, 0x19, 0xFF)              # (7: not drawn yet: $FF, the draw's; 5: the
                                                                         #  upgrade card, $FE: lol_upmix)
     import lol_choice, lol_fixed
-    if lol_fixed.FIXED and lol_choice.DECK_FAR is not None:
+    if V10.ON and lol_choice.DECK_FAR is not None:
+        # (1.0, owner 2026-11-28) the reward hook's far call for a generated level's item room (Y its index: 0 / 1 the
+        # cellars / floor room, 2 the blue potion room): levels 1-8 the deal (lol_v10: spot (level - 1) * 3 + Y);
+        # level 9 the red potion (lol_upmix: or an upgrade) and the record's rolled item (lol_v10.l9_swap: which
+        # cellar is which); then the fixer as before
+        from lol_choice import SAVE_X
+        import lol_v3core as V3
+        deal = V10.deal_routine(rom)
+        a.label("dfx").b(0x8A, 0x48, 0x98, 0x48, 0xA5, 0x08, 0x48, 0xA5, 0x0E, 0x48)   # X, the index, $08, $0E
+        a.abs(0x20, "find").b(0xBA)                                                   # Y = the record
+        a.b(0xA5, 0x0E, 0xC9, 0x09).br(0xD0, "dfx_n")
+        a.abs(0xBD, 0x0103).br(0xD0, "dfx_9b")
+        if lol_fixed.UPMIX:
+            import lol_upmix as UM
+            a.b(*V3.far(14, UM.V_UL9)).abs(0x4C, "dfx_o")
+        else:
+            a.b(0xA9, 0x20).br(0xD0, "dfx_o")
+        a.label("dfx_9b").abs(0xB9, REC + 4).abs(0x4C, "dfx_o")
+        a.label("dfx_n").br(0x90, "dfx_l").b(0xA9, 0x29).br(0xD0, "dfx_o")               # (a shrine: none; XP)
+        a.label("dfx_l").b(0x38, 0xE9, 0x01, 0x85, 0x08, 0x0A, 0x65, 0x08, 0x18).abs(0x7D, 0x0103)
+        a.b(*V3.far(V10.DEAL_BANK, deal))
+        a.label("dfx_o").abs(0x8D, SAVE_X)
+        a.b(0x68, 0x85, 0x0E, 0x68, 0x85, 0x08, 0x68, 0xA8, 0x68, 0xAA).abs(0xAD, SAVE_X)
+        if lol_fixed.UPMIX:
+            a.b(0xC9, 0xFE).br(0xD0, "dfx_f").b(0x8A, 0x48, 0x98, 0x48).b(*V3.far(UM.BANKX, UM.UITEM))
+            a.abs(0x8D, SAVE_X).b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, SAVE_X)           # (X, Y kept)
+            a.label("dfx_f")
+        a.abs(0x4C, lol_choice.FIX_AT)
+    elif lol_fixed.FIXED and lol_choice.DECK_FAR is not None:
         # (owner 2026-11-26) the item deck's draw (far-called by the reward hook for a generated level's item room, in
         # place of the fixer; A = SUB_IT[Y], Y the room's index 0 / 1): $FF, not drawn yet: the deck's next card, kept
         # in the level's record (bits 0-2 / 3-5) and SUB_IT; then the fixer as before
@@ -1037,7 +1077,11 @@ def apply(rom: bytearray, notes: list) -> None:
         o = BANK(5) + lol_choice.DECK_FAR - 0x8000
         assert bytes(rom[o:o + 7]) == V.far(6, lol_choice.FIX_AT)
         rom[o:o + 7] = V.far(6, a.labels["dfx"])
-        notes.append(f"item deck: {len(lol_fixed.deck())} cards {lol_fixed.deck()}")
+        notes.append(V10.describe_deck() if V10.ON else f"item deck: {len(lol_fixed.deck())} cards {lol_fixed.deck()}")
+        if V10.ON:
+            sl = V10.fill_slots(rom, lol_fixed.deal(info))
+            notes.append(f"1.0 deck: the spots' save bytes (entrances) {sl}; level 9's red potion in cellar "
+                         f"{2 if V10.l9_swap() else 1}")
     patch(rom, 6, 0x8109, bytes.fromhex("a416b9"), bytes([0x4C, a.labels["newfull"] & 0xFF, a.labels["newfull"] >> 8]))
 
     # ---------------- bank 3: the enemy and boss pattern sets ----------------

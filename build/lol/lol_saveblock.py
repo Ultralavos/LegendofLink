@@ -14,6 +14,7 @@ its save (the menu's and the autosave's) copies working -> saved. SEGMENTS lists
 Kept at once (written straight to save RAM; cleared for a new file):
   $606A  20   lol_odds: the rolls' bytes; byte 17 the seed, 18 the ranks, 19 upgrades UP3
   $7F00  72   lol_entrances: the dealt entrances          $7F48 72  the hint quotes (lol_genload HINT_QS)
+             (1.0: the item deck's spots keep their items in the quote bytes of entrances that are not hint caves)
   $7F90  16   the whirlwind's tables                       $7FA0 13  the entrances' scratch and RNG
   $7FAD  65   lol_genload: the generated levels' records
   VERSION ($7FF6): 1 once this file has stage 4's saved copies. A file from before (no copies yet) takes its

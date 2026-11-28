@@ -258,7 +258,8 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
     import lol_entrances
     if lol_entrances.GEN:               # a generated dungeon: its cellar items (lol_genload's RAM table) instead
         from lol_genload import CUR_GEN, SUB_RM, SUB_IT
-        a.abs(0xAD, CUR_GEN).br(0x30, "g_static").b(0xA0, 0x01)
+        import lol_v10 as V10           # (1.0: three rooms - the blue potion room third)
+        a.abs(0xAD, CUR_GEN).br(0x30, "g_static").b(0xA0, 0x02 if V10.ON else 0x01)
         a.label("g_lp").abs(0xB9, SUB_RM).b(0xC5, 0xEB).br(0xD0, "g_nx")
         a.abs(0xB9, SUB_IT).label("g_far").b(*V.far(6, fx_at)).b(0x68, 0xA8, 0x68).abs(0xAD, SAVE_X).abs(0x4C, "r_cmp")
         a.label("g_nx").b(0x88).br(0x10, "g_lp").abs(0x4C, "s_none")

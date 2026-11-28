@@ -13,6 +13,8 @@ Step 1: the odds and the shops.
                              lower; bait only with none, bombs below 5, a key with no keys), never saved; one buy
                              closes that entrance. Prices: PRICES, each rolled +-20% per kind when the seed is built.
   the sword line             wood -> white -> magical: a white sword without the wood sword is the wood sword.
+Step 2: the item deck (below): levels 1-8's cellars / floor items and blue potion rooms, the coast, the Armos;
+  level 9's red potion and rolled item cellars swapped by the seed (l9_swap).
 """
 import csv, os, random
 import lol_fixed
@@ -203,3 +205,174 @@ def apply_secrets(rom: bytearray, notes: list) -> None:
 HINTS = {"LEVELS 1-8 ALL HAVE AN OLD MAN, SEEK THEM": "LEVELS 1-9 ALL HAVE AN OLD MAN, SEEK THEM",
          "SHOP WARES AND DUNGEON ITEMS CAN INCREASE WITH YOUR LEVEL": "SHOP WARES AND OLD MEN GIFTS IMPROVE WITH YOUR LEVEL",
          "WHITE BORDER CARDS BOOST DUNGEON AND SHRINE FINDS": "WHITE BORDER CARDS BOOST OLD MEN AND SHRINE GIFTS"}
+
+
+# ---------------- step 2: the item deck (owner 2026-11-28) ----------------
+# Every item spot of levels 1-8 (its cellars / floor item room, at most two: lol_fixed.spots; and its blue potion
+# room, the old heart container's), the coast's and the Armos' item take the deck's next card the first time Link
+# comes to them. The deck (rolled when the seed is built): 1-7 items by DECK_ODDS (no repeats), 1-3 each of the S, D
+# and X cards, the rest a blue potion, a small (+15) or a large (+25) XP bag (1 in 3 each); shuffled. Dealt in the game
+# in order, a card Link can't use skipped (owned; an upgrade at its top tier gives its next tier; a fourth card of a
+# kind; a potion past 2, or 4 with the potion pouch; XP at heart level 16); none left: the letter.
+# Kinds (the deck's bytes): 0-14 an inventory byte's next tier (KINDS), 15 bomb upgrade, 16 blue potion, 17-19 the
+# S / D / X cards, 20 / 21 small / large XP; $FE (lol_upmix) the upgrade card.
+KINDS = [("ring upgrade", RING, [0x12, 0x13]), ("sword upgrade", SWORD, [0x01, 0x02, 0x03]),
+         ("arrow upgrade", ARROWS, [0x08, 0x09]), ("book upgrade", BOOK, [0x11, 0x25]),
+         ("candle upgrade", CANDLE, [0x06, 0x07]), ("boomerang upgrade", BOOMERANG, [0x1D, 0x1E]),
+         ("magic key", MAGIC_KEY, [0x0B]), ("magic shield", SHIELD, [0x1C]), ("wand", WAND, [0x10]),
+         ("bow", BOW, [0x0A]), ("ladder", LADDER, [0x0D]), ("recorder", RECORDER, [0x05]),
+         ("power bracelet", BRACELET, [0x14]), ("raft", RAFT, [0x0C]), ("bait", BAIT, [0x04])]
+SPECIAL = ["bomb upgrade", "blue potion", "S card", "D card", "X card", "small XP", "large XP"]
+KIND_NAMES = [k[0] for k in KINDS] + SPECIAL
+K = {n: i for i, n in enumerate(KIND_NAMES)}
+DECK_ODDS = {"ring upgrade": 1, "sword upgrade": 1, "arrow upgrade": 1, "book upgrade": 1, "candle upgrade": 1,
+             "magic key": 2, "magic shield": 3, "boomerang upgrade": 5, "wand": 5, "bow": 5, "ladder": 5,
+             "recorder": 5, "power bracelet": 10, "raft": 10, "bomb upgrade": 15, "bait": 15, "blue potion": 15}
+assert sum(DECK_ODDS.values()) == 100
+LETTER = 0x15
+SPOT_N = 26                             # spot = (level - 1) * 3 + its index (0 / 1 the cellars / floor room, 2 the
+COAST, ARMOS = 24, 25                   #  blue potion room); the coast, the Armos
+
+
+def deck_spots():
+    return lol_fixed.spots() + 8 + 2
+
+
+def deck():
+    """(kinds, upos): the 1.0 deck; upos the Upgrade mix's upgrade card's place (lol_fixed.upos)."""
+    if "deck" in _C:
+        return _C["deck"]
+    n = deck_spots()
+    r = rng("deck")
+    if lol_fixed.UPMIX:
+        n -= 1
+    items = roll(DECK_ODDS, r)[:r.randint(1, 7)]
+    cards = [K["S card"] + c for c in range(3) for _ in range(r.randint(1, 3))]
+    fill = [K[("blue potion", "small XP", "large XP")[r.randint(1, 3) - 1]]
+            for _ in range(n - len(items) - len(cards))]
+    d = [K[x] for x in items] + cards + fill
+    assert len(d) == n
+    r.shuffle(d)
+    _C["deck"] = (d, r.randrange(n + 1))
+    return _C["deck"]
+
+
+def l9_swap():
+    """Level 9's two cellars: which holds the red potion (False: the first, as before; True: the second)."""
+    return rng("level 9 stairs").random() < 0.5
+
+
+_C = {}
+GROUND = None
+DEAL = None                             # bank 12: the deal (A = spot -> A = the item; X, Y kept)
+_SLOTS_AT = None                        # its slot table's file offset (filled by fill_slots once the entrances are dealt)
+
+
+def deal_routine(rom):
+    """The deal, in bank 0 (once). Each spot keeps its item in a hint quote byte (lol_genload HINT_QS) of an entrance
+    that is neither a dungeon nor a hint cave: 0 not dealt yet, else $80 | the item ($FE: the upgrade card)."""
+    global DEAL, _SLOTS_AT
+    if DEAL is not None:
+        return DEAL
+    import lol_v3core as V3
+    from lol_af import Asm, BANK
+    from lol_genload import HINT_QS, DECK_PTR
+    import lol_uptable as UT, lol_upgrades as U
+    from lol_bombup import BADGES
+    dk, upos = deck()
+    T, KK = 0x019C, 0x0173
+    zb, sb = UT.bit("zombie link"), UT.bit("heart snubber")
+    starts = [sum(len(k[2]) for k in KINDS[:i]) for i in range(len(KINDS))]
+
+    def build(org):
+        a = Asm(org)
+        a.label("deal").abs(0x8D, T).b(0x8A, 0x48, 0x98, 0x48)
+        a.abs(0xAE, T).abs(0xBC, "sl").abs(0xB9, HINT_QS).br(0x30, "have")
+        a.label("next")
+        if lol_fixed.UPMIX:
+            import lol_upmix as UM
+            a.b(0xA9, upos, 0x38).abs(0xED, UM.UFLAGS).b(0x29, UM.MOVES).abs(0x8D, KK)
+            a.abs(0xAE, DECK_PTR).b(0xE0, len(dk) + 1).br(0xB0, "empty")
+            a.abs(0xEE, DECK_PTR).abs(0xEC, KK).br(0x90, "lo").br(0xF0, "up").b(0xCA)
+            a.label("lo").abs(0xBD, "deck").abs(0x20, "res").br(0xB0, "next").br(0x90, "store")
+            a.label("up").b(0xA9, 0xFE).br(0xD0, "store")
+        else:
+            a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0xB0, "empty").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
+            a.abs(0x20, "res").br(0xB0, "next").br(0x90, "store")
+        a.label("empty").b(0xA9, LETTER)
+        a.label("store").b(0x09, 0x80).abs(0x99, HINT_QS)
+        a.label("have").b(0xC9, 0xFE).br(0xF0, "ret").b(0x29, 0x7F)
+        a.label("ret").abs(0x8D, T).b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, T).b(0x60)
+        # ground (the coast's and the Armos' stubs): the deal; the upgrade card its item (lol_upmix; X, Y kept)
+        a.label("ground").abs(0x20, "deal")
+        if lol_fixed.UPMIX:
+            import lol_upmix as UM
+            a.b(0xC9, 0xFE).br(0xD0, "g_r").b(0x8A, 0x48, 0x98, 0x48).b(*V3.far(UM.BANKX, UM.UITEM, DEAL_BANK))
+            a.abs(0x8D, T).b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, T)
+        a.label("g_r").b(0x60)
+        # res: A = a kind -> C clear: A = its item now; C set: skipped (X, T, KK used; Y kept)
+        a.label("res").abs(0x8D, KK).b(0xC9, len(KINDS)).br(0xB0, "sp")
+        a.b(0xC9, K["ring upgrade"]).br(0xD0, "r1").abs(0xAD, zb[0]).b(0x29, zb[1]).br(0xD0, "skip").br(0xF0, "gen")
+        a.label("r1").b(0xC9, K["sword upgrade"]).br(0xD0, "r5").abs(0xAD, sb[0]).b(0x29, sb[1]).br(0xD0, "skip")
+        a.abs(0xAD, 0x7FF7).br(0xF0, "gen").b(0xA9, 32).br(0xD0, "bomb")         # (swordless: a bomb upgrade)
+        a.label("r5").b(0xC9, K["boomerang upgrade"]).br(0xD0, "gen").abs(0xAD, MAGIC_BOOMERANG).br(0xD0, "skip")
+        a.label("gen").abs(0xAE, KK).abs(0xBD, "alo").b(0xAA).abs(0xBD, 0x0600).abs(0xAE, KK)
+        a.abs(0xDD, "cnt").br(0xB0, "skip").abs(0x7D, "start").b(0xAA).abs(0xBD, "codes").b(0x18, 0x60)
+        a.label("skip").b(0x38, 0x60)
+        a.label("sp").b(0xC9, K["bomb upgrade"]).br(0xD0, "s16").b(0xA9, 20).abs(0xAE, 0x7FF7).br(0xF0, "bomb")
+        a.b(0xA9, 32)
+        a.label("bomb").abs(0x8D, T).abs(0xAD, MAX_BOMBS).abs(0xCD, T).br(0xB0, "skip").b(0xA9, 0x24, 0x18, 0x60)
+        a.label("s16").b(0xC9, K["blue potion"]).br(0xD0, "s17").b(0xA9, 2).abs(0x8D, T)
+        a.abs(0xAD, U.POUCH[0]).b(0x29, U.POUCH[1]).br(0xF0, "p2").b(0xA9, 4).abs(0x8D, T)
+        a.label("p2").abs(0xAD, POTION).abs(0xCD, T).br(0xB0, "skip").b(0xA9, 0x1F, 0x18, 0x60)
+        a.label("s17").b(0xC9, K["small XP"]).br(0xB0, "xp").b(0xE9, K["S card"] - 1, 0xAA)   # (C clear: - 17)
+        a.abs(0xAD, BADGES).abs(0x3D, "mask").abs(0xDD, "mask").br(0xF0, "skip").b(0x8A, 0x18, 0x69, 0x26, 0x60)
+        a.label("xp").abs(0xAD, 0x066F).b(0xC9, 0xF0).br(0xB0, "skip")
+        a.abs(0xAD, KK).b(0x18, 0x69, 0x29 - K["small XP"], 0x60)
+        a.label("alo").b(*[k[1] & 0xFF for k in KINDS])
+        a.label("cnt").b(*[len(k[2]) for k in KINDS])
+        a.label("start").b(*starts)
+        a.label("codes").b(*[c for k in KINDS for c in k[2]])
+        a.label("mask").b(0x03, 0x0C, 0x30)
+        a.label("deck").b(*dk)
+        a.label("sl").b(*_C.get("slots", [0] * SPOT_N))
+        return a
+    assert all(k[1] >> 8 == 0x06 for k in KINDS)
+    a = build(DEAL_AT)
+    assert DEAL_AT + len(a.bytes()) <= DEAL_END, hex(DEAL_AT + len(a.bytes()))
+    DEAL = a.labels["deal"]
+    global GROUND
+    GROUND = a.labels["ground"]
+    _C["build"] = build
+    return DEAL
+
+
+DEAL_BANK, DEAL_AT, DEAL_END = 12, 0xAF00, 0xB100   # (below lol_odds' engine: lol_genload's variants stop below it)
+
+
+def fill_slots(rom, dealt):
+    """The spots' save bytes: entrances (lol_entrances' order) that are neither a dungeon nor a hint cave."""
+    import lol_entrances as E
+    free = [i for i, c in enumerate(dealt) if not 0x01 <= c <= 0x0F and c != E.HINT]
+    assert len(free) >= SPOT_N, len(free)
+    _C["slots"] = free[:SPOT_N]
+    return free[:SPOT_N]
+
+
+def late(rom):
+    """lol_build, after lol_genload: the deal into bank 12 (the slots known by now)."""
+    if DEAL is None:
+        return
+    from lol_af import place
+    assert "slots" in _C
+    a = _C["build"](DEAL_AT)
+    assert a.labels["deal"] == DEAL
+    place(rom, DEAL_BANK, DEAL_AT, a.bytes())
+
+
+def describe_deck():
+    dk, upos = deck()
+    names = [KIND_NAMES[k] for k in dk]
+    if lol_fixed.UPMIX:
+        names.insert(upos, "upgrade card")
+    return f"1.0 deck ({deck_spots()} spots): " + ", ".join(names)

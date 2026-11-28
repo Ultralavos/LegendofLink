@@ -39,6 +39,8 @@ UCONV = 0x01A3                          # (stack page, unused) 1 while in an upg
 PLAIN_CAVE = 13                         # the plain shop's wares and prices: shop cave 13's (the shield, bombs, arrows)
 TIER_OF = (0, 2)                        # old men: tier 1; shrine prizes: tier 3
 CODE_OM, CODE_SH = 0x2E, 0x2F           # their ware slots' items (0, 1); the deck's and level 9's: $30 (slot 2)
+import lol_v10 as _V10
+MOVES = 0x1F if _V10.ON else 0x0F       # (1.0's deck is longer: the moves in bits 0-4)
 UCARD = UITEM = BANKX = UAT = _PENDING = None                    # bank 0 (set in apply): the deck's next card; the upgrade card's item
 
 
@@ -65,7 +67,7 @@ def apply(rom: bytearray, notes: list) -> None:
         f0 = lambda r: V.far(0, r, bk)              # (a far call into bank 0 from here)
         # ucard (lol_genload's dfx, far-called): A = the deck's next card (0-4 lol_genload's citems, 5 the upgrade
         # card), DECK_PTR on. The upgrade card's place: UPOS0 - the moves; before it the deck's own, after it one back
-        a.label("ucard").b(0xA9, lol_fixed.upos()).b(0x38).abs(0xED, UFLAGS).b(0x29, 0x0F).abs(0x8D, 0x0173)
+        a.label("ucard").b(0xA9, lol_fixed.upos()).b(0x38).abs(0xED, UFLAGS).b(0x29, MOVES).abs(0x8D, 0x0173)
         a.abs(0xAE, DECK_PTR).b(0xE0, len(dk) + 1).br(0xB0, "c_o")
         a.abs(0xEE, DECK_PTR).abs(0xEC, 0x0173).br(0x90, "c_lo").br(0xF0, "c_up")
         a.b(0xCA)
@@ -86,7 +88,7 @@ def apply(rom: bytearray, notes: list) -> None:
         # pre (TakeItem's first far call): a heart container moves the upgrade card one nearer (while it's not the
         # next card already, nor drawn)
         a.label("pre").b(0xC9, CONTAINER).br(0xD0, "p_x").b(0x48)
-        a.b(0xA9, lol_fixed.upos()).b(0x38).abs(0xED, UFLAGS).b(0x29, 0x0F)      # its place now
+        a.b(0xA9, lol_fixed.upos()).b(0x38).abs(0xED, UFLAGS).b(0x29, MOVES)     # its place now
         a.abs(0xCD, DECK_PTR).br(0x90, "p_n").br(0xF0, "p_n")                    # (at or before the next: stays)
         a.abs(0xEE, UFLAGS)
         a.label("p_n").b(0x68)

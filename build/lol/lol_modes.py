@@ -283,6 +283,26 @@ def apply_ground(rom: bytearray, notes: list) -> None:
         a.label("items").b(0x26, 0x27, 0x28, 0x29, 0x2A)
         a.label("mask").b(0x03, 0x0C, 0x30)
         return a
+    import lol_v10 as V10, lol_fixed
+    if V10.ON:                          # (1.0, owner 2026-11-28: the item deck's spots, dealt the first time)
+        deal = V10.deal_routine(rom)
+        for name, bank, at, item, kind in GROUND:
+            assert rom[at:at + 4] == bytes([0xA9, item, 0x85, 0xAB]), (name, rom[at:at + 4].hex())
+            spot = V10.COAST if name == "coast" else V10.ARMOS
+
+            def stub(org, spot=spot, name=name, item=item):
+                a = Asm(org)
+                if name == "coast":     # (its LDA #item runs on more screens: dealt only on F16 in play)
+                    a.b(0xA5, 0x12, 0xC9, 0x05).br(0xD0, "pl").b(0xA5, 0xEB, 0xC9, 0x5F).br(0xF0, "go")
+                    a.label("pl").b(0xA9, item, 0x85, 0xAB, 0x60)
+                    a.label("go")
+                a.b(0xA9, spot).b(*V3.far(V10.DEAL_BANK, V10.GROUND)).b(0x85, 0xAB, 0x60)
+                return a.bytes()
+            s_ = free_in(rom, bank, len(stub(0x8000)), 0xB000)
+            place(rom, bank, s_, stub(s_))
+            rom[at:at + 4] = bytes([0x20, s_ & 0xFF, s_ >> 8, 0xEA])
+        notes.append("modes: the coast's and the Armos' items: the 1.0 item deck's")
+        return
     pk = V3.put0(rom, build).labels["pk"]
     for name, bank, at, item, kind in GROUND:
         assert rom[at:at + 4] == bytes([0xA9, item, 0x85, 0xAB]), (name, rom[at:at + 4].hex())

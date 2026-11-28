@@ -369,6 +369,8 @@ def main():
         import lol_genload
         lol_genload.apply(rom, notes)
         lol_odds.late(rom)                        # (1.0: the odds engine, bank 9)
+        import lol_v10
+        lol_v10.late(rom)                         # (1.0: the item deck's deal, bank 12)
         lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
         lol_pictures.late(rom)                    # (its picture queue's NMI hook: bank 6)
         lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)

@@ -141,6 +141,10 @@ def deck():
     with the seed. Values: lol_genload's citems indexes (0-2 cards S / D / X, 3 the +15 bag, 4 the +25)."""
     if "deck" in _CACHE:
         return _CACHE["deck"]
+    import lol_v10 as V10
+    if V10.ON:                      # (1.0: kinds, lol_v10's deck; the upgrade card's place its own)
+        _CACHE["deck"], _CACHE["upos"] = V10.deck()
+        return _CACHE["deck"]
     n = spots()
     rng = _rng("deck")
     if UPMIX:                       # (the upgrade card: kept apart, lol_upmix's UPOS; the deck one card shorter)
