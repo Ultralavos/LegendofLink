@@ -288,6 +288,8 @@ def main():
     lol_choice.apply_rewards(rom, notes)
     import lol_odds
     lol_odds.apply(rom, notes)
+    import lol_v10
+    lol_v10.apply_secrets(rom, notes)              # (1.0: the secret caves' amounts)
     import lol_bombup
     lol_bombup.apply(rom, notes)
     import lol_books
@@ -366,6 +368,7 @@ def main():
     if lol_entrances.GEN:
         import lol_genload
         lol_genload.apply(rom, notes)
+        lol_odds.late(rom)                        # (1.0: the odds engine, bank 9)
         lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
         lol_pictures.late(rom)                    # (its picture queue's NMI hook: bank 6)
         lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)

@@ -137,7 +137,9 @@ def apply(rom: bytearray, notes: list) -> None:
         a.label(f"v{lv}").abs(0x4C, vanilla[lv])
 
     import lol_odds, lol_fixed
-    choices = CHOICES + ([("upgrade", 0x2E, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 1)
+    import lol_v10 as V10
+    base = V10.as_choice(V10.NAMES) if V10.ON else CHOICES                       # (1.0: lol_v10's items)
+    choices = base + ([("upgrade", 0x2E, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 1)
     lol_odds.register(0, "old_men", choices)
 
     def old_store(a):                   # the save index: Levels 1-9 0-8, the second quest's 4 (E) 9, 6 (F) 10
@@ -285,7 +287,9 @@ def apply_rewards(rom: bytearray, notes: list) -> None:
     import lol_odds
     from lol_af import AF_LEVELS
     import lol_fixed
-    rewards = REWARDS + ([("upgrade", 0x2F, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 3)
+    import lol_v10 as V10
+    base = V10.as_choice(V10.SHRINE_ITEMS) if V10.ON else REWARDS                # (1.0: the shrines' upgrades)
+    rewards = base + ([("upgrade", 0x2F, 1, ANY, ANY)] if lol_fixed.UPMIX else [])   # (lol_upmix: tier 3)
     lol_odds.register(1, "rewards", rewards)
 
     def rew_store(a):                   # the save index: 11 + the letter (A-F)
@@ -329,14 +333,24 @@ SHOP_ITEMS = [   # (name, item, fewest containers, cond, cond, most containers, 
 BOOK_PRICE = 25                                  # (owner 2026-11-25) the bookworm's red book in every shop
 SHOP_TYPES = (0x74, 0x77, 0x78, 0x79, 0x7A)      # the potion shop, shops A-D (person $6A + cave index)
 CAVE_WARES, CAVE_PRICES = 0x6A7E, 0x6ABA
+PK_OFF = 0x011E                                  # (1.0) the shop kind's price table offset (stack page scratch)
 J, BASE = 0x04, 0x05
 
 
 def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
     from lol_af import patch
+    import lol_v10 as V10
+    WD = {}
+    if V10.ON:                          # (1.0) the wood shop's code: bank 0, far-called
+        import lol_v3core as V3
+        WD.update(V3.put0(rom, wood_code).labels)
     a = Asm(cpu)
     # InitCave's taken check: also the shops
-    a.label("taken").abs(0xAD, 0x0350)
+    a.label("taken")
+    if V10.ON:                          # (1.0) the wood sword cave at shop level 11+: a shop, never closed
+        a.abs(0xAD, 0x0350).b(0xC9, 0x6A).br(0xD0, "tk_v").abs(0x20, "lv11").br(0xB0, "tk_skip")
+        a.label("tk_v")
+    a.abs(0xAD, 0x0350)
     for t in (0x72, 0x71):
         a.b(0xC9, t).br(0xF0, "tk_chk")
     a.b(0xC9, 0x7B).br(0xB0, "tk_chk").b(0xC9, 0x74).br(0xF0, "tk_chk").b(0xC9, 0x75).br(0xB0, "tk_chk")   # $75-$7A: the upgrade caves and shops A-D
@@ -344,15 +358,33 @@ def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
     a.label("tk_chk").b(0x18, 0x60)
     a.label("tk_skip").b(0x38, 0x60)
     # InitCave's wares: a shop's are picked here
-    a.label("fill").abs(0xAD, 0x0350).b(0xC9, 0x74).br(0xF0, "f_go")
+    a.label("fill")
+    if V10.ON:
+        a.abs(0xAD, 0x0350).b(0xC9, 0x6A).br(0xD0, "f_nw").abs(0x20, "lv11").br(0x90, "f_nw")
+        import lol_v3core as V3
+        a.b(*V3.far(0, WD["wood"])).abs(0xAD, 0x0350).b(0x38, 0x60)
+        a.label("f_nw")
+    a.abs(0xAD, 0x0350).b(0xC9, 0x74).br(0xF0, "f_go")
     a.b(0xC9, 0x77).br(0x90, "f_out").b(0xC9, 0x7B).br(0xB0, "f_out")
+    import lol_v10 as V10
+    shop = V10.as_choice(V10.NAMES) if V10.ON else [c[:6] for c in SHOP_ITEMS]
+    np1 = len(shop) + 1                                                          # (+ the bookworm's red book)
     a.label("f_go").b(0x38, 0xE9, 0x6A, 0x85, BASE, 0x0A, 0x65, BASE, 0x85, BASE)   # BASE = cave index * 3
+    if V10.ON:                          # (1.0) PK_OFF: the shop kind's price table (A-D; the potion shop: A's)
+        a.abs(0xAD, 0x0350).b(0x38, 0xE9, 0x77).br(0xB0, "f_k").b(0xA9, 0x00)
+        a.label("f_k").b(0xC9, 0x04).br(0x90, "f_k2").b(0xA9, 0x00)
+        a.label("f_k2").b(0xAA, 0xA9, 0x00)
+        a.label("f_k3").b(0xCA).br(0x30, "f_k4").b(0x18, 0x69, np1).br(0x90, "f_k3")
+        a.label("f_k4").abs(0x8D, PK_OFF)
     a.abs(0x20, "s_count").b(0xA5, CNT, 0x85, T1)                                # n
     a.b(0xA9, 0x00, 0x85, J)
     a.label("f_lp").b(0xA5, J, 0xC5, T1).br(0x90, "f_pick")                     # J >= n: an empty place
     a.b(0xA9, 0x3F, 0x48, 0xA9, 0x00, 0x48).br(0xF0, "f_put")
     a.label("f_pick").b(0x85, K).abs(0x20, "s_nth")                             # the J-th
-    a.b(0x48).abs(0xB9, "s_t_price").b(0x48)                                    # item, price
+    if V10.ON:
+        a.b(0x48, 0x98, 0x18).abs(0x6D, PK_OFF).b(0xA8).abs(0xB9, "s_t_price").b(0x48)   # item, its kind's price
+    else:
+        a.b(0x48).abs(0xB9, "s_t_price").b(0x48)                                # item, price
     a.label("f_put")
     a.b(0xA5, BASE, 0x18, 0x65, J, 0xAA)
     a.b(0x68).abs(0x20, "half").abs(0x9D, CAVE_PRICES)                          # (the membership card: halved)
@@ -361,6 +393,9 @@ def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
     a.label("f_st").abs(0x9D, CAVE_WARES)
     a.b(0xE6, J, 0xA5, J, 0xC9, 0x03).br(0xD0, "f_lp")
     a.label("f_out").abs(0xAD, 0x0350).b(0x38, 0x60)
+    if V10.ON:                          # lv11: carry set if the shop level (containers + S cards) is 11 or more
+        a.label("lv11").abs(0xAD, BADGES).b(0x29, 0x03, 0x85, K).abs(0xAD, HEARTS)
+        a.b(0x4A, 0x4A, 0x4A, 0x4A, 0x38, 0x65, K).b(0xC9, 11, 0x60)
     # half: A = a price; with the membership card halved, rounded up (0 stays 0)
     import lol_uptable as TU
     mc = TU.bit("membership card")
@@ -368,12 +403,17 @@ def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
     a.b(0x68, 0x4A, 0x69, 0x00, 0x60)
     a.label("h_n").b(0x68, 0x60)
     import lol_odds
-    lol_odds.register(2, "shops", [c[:6] for c in SHOP_ITEMS])
+    lol_odds.register(2, "shops", shop)
 
     def shop_store(a):                  # not saved; the shop's kind is the hash's place (every shop 1 the same)
         a.abs(0xAD, 0x0350).abs(0x8D, lol_odds.CTX).b(0xA9, 0xFF)
-    lol_odds.wrappers(a, 2, [c[:6] for c in SHOP_ITEMS], "s_", 1, shop_store, 3, book=True)
-    a.label("s_t_price").b(*[c[6] for c in reversed(SHOP_ITEMS)], BOOK_PRICE)   # (+ the bookworm's red book)
+    lol_odds.wrappers(a, 2, shop, "s_", 1, shop_store, 3, book=True)
+    if V10.ON:                          # (1.0) each kind's prices, rolled when the seed is built
+        a.label("s_t_price")
+        for pr in V10.prices():
+            a.b(*[pr[c[0]] for c in reversed(shop)], BOOK_PRICE)
+    else:
+        a.label("s_t_price").b(*[c[6] for c in reversed(SHOP_ITEMS)], BOOK_PRICE)   # (+ the bookworm's red book)
     code = a.bytes()
     place(rom, 1, cpu, code)
     L = a.labels
@@ -383,6 +423,40 @@ def apply_shops(rom: bytearray, notes: list, cpu: int) -> int:
     notes.append(f"shops ({len(code)} bytes)")
     shop_texts(rom, notes)
     return cpu + len(code)
+
+
+def wood_code(org):
+    """(1.0) the wood sword cave's shop code (its own half), bank 0: far-called from the shops' fill."""
+    import lol_v10 as V10
+    a = Asm(org)
+    # (1.0, owner 2026-11-28) the wood sword cave from shop level 11 (containers + S cards): shop A's keeper
+    # selling the first three of key, bombs (below a full bag), arrows (none yet), a pity heart and the magic
+    # shield (none yet); its prices rolled +-20%; one per visit, never closed (taken: skipped above)
+    a.label("wood").b(0xA9, 0x77).abs(0x8D, 0x0350).b(0xA9, 0x27, 0x85, BASE, 0xA9, 0x00, 0x85, J, 0xA2, 0x00)
+    a.label("wd_lp").b(0xE0, len(V10.WOOD)).br(0xF0, "wd_rest")
+    a.b(0x8A).b(0xC9, 1).br(0xD0, "wd_c2").abs(0xAD, BOMBS).abs(0xCD, MAX_BOMBS).br(0xB0, "wd_nx").br(0x90, "wd_put")
+    a.label("wd_c2").b(0xC9, 2).br(0xD0, "wd_c4").abs(0xAD, ARROWS).br(0xD0, "wd_nx").br(0xF0, "wd_put")
+    a.label("wd_c4").b(0xC9, 4).br(0xD0, "wd_put").abs(0xAD, SHIELD).br(0xD0, "wd_nx")
+    a.label("wd_put").b(0xA5, BASE, 0x18, 0x65, J, 0xA8)
+    a.abs(0xBD, "wd_pr").abs(0x20, "wd_half").abs(0x99, CAVE_PRICES)
+    a.abs(0xBD, "wd_it").b(0x48, 0xA5, J, 0xC9, 0x02).br(0xD0, "wd_st")
+    a.b(0x68, 0x85, K).abs(0xB9, CAVE_WARES).b(0x29, 0xC0, 0x05, K, 0x48)
+    a.label("wd_st").b(0x68).abs(0x99, CAVE_WARES)
+    a.b(0xE6, J, 0xA5, J, 0xC9, 0x03).br(0xF0, "wd_out")
+    a.label("wd_nx").b(0xE8).abs(0x4C, "wd_lp")
+    a.label("wd_rest").b(0xA5, J, 0xC9, 0x03).br(0xF0, "wd_out").b(0xA5, BASE, 0x18, 0x65, J, 0xA8)
+    a.b(0xA9, 0x00).abs(0x99, CAVE_PRICES).b(0xA9, 0x3F, 0xA6, J, 0xE0, 0x02).br(0xD0, "wd_r2")
+    a.b(0x85, K).abs(0xB9, CAVE_WARES).b(0x29, 0xC0, 0x05, K)
+    a.label("wd_r2").abs(0x99, CAVE_WARES).b(0xE6, J).br(0xD0, "wd_rest")
+    a.label("wd_out").b(0x60)
+    a.label("wd_it").b(*[c for _, c, _ in V10.WOOD])
+    a.label("wd_pr").b(*V10.wood_prices())
+    import lol_uptable as TU
+    mc = TU.bit("membership card")
+    a.label("wd_half").b(0x48).abs(0xAD, mc[0]).b(0x29, mc[1]).br(0xF0, "wh_n")
+    a.b(0x68, 0x4A, 0x69, 0x00, 0x60)
+    a.label("wh_n").b(0x68, 0x60)
+    return a
 
 
 SHOP_QUOTE = 0x1C                                # "BUY SOMETHIN' WILL YA!" (the cave quotes' low 6 bits)

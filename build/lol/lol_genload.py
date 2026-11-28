@@ -791,6 +791,9 @@ def hint_quotes():
     for t in hint_lines():
         t = t.split("   (shown:")[0].split("   (was:")[0].split("   [")[0].replace("Gannon", "Ganon").upper()
         t = HINT_SHORT.get(t, t)
+        import lol_v10
+        if lol_v10.ON:                           # (1.0, seeded: owner 2026-11-28) hints that changed with it
+            t = lol_v10.HINTS.get(t, t)
         import lol_fixed
         if lol_fixed.UPMIX and t.startswith("THERE ARE THREE CAVES"):   # (owner 2026-11-27: Upgrade mix has
             t = "THERE ARE SHOPS THAT SELL POWERFUL UPGRADES!"           #  one cave fewer, and the shops)
@@ -886,6 +889,9 @@ def apply(rom: bytearray, notes: list) -> None:
                 lim = lol_upmix.UAT or lol_upmix.NOSHOOT_AT
             if b == lol_xray.XRAY_BANK and lol_xray.XRAY_AT:    # (lol_xray's code at the top)
                 lim = lol_xray.XRAY_AT
+            import lol_odds
+            if lol_odds.LATE and b == lol_odds.ENGINE_BANK:     # (1.0: the odds engine at the top)
+                lim = min(lim, lol_odds.ENGINE)
             if fill[b] + len(body) <= lim:
                 ptr[key] = (b, fill[b]); fill[b] += len(body)
                 break

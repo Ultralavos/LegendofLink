@@ -85,6 +85,8 @@ MAX = {SECRET10: 11, SECRET30: 10, SECRET100: 4, 0x1D: 13, 0x1E: 3, 0x1F: 4, 0x1
 # 10 x4; the rest hint caves (71 in all)
 MAX_GEN = {SECRET10: 4, SECRET30: 6, SECRET100: 3, 0x1D: 4, 0x1E: 4, 0x1F: 3, SHOP4: 1, 0x18: 1, 0x1B: 1, 0x1C: 1,
            GAMBLE: 5, WHITE: 1, MAGIC: 1, **{d: 1 for d in range(1, 0x0E)}, 0x0E: 0, 0x0F: 0}
+if os.environ.get("LOL_FIXED", "1") != "0":   # (1.0, seeded; owner 2026-11-28) two hint caves become 30 secrets
+    MAX_GEN[SECRET30] += 2
 MAX_GEN[HINT] = 71 - sum(MAX_GEN.values())
 
 

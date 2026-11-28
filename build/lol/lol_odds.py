@@ -26,6 +26,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ODDS_DIR = os.path.join(HERE, "odds")
 ENGINE_BANK = 3                         # v3: bank 3 (was bank 4, the full monster bank)
 ENGINE = 0xACA0                         # bank 3 free (after lol_genload's pattern getters)
+import lol_fixed as _F, lol_entrances as _E
+LATE = _F.FIXED and _E.GEN               # (1.0) the engine and its bigger tables: data bank 9, placed late
+if LATE:
+    ENGINE_BANK, ENGINE = 12, 0xB100               # (the top of data bank 12: lol_genload's variants stop below it)
+_PENDING = []
 TRAMP = 0xDFF0                          # bank 7 free (18 bytes)
 LST, CTX, STO, NUM, OUT, RET = 0x0180, 0x0181, 0x0182, 0x0183, 0x0184, 0x0187   # (stack page, unused)
 KEY, ACC, TRY, PK, CUM, RR, CAND, SEED, TT, UU, NOK = (0x0188, 0x0189, 0x018A, 0x018B, 0x018C, 0x018D, 0x018E,
@@ -125,7 +130,8 @@ def wrappers(a, list_id, items, p, ret_bank, store, n_pick, book=False):
         import lol_upmix as UM, lol_v3core as V
         a.abs(0xB9, p + "t_item").b(0xC9, items[-1][1]).br(0xD0, p + "n_nu").b(*V.far(14, UM.V_URES)).b(0x60)
         a.label(p + "n_nu")
-    a.abs(0xB9, p + "t_item").b(0xC9, 0x04).br(0xB0, p + "n_r").b(0xC9, 0x02).br(0x90, p + "n_r")
+    import lol_v10                      # (1.0: the wood sword is a sword too)
+    a.abs(0xB9, p + "t_item").b(0xC9, 0x04).br(0xB0, p + "n_r").b(0xC9, 0x01 if lol_v10.ON else 0x02).br(0x90, p + "n_r")
     a.abs(0xAD, 0x7FF7).br(0xF0, p + "n_sw").b(0xA9, 0x24, 0x60)                  # swordless: a bomb upgrade
     a.label(p + "n_sw").abs(0xB9, p + "t_item")
     a.label(p + "n_r").b(0x60)
@@ -145,20 +151,42 @@ def lines(li, rows):
     return out
 
 
+def lol_fixed_v10():
+    import lol_v10
+    return lol_v10.ON
+
+
 def apply(rom: bytearray, notes: list) -> None:
     from lol_af import Asm, place, BANK
     assert len(LISTS) == 3 and all(LISTS), LISTS
-    tables = [load(name, items) for name, items in LISTS]
+    import lol_v10 as V10
+    v10 = V10.ON
+    if v10:                             # (1.0, seeded) the build's lists: lol_v10; four shop kinds' own
+        up = any(c[0] == "upgrade" for c in LISTS[0][1])
+        idx = [{c[0]: i for i, c in enumerate(items)} for _, items in LISTS]
+        sets = [V10.old_men_lines([c[0] for c in LISTS[0][1]], up), V10.shrine_lines(up)]
+        sets += [V10.shop_lines(k, [c[0] for c in LISTS[2][1]]) for k in range(4)]
+        set_list = [0, 1, 2, 2, 2, 2]
+        line_sets = [[[idx[set_list[k]][n] for n in line] for line in lines_] for k, lines_ in enumerate(sets)]
+    else:
+        tables = [load(name, items) for name, items in LISTS]
+        set_list = [0, 1, 2]
+        line_sets = [lines(li, rows) for li, rows in enumerate(tables)]
     base, g = [], 0
-    for name, items in LISTS:
+    allitems = []
+    for li, (name, items) in enumerate(LISTS):
+        if li == 2 and lol_fixed_v10() and items == LISTS[0][1][:len(items)]:
+            base.append(base[0])        # (1.0) the shops' items are the old men's: one set of tables
+            continue
         base.append(g); g += len(items)
-    allitems = [c for _, items in LISTS for c in items]
+        allitems += items
     t = bytes([0xA9, ENGINE_BANK, 0x20, 0xAC, 0xFF, 0x20, ENGINE & 0xFF, ENGINE >> 8, 0xAD, RET & 0xFF, RET >> 8,
                0x4C, 0xAC, 0xFF])
     at = BANK(7) + TRAMP - 0xC000
     assert all(x == 0xFF for x in rom[at:at + len(t)])
     rom[at:at + len(t)] = t
 
+    V10_FIX = []
     a = Asm(ENGINE)
     a.b(0xA5, 0x0E, 0x48, 0xA5, 0x0F, 0x48)                                     # keep $0E/$0F
     a.abs(0xAE, LST)
@@ -167,7 +195,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("k_sh").b(0x4A, 0x88).br(0xD0, "k_sh")
     a.label("k_b").b(0x29, 0x03).abs(0x8D, KEY)
     a.abs(0xAD, 0x066F).b(0x4A, 0x4A, 0x4A, 0x4A, 0x38).abs(0x6D, KEY)          # containers - 1 + 1 + badges
-    a.b(0xE0, 0x02).br(0xD0, "k_n4").abs(0xAC, 0x0350).b(0xC0, 0x7A).br(0xD0, "k_n4").b(0x18, 0x69, 0x01)  # shop 4: +1
+    if not v10:
+        a.b(0xE0, 0x02).br(0xD0, "k_n4").abs(0xAC, 0x0350).b(0xC0, 0x7A).br(0xD0, "k_n4").b(0x18, 0x69, 0x01)  # shop 4: +1
     a.label("k_n4").b(0xC9, 0x11).br(0x90, "k_ok").b(0xA9, 0x10)
     a.label("k_ok").abs(0x8D, KEY)
     # this file's saved bytes: ($0E) = STORE + slot * 20
@@ -180,10 +209,21 @@ def apply(rom: bytearray, notes: list) -> None:
     a.b(0xC9, 0x11).br(0xB0, "st_new").abs(0x8D, KEY).br(0x90, "w_ptr")
     a.label("st_new").abs(0xAD, KEY).b(0x91, 0x0E)
     # ($0E) = this list's row: weights + (level - 1) * n
-    a.label("w_ptr").abs(0xBD, "wlo").b(0x85, 0x0E).abs(0xBD, "whi").b(0x85, 0x0F)
-    a.abs(0xAC, KEY)
-    a.label("w_row").b(0x88).br(0xF0, "w_done").b(0xA5, 0x0E, 0x18).abs(0x7D, "nn").b(0x85, 0x0E)
-    a.br(0x90, "w_row").b(0xE6, 0x0F).br(0xB0, "w_row")
+    if v10:                             # (1.0) a shop: its kind's lines (CTX = the cave type, $77-$7A: shops A-D)
+        a.label("w_ptr").b(0x8A)
+        a.b(0xE0, 0x02).br(0xD0, "wp_n").abs(0xAD, CTX).b(0x38, 0xE9, 0x77).br(0xB0, "wp_k").b(0xA9, 0x00)
+        a.label("wp_k").b(0xC9, 0x04).br(0x90, "wp_ok").b(0xA9, 0x00)
+        a.label("wp_ok").b(0x18, 0x69, 0x02)
+        a.label("wp_n")
+        a.b(0xA8).abs(0xB9, "wlo").b(0x85, 0x0E).abs(0xB9, "whi").b(0x85, 0x0F)
+    else:
+        a.label("w_ptr").abs(0xBD, "wlo").b(0x85, 0x0E).abs(0xBD, "whi").b(0x85, 0x0F)
+    if v10:                             # (1.0) the set's 16 line addresses (lo, then hi): lines end with $FF
+        a.abs(0xAC, KEY).b(0x88, 0xB1, 0x0E, 0x48, 0x98, 0x18, 0x69, 0x10, 0xA8, 0xB1, 0x0E, 0x85, 0x0F, 0x68, 0x85, 0x0E)
+    else:
+        a.abs(0xAC, KEY)
+        a.label("w_row").b(0x88).br(0xF0, "w_done").b(0xA5, 0x0E, 0x18).abs(0x7D, "nn").b(0x85, 0x0E)
+        a.br(0x90, "w_row").b(0xE6, 0x0F).br(0xB0, "w_row")
     a.label("w_done")
     a.b(0xA9, 0xFF).abs(0x8D, OUT).abs(0x8D, OUT + 1).abs(0x8D, OUT + 2)
     a.b(0xA9, 0x00).abs(0x8D, NOK).abs(0x8D, PK)
@@ -194,8 +234,10 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("wl").abs(0xAD, RR).abs(0xDD, "nn").br(0xB0, "done").b(0xA8, 0xB1, 0x0E, 0xC9, 0xFF).br(0xF0, "done")
     a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take")
     # (owner 2026-11-25) a second tier Link can't have yet (no first tier): the first tier in its place
-    a.b(0x98, 0x18).abs(0x7D, "bases").b(0xA8).abs(0xB9, "down").b(0xC9, 0xFF).br(0xF0, "wl_nx")
+    a.label("dn").b(0x98, 0x18).abs(0x7D, "bases").b(0xA8).abs(0xB9, "down").b(0xC9, 0xFF).br(0xF0, "wl_nx")
     a.b(0xA8).abs(0x20, "ok").br(0xB0, "pk_take")
+    if v10:                             # (1.0) down the line: magical sword -> white -> wood
+        a.abs(0x4C, "dn")
     a.label("wl_nx").abs(0xEE, RR).abs(0x4C, "wl")
     a.label("pk_take").b(0x98).abs(0xAC, PK).abs(0x99, OUT).abs(0xEE, PK).abs(0xEE, NOK)
     a.abs(0x4C, "pk_lp")
@@ -243,32 +285,65 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("bshift").b(*BADGE_SHIFT)
     a.label("nn").b(*[len(items) for _, items in LISTS])
     a.label("bases").b(*base)
-    a.label("wlo").b(0, 0, 0)
-    a.label("whi").b(0, 0, 0)
-    a.label("isword").b(*[1 if c[1] in (0x02, 0x03) else 0 for c in allitems])
+    a.label("wlo").b(*[0] * len(line_sets))
+    a.label("whi").b(*[0] * len(line_sets))
+    a.label("isword").b(*[1 if c[1] in ((0x01, 0x02, 0x03) if v10 else (0x02, 0x03)) else 0 for c in allitems])
     a.label("isring").b(*[1 if c[1] in (0x12, 0x13) else 0 for c in allitems])
     # down: per entry, the same list's entry of its first tier (sword, candle, ring, arrows, book), else $FF
     down = []
-    for _, items in LISTS:
+    for li, (_, items) in enumerate(LISTS):
+        if li == 2 and base[2] == base[0] and li != 0:
+            continue
         codes = [c[1] for c in items]
         for c in items:
-            low = LOWER.get(c[1])
+            low = (V10.LOWER if v10 else LOWER).get(c[1])
             down.append(codes.index(low) if low in codes else 0xFF)
     a.label("down").b(*down)
     for k in (0, 1):
         a.label(f"ca{k}").b(*[c[3 + k][0] & 0xFF for c in allitems])
         a.label(f"clo{k}").b(*[c[3 + k][1] for c in allitems])
         a.label(f"chi{k}").b(*[c[3 + k][2] for c in allitems])
-    for li, rows in enumerate(tables):
-        a.label(f"w{li}")
-        for line in lines(li, rows):
-            a.b(*(line + [0xFF] * (len(rows[0]) - len(line))))
+    if v10:                             # compact: each distinct line once, then the set's address table
+        seen = {}
+        for k, line_set in enumerate(line_sets):
+            for h, line in enumerate(line_set):
+                key = (set_list[k], tuple(line))
+                if key not in seen:
+                    seen[key] = f"ln{len(seen)}"
+                    a.label(seen[key]).b(*line, 0xFF)
+        for k, line_set in enumerate(line_sets):
+            names = [seen[(set_list[k], tuple(line))] for line in line_set]
+            a.label(f"w{k}")
+            a.b(*[0] * 32)
+            V10_FIX.append((k, names))
+    else:
+        for k, line_set in enumerate(line_sets):
+            a.label(f"w{k}")
+            n = len(LISTS[set_list[k]][1])
+            for line in line_set:
+                a.b(*(line + [0xFF] * (n - len(line))))
     code = bytearray(a.bytes())
     lo_at, hi_at = a.labels["wlo"] - ENGINE, a.labels["whi"] - ENGINE
-    for li in range(3):
-        w = a.labels[f"w{li}"]
-        code[lo_at + li], code[hi_at + li] = w & 0xFF, w >> 8
-    assert ENGINE + len(code) <= 0xBBA0, hex(ENGINE + len(code))
-    place(rom, ENGINE_BANK, ENGINE, bytes(code))
+    for k in range(len(line_sets)):
+        w = a.labels[f"w{k}"]
+        code[lo_at + k], code[hi_at + k] = w & 0xFF, w >> 8
+    for k, names in V10_FIX:            # (1.0) the address tables
+        at = a.labels[f"w{k}"] - ENGINE
+        for h, nm in enumerate(names):
+            code[at + h], code[at + 16 + h] = a.labels[nm] & 0xFF, a.labels[nm] >> 8
+    if LATE:
+        assert ENGINE + len(code) <= 0xBB60, hex(ENGINE + len(code))
+        _PENDING.append(bytes(code))
+    else:
+        assert ENGINE + len(code) <= 0xBBA0, hex(ENGINE + len(code))
+        place(rom, ENGINE_BANK, ENGINE, bytes(code))
     notes.append(f"odds tables: engine + tables {len(code)} bytes in bank {ENGINE_BANK} at ${ENGINE:04X} ("
                  + ", ".join(f"{LISTS[i][0]} {len(LISTS[i][1])} items" for i in range(3)) + ")")
+
+
+def late(rom: bytearray) -> None:
+    """(1.0) the engine into bank 9, once lol_genload has grown the ROM."""
+    from lol_af import place
+    for code in _PENDING:
+        place(rom, ENGINE_BANK, ENGINE, code)
+    _PENDING.clear()
