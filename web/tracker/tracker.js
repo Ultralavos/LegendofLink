@@ -52,7 +52,7 @@ const MARKS = [   // value, label on the map, class, picker text
   ["shop", "SHOP", "shop", "Shop"], ["up", "UPG", "upg", "Upgrade cave"], ["hint", "HINT", "hint", "Hint"],
   // (owner 2026-11-28) gambling: a die; the secrets by size: a cent sign (small), a rupee (medium), a dollar sign (large)
   ["gamble", "", "dice", "Gambling"], ["sec1", "¢", "sec", "Small secret"], ["sec2", "", "rup", "Medium secret"],
-  ["sec3", "$", "sec", "Large secret"], ["rupee", "$", "misc", "Secret rupees"],
+  ["sec3", "$", "sec", "Large secret"], ["secq", "?", "sec", "Secret, not taken"], ["rupee", "$", "misc", "Secret rupees"],
   ["tri4", "4▲", "tri", "4-triforce cave"], ["tri8", "8▲", "tri", "8-triforce cave"],
   ["armos", "ARM", "arm", "Armos item"],
 ];
