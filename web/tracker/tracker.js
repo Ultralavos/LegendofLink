@@ -46,7 +46,10 @@ const ARMOS = [36, 28, 52, 61, 78];
 // a card, an XP bag, a potion, or the letter once the deck is out
 const ARMOS_OPTS = [...ITEMS.flatMap(([id, steps, names]) => id === "bomb" ? [] : steps.map((st, i) => [st, names[i]])), ["bombs", "Bomb upgrade"],
   ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
-const FIXED = { 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "road"], 73: ["ROAD", "road"], 121: ["ROAD", "road"] };
+// (owner 2026-11-28) F16 (95): the coast's item - click: a window of what it can be; click a picture: seen (shown
+// grey on the map), right-click it: taken (in colour, given)
+const COAST = 95;
+const FIXED = { [COAST]: ["COAST", "coast"], 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "road"], 73: ["ROAD", "road"], 121: ["ROAD", "road"] };
 const MARKS = [   // value, label on the map, class, picker text
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [`L${n}`, `${n}`, "lvl", `Level ${n}`]),
   ...["A", "B", "C", "D"].map((c) => [`S${c}`, c, "shr", `Shrine ${c}`]),
@@ -332,7 +335,16 @@ function renderMap() {
     cell.style.left = `${col * 6.25}%`; cell.style.top = `${row * 12.5}%`;
     if (FIXED[s]) {
       cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] }));
-      if (s === 119) {                         // (owner 2026-11-27) the wood sword cave: a click checks it and gives the sword
+      if (s === COAST) {
+        const c = S.coast || {};
+        if (c.img) {
+          cell.querySelector(".tag").remove();
+          const t = markTag("arm coast" + (c.taken ? "" : " seen"), ""); t.append(icon(c.img)); cell.append(t);
+          cell.title += `: coast item, ${optName(ARMOS_OPTS, c.img)} (${c.taken ? "taken" : "seen"})`;
+        } else cell.title += ": the coast item (click to mark it)";
+        const open = (e) => { e.preventDefault(); e.stopPropagation(); openCoast(cell); };
+        cell.onclick = open; cell.oncontextmenu = open; longPress(cell, () => openCoast(cell));
+      } else if (s === 119) {                         // (owner 2026-11-27) the wood sword cave: a click checks it and gives the sword
         // (owner 2026-11-28) taken: an X on it (and the wood sword lit)
         if (S.owDone[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
         cell.title += ": the wood sword (click when taken)";
@@ -451,6 +463,36 @@ function owTop(p, r, host) {
   const y = lastPtrY !== null && lastPtrY >= r.top - 2 && lastPtrY <= r.bottom + 2 ? lastPtrY : (r.top + r.bottom) / 2;
   const h = p.offsetHeight;
   return Math.max(4, Math.min(y - host.top - h / 2, host.height - h - 4));
+}
+// (owner 2026-11-28) the coast item's window: click a picture: seen; right-click: taken (given, in colour)
+function openCoast(cell) {
+  const p = $("picker"); picking = COAST; p.replaceChildren();
+  const c = S.coast || {};
+  p.append(el("div", { className: "ptitle", textContent: "F16: the coast item (click: seen · right-click: taken)" }));
+  const grid = el("div", { className: "omgrid" });
+  const set = (img, taken) => {
+    revoke("coast");
+    S.coast = { img, taken };
+    if (taken) grant("coast", img, true);
+    save(); closePicker(); renderAll();
+  };
+  const add = (img, name) => {
+    const b = el("button", { type: "button", className: "omi" + (c.img === img ? " sel" : ""), title: name }, [icon(img)]);
+    b.onclick = (e) => { e.stopPropagation(); set(img, false); };
+    b.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); set(img, true); };
+    grid.append(b);
+  };
+  for (const [img, name] of ARMOS_OPTS) add(img, name);
+  if (S.ug) UPGRADES.forEach((name, i) => { if ((S.ups[i] || 0) !== 2 || c.img === `up:${i}`) add(`up:${i}`, name); });
+  const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo", title: "Back to unmarked" });
+  undo.onclick = () => { revoke("coast"); delete S.coast; save(); closePicker(); renderAll(); };
+  p.append(grid, el("div", { className: "prow" }, [undo]));
+  p.hidden = false;
+  const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(320, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = owTop(p, r, host) + "px";
 }
 // (owner 2026-11-28) every overworld window: Undo (the square back to unmarked) and X (don't need it; again: off)
 function owActions(s) {

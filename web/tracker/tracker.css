@@ -99,7 +99,8 @@ main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minm
 .tag.sec { background: #f3d36b; color: #1d1600; font-weight: 900; } .tag.rup { background: #f3d36b; }
 .tag.rup img { width: 70%; height: 80%; object-fit: contain; image-rendering: pixelated; }
 .pick .tag.dice, .pick .tag.rup { width: 34px; height: 24px; display: grid; place-items: center; }
-.tag.arm { background: #b98a4a; color: #fff; } .cell .tag.arm img { width: 80%; height: 80%; object-fit: contain; }
+.tag.arm { background: #b98a4a; color: #fff; }
+.tag.coast { background: #2f7fb0; color: #fff; } .cell .tag.coast.seen img { filter: grayscale(1); opacity: .55; } .cell .tag.arm img { width: 80%; height: 80%; object-fit: contain; }
 .tag.tri { background: #f39a2c; position: relative; display: inline-grid; place-items: center; min-width: 22px; min-height: 20px; }
 .tag.tri svg { position: absolute; inset: 10% 12%; width: 76%; height: 80%; fill: #ffe27a; stroke: #6b3a00; stroke-width: 1; }
 .tag.tri b { position: relative; color: #000; font-weight: 900; font-size: 1em; margin-top: 18%; }
