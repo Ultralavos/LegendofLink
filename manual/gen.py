@@ -265,9 +265,25 @@ P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES</h1>
 <li>An <b>old man</b> with a choice of items. Take one and the other disappears.</li>
 <li>A <b>triforce piece</b>, in any room. The <b>compass</b> points to it. Like other room items it stands on the floor or drops when the room's enemies are defeated.</li>
 <li>The <b>map</b> and <b>compass</b>, in rooms of their own.</li>
-<li><b>Item spots</b>: the cellars, a floor item and a blue potion room. In a seeded game each one, and the coast's and the Armos' items, takes the next card of the seed's <b>item deck</b> the first time Link reaches it: an item, an old men card, a blue potion or an XP bag. Cards Link can't use are skipped, and an empty deck gives an XP bag.</li>
+<li><b>Item spots</b>: three in each level, some in cellars and some on the floor of a room (see the table on the next page). In a seeded game each one, and the coast's and the Armos' items, takes the next card of the seed's <b>item deck</b> the first time Link reaches it: an item, an old men card, a blue potion or an XP bag. Cards Link can't use are skipped, and an empty deck gives an XP bag.</li>
 <li>Unseeded: <b>old men cards</b> or <b>XP bags</b> in the cellars, and at least one <b>blue potion</b>.</li>
 </ul>
+</section>''')
+
+# (owner 2026-11-28) each level's item spots: cellars / floor items, by dungeon set
+SPOTS = {"Legend of Link, 1st Quest, Random shapes, Chaos": "1/2 0/2 1/1 1/1 1/1 1/1 1/1 2/1",
+         "2nd Quest": "0/2 1/1 0/2 2/1 1/1 1/1 1/1 2/1", "3rd Quest": "1/2 1/1 1/1 1/2 1/1 1/2 0/2 1/2",
+         "4th Quest": "0/2 0/2 0/2 1/1 0/2 1/2 0/2 1/2"}
+_hdr = "".join(f"<th>{k}</th>" for k in SPOTS)
+_rows = "".join("<tr><td>" + str(lv + 1) + "</td>" + "".join("<td>" + v.split()[lv].replace("/", " / ") + "</td>" for v in SPOTS.values()) + "</tr>" for lv in range(8))
+P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES (CONT.)</h1>
+<h2>Item Spots</h2>
+<p>Each of levels 1-8 has three item spots. Depending on the dungeon set, they sit in <b>cellars</b> (under an item staircase) or on the <b>floor</b> of a room. Each entry reads cellars / floor:</p>
+<table class="grid">
+<tr><th>Level</th>{_hdr}</tr>
+{_rows}
+</table>
+<p>With Mixed, each level counts as its own quest's level.</p>
 <h2>Roars</h2>
 <p>In Level 9 and the shrines, the rooms next to Ganon or a shrine's guardian echo with its roar while it lives. Follow the sound.</p>
 </section>''')
