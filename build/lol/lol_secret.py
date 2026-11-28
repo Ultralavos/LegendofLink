@@ -46,6 +46,9 @@ def _pick():
         return s, h
     if os.environ.get("LOL_RACE") != "1":      # (owner 2026-11-25) only ever on a Race Rom
         return None
+    import lol_fixed
+    if not lol_fixed.FIXED:                    # (2026-11-28) an unseeded Race Rom: no room for a spot's cave (the build
+        return None                            #  stopped): none
     seed = os.environ.get("LOL_SEED") or os.environ.get("LOL_SET_SEED") or "0"
     rng = random.Random(f"lol secret spot {seed}")
     if rng.randrange(ODDS):
