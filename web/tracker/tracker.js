@@ -10,6 +10,7 @@ const el = (tag, props = {}, kids = []) => { const e = Object.assign(document.cr
 // ---------------------------------------------------------------- data
 const ITEMS = [   // id, steps (null = not owned), name
   ["sword", ["sword1", "sword2", "sword3"], ["Wood sword", "White sword", "Magical sword"]],
+  ["bomb", ["bomb"], ["Bombs (the first ones found)"]],     // (owner 2026-11-28: bomb walls count once he has them)
   ["boom", ["boom1", "boom2"], ["Boomerang", "Magical boomerang"]],
   ["bow", ["bow"], ["Bow"]],
   ["arrow", ["arrow1", "arrow2"], ["Arrows", "Silver arrows"]],
@@ -43,7 +44,7 @@ const ENTRANCES = [1, 3, 4, 5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22
 const ARMOS = [36, 28, 52, 61, 78];
 // (1.0) the item deck's spots (the cellars, floor items, potion rooms, coast and Armos): any item, a bomb upgrade,
 // a card, an XP bag, a potion, or the letter once the deck is out
-const ARMOS_OPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])), ["bombs", "Bomb upgrade"],
+const ARMOS_OPTS = [...ITEMS.flatMap(([id, steps, names]) => id === "bomb" ? [] : steps.map((st, i) => [st, names[i]])), ["bombs", "Bomb upgrade"],
   ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
 const FIXED = { 119: ["SWORD", "fixed"], 29: ["ROAD", "road"], 35: ["ROAD", "road"], 73: ["ROAD", "road"], 121: ["ROAD", "road"] };
 const MARKS = [   // value, label on the map, class, picker text
@@ -398,10 +399,10 @@ function showAccess(a) {
   $("map").querySelectorAll(".cell").forEach((c) => c.classList.toggle("acc-hit", !!a && a[3].includes(+c.dataset.s)));
   $("access").querySelectorAll("button").forEach((b) => b.classList.toggle("cur", !!a && b.dataset.id === a[0]));
 }
-// (bombs count as always at hand; the ladder's spot needs a bomb too)
-const ACCESS_OK = { open: () => true, bomb: () => true, candle1: () => has("candle"), candle2: () => has("candle", 2),
+// (bomb walls once he has bombs: the Bombs item; the ladder's spot needs a bomb too)
+const ACCESS_OK = { open: () => true, bomb: () => has("bomb"), candle1: () => has("candle"), candle2: () => has("candle", 2),
   bracelet: () => has("bracelet"), recorder: () => has("recorder"), raft: () => has("raft"), ladder: () => has("ladder") };
-const openable = (s) => (s === 0x19 ? has("ladder") : ACCESS.some((a) => a[3].includes(s) && ACCESS_OK[a[0]]()));
+const openable = (s) => (s === 0x19 ? has("ladder") && has("bomb") : ACCESS.some((a) => a[3].includes(s) && ACCESS_OK[a[0]]()));
 const unchecked = (s) => !S.ow[s] && !S.owX[s];
 function renderAccessCounts() {
   const left = ENTRANCES.filter(unchecked);
@@ -1027,7 +1028,7 @@ const BOXOPTS = [["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "S
 const L9OPTS = [["arrow2", "Silver arrows"], ["ring2", "Red ring"], ["sword3", "Magical sword"], ["boom2", "Magical boomerang"],
   ["candle2", "Red candle"], ["book2", "Blue book"], ["shield", "Magical shield"], ["potion2", "Red potion"],
   ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
-const PRIZEOPTS = [...ITEMS.flatMap(([, steps, names]) => steps.map((st, i) => [st, names[i]])),
+const PRIZEOPTS = [...ITEMS.flatMap(([id, steps, names]) => id === "bomb" ? [] : steps.map((st, i) => [st, names[i]])),
   ["cardS", "Shop card"], ["cardD", "Dungeon card"], ["cardX", "Shrine card"], ["xp1", "XP bag"], ["xp2", "Big XP bag"]];
 // a level / shrine whose side column is all marked: green in the tabs and the Triforce and Shrines panel
 function sideDone(k) {
