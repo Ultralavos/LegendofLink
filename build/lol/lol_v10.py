@@ -216,7 +216,8 @@ HINTS = {"LEVELS 1-8 ALL HAVE AN OLD MAN, SEEK THEM": "LEVELS 1-9 ALL HAVE AN OL
 # comes to them. The deck (rolled when the seed is built): 1-7 items by DECK_ODDS (no repeats), 1-3 each of the S, D
 # and X cards, the rest a blue potion, a small (+15) or a large (+25) XP bag (1 in 3 each); shuffled. Dealt in the game
 # in order, a card Link can't use skipped (owned; an upgrade at its top tier gives its next tier; a fourth card of a
-# kind; a potion past 2, or 4 with the potion pouch; XP at heart level 16); none left: the letter.
+# kind; a potion past 2, or 4 with the potion pouch; XP at heart level 16); none left: the letter in a Race Rom, else
+# an orange XP bag.
 # Kinds (the deck's bytes): 0-14 an inventory byte's next tier (KINDS), 15 bomb upgrade, 16 blue potion, 17-19 the
 # S / D / X cards, 20 / 21 small / large XP; $FE (lol_upmix) the upgrade card.
 KINDS = [("ring upgrade", RING, [0x12, 0x13]), ("sword upgrade", SWORD, [0x01, 0x02, 0x03]),
@@ -302,7 +303,8 @@ def deal_routine(rom):
         else:
             a.abs(0xAE, DECK_PTR).b(0xE0, len(dk)).br(0xB0, "empty").abs(0xBD, "deck").abs(0xEE, DECK_PTR)
             a.abs(0x20, "res").br(0xB0, "next").br(0x90, "store")
-        a.label("empty").b(0xA9, LETTER)
+        # (owner 2026-11-28) the letter in a Race Rom only (lol_infoshop); else an orange XP bag
+        a.label("empty").b(0xA9, LETTER if os.environ.get("LOL_RACE") == "1" else 0x29)
         a.label("store").b(0x09, 0x80).abs(0x99, HINT_QS)
         a.label("have").b(0xC9, 0xFE).br(0xF0, "ret").b(0x29, 0x7F)
         a.label("ret").abs(0x8D, T).b(0x68, 0xA8, 0x68, 0xAA).abs(0xAD, T).b(0x60)

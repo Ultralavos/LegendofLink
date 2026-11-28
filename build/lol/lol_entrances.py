@@ -34,6 +34,7 @@ import os
 GEN = os.environ.get("LOL_GEN") == "1"   # the v2 dungeon test: the first 8 caves are generated dungeons
 CLEAR2 = 0xB900                 # bank 2: clear a new file's choices (called from lol_af's new-file branch)
 EXCLUDED = ("H8",)
+ENTS = None                     # (apply) the entrances' rooms, STORE's order
 
 SECRET10, SECRET30, SECRET100 = 0x23, 0x21, 0x22
 SHOPS = (0x1D, 0x1E, 0x1F)
@@ -112,6 +113,8 @@ def apply(rom: bytearray, notes: list) -> None:
             and rom[OW + 0x80 + s] >> 2 != 0x14]
     name = lambda s: "ABCDEFGH"[s // 16] + str(s % 16 + 1)
     ents = [s for s in ents if name(s) not in EXCLUDED]
+    global ENTS
+    ENTS = list(ents)
     from collections import Counter
     have = Counter(rom[OW + 0x80 + s] >> 2 for s in ents)
     if not GEN:
@@ -184,7 +187,8 @@ def apply(rom: bytearray, notes: list) -> None:
     a.label("re_hint")
     if GEN:
         a.abs(0x20, "hint_chk")
-    a.label("re_done").b(0x68, 0x85, 0x01, 0x68, 0x85, 0x00, 0x60)
+    import lol_infoshop                  # (1.0 Race Rom: B2 / A15, the letter's info shop)
+    a.label("re_done").b(*lol_infoshop.entry_far()).b(0x68, 0x85, 0x01, 0x68, 0x85, 0x00, 0x60)
     if GEN:
         # a hint cave: its quote (one not used yet in this game, if any left), copied to the old man's text
         from lol_genload import HINT_QS, TRAMPQ

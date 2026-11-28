@@ -359,6 +359,8 @@ def main():
     lol_heavy.apply(rom, notes)
     import lol_secret
     lol_secret.apply(rom, notes)
+    import lol_infoshop
+    lol_infoshop.apply(rom, notes)               # (1.0 Race Rom: the letter's info shop; after lol_heavy's stubs)
     import lol_names
     lol_names.apply(rom, notes)
     import lol_shrineui
@@ -380,7 +382,8 @@ def main():
         lol_odds.late(rom)                        # (1.0: the odds engine, bank 9)
         import lol_v10
         lol_v10.late(rom)                         # (1.0: the item deck's deal, bank 12)
-        lol_upmix.late(rom)                       # (the Upgrade mix's code: in a data bank)
+        lol_upmix.late(rom)
+        lol_infoshop.late(rom)                    # (its code: bank 14)                       # (the Upgrade mix's code: in a data bank)
         lol_pictures.late(rom)                    # (its picture queue's NMI hook: bank 6)
         lol_xray.late(rom)                        # (the X-ray glasses' code: in a data bank)
         lol_genload.finish(rom)                   # (last: the fixed bank's copy)

@@ -249,7 +249,7 @@ P(f'''<section class="page"><h1 class="band">DUNGEONS AND SHRINES</h1>
 <ul>
 <li>An <b>old man</b> with a choice of items. Take one and the other disappears.</li>
 <li>A <b>triforce piece</b>.</li>
-<li><b>Item spots</b>: the cellars, a floor item and a blue potion room. In a seeded game each one, and the coast's and the Armos' items, takes the next card of the seed's <b>item deck</b> the first time Link reaches it: an item, an old men card, a blue potion or an XP bag. Cards Link can't use are skipped, and an empty deck gives the letter.</li>
+<li><b>Item spots</b>: the cellars, a floor item and a blue potion room. In a seeded game each one, and the coast's and the Armos' items, takes the next card of the seed's <b>item deck</b> the first time Link reaches it: an item, an old men card, a blue potion or an XP bag. Cards Link can't use are skipped, and an empty deck gives an XP bag.</li>
 <li>Unseeded: <b>old men cards</b> or <b>XP bags</b> in the cellars, and at least one <b>blue potion</b>.</li>
 </ul>
 <h2>Shrines A-D</h2>

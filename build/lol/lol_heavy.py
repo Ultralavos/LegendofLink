@@ -268,6 +268,16 @@ def caves(rom, notes):
     from zora.rom.serialize.text import _encode_quote
     import build_mock as base
 
+    # (owner 2026-11-28, seeded games) the cave words scrambled in the ROM (lol_infoshop's running key): ROM viewers
+    # can't read the secret spots' hints
+    import lol_fixed as _fx, lol_infoshop as _IS
+    _scr = _IS.scramble if _fx.FIXED else (lambda b: b)
+
+    def _copy(a, p, src):
+        if _fx.FIXED:
+            _IS.unscramble(a, p, src, HINT_BUF, 80)
+        else:
+            a.label(p).abs(0xB9, src).abs(0x9D, HINT_BUF).b(0xC8, 0xE8, 0xE0, 80).br(0xD0, p)
     # --- bank 0: the wares and the take
     import lol_secret
     ALL = {**HINTS, **({"secret": lol_secret.TEXT} if lol_secret.PICK else {})}
@@ -275,12 +285,12 @@ def caves(rom, notes):
     texts = b""
     for m in modes:
         t = bytes(_encode_quote(base.centered(ALL[m])))
-        texts += t + bytes(80 - len(t))
+        texts += _scr(t + bytes(80 - len(t)))
     stexts = b""
     for lines in (SPECIAL_TEXT[THORN_C], SPECIAL_TEXT["sleep"]):
         t = bytes(_encode_quote(base.centered(lines)))
         assert len(t) <= 80
-        stexts += t + bytes(80 - len(t))
+        stexts += _scr(t + bytes(80 - len(t)))
     mc = T.bit("membership card")
     zl = T.bit("zombie link")
     sn = T.bit("heart snubber")
@@ -292,7 +302,10 @@ def caves(rom, notes):
         a.label("w_l").b(0xA5, 0xEB).abs(0xDD, "rm").br(0xF0, "w_f").b(0xCA).br(0x10, "w_l")
         a.label("w_r").b(0x60)
         a.label("w_f").abs(0xBD, "opt").b(0xC9, THORN_C).br(0xF0, "w_th").b(0xC9, SHOP_C).br(0xF0, "w_sh")
-        a.b(0xC9, FREE_C).br(0xF0, "w_fr").b(0xC9, HINT_C).br(0xF0, "w_hi").b(0x60)
+        if _fx.FIXED:                           # (the unscrambling made w_hi too far for a branch)
+            a.b(0xC9, FREE_C).br(0xF0, "w_fr").b(0xC9, HINT_C).br(0xD0, "w_nh").abs(0x4C, "w_hi").label("w_nh").b(0x60)
+        else:
+            a.b(0xC9, FREE_C).br(0xF0, "w_fr").b(0xC9, HINT_C).br(0xF0, "w_hi").b(0x60)
         ta = 3 * (TAKE_ANY - 0x10)
         sh = 3 * (SHOP - 0x10)
         # the special (Thorn Bracelet / Song of Sleep): the take-any's middle place, drawn as its item
@@ -302,7 +315,7 @@ def caves(rom, notes):
         a.abs(0xBD, "item").b(0x48, 0xA2, ta, 0xA9, 0x3F).abs(0x20, "put").b(0x68).abs(0x20, "put")
         a.b(0xA9, 0x3F).abs(0x20, "put")
         a.b(0x68, 0xA8, 0xA2, 0x00)
-        a.label("w_tl").abs(0xB9, "stext").abs(0x9D, HINT_BUF).b(0xC8, 0xE8, 0xE0, 80).br(0xD0, "w_tl")
+        _copy(a, "w_tl", "stext")
         a.b(0xA9, lol_modes.HINT_SEL).abs(0x8D, lol_modes.QOVR).b(0x60)
         # free: ring, book, sword (take one)
         a.label("w_fr").b(0xA2, ta).abs(0x20, "ring").abs(0x20, "put").abs(0x20, "book").abs(0x20, "put")
@@ -316,7 +329,7 @@ def caves(rom, notes):
         a.label("w_ps").b(0x98).abs(0x9D, CAVE_PRICES + sh).b(0xCA).br(0x10, "w_pl").b(0x60)
         # the hint: the old man's text (this cave's mode)
         a.label("w_hi").abs(0xBC, "hix").b(0xA2, 0x00)
-        a.label("w_hl").abs(0xB9, "text").abs(0x9D, HINT_BUF).b(0xC8, 0xE8, 0xE0, 80).br(0xD0, "w_hl")
+        _copy(a, "w_hl", "text")
         a.b(0xA9, lol_modes.HINT_SEL).abs(0x8D, lol_modes.QOVR).b(0x60)
         # put: item A into ware X (its flag bits kept); X + 1
         a.label("put").abs(0x8D, THD).abs(0xBD, CAVE_WARES).b(0x29, 0xC0).abs(0x0D, THD).abs(0x9D, CAVE_WARES)
