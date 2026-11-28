@@ -337,11 +337,11 @@ function renderMap() {
     if (FIXED[s]) {
       cell.classList.add("fixed"); cell.append(el("span", { className: "tag " + FIXED[s][1], textContent: FIXED[s][0] }));
       if (s === COAST) {
-        const c = S.coast || {};
-        if (c.img) {
-          cell.querySelector(".tag").remove();
-          const t = markTag("arm coast" + (c.taken ? "" : " seen"), ""); t.append(icon(c.img)); cell.append(t);
-          cell.title += `: coast item, ${optName(ARMOS_OPTS, c.img)} (${c.taken ? "taken" : "seen"})`;
+        const c = (S.cv || {}).coast || {};
+        const t = cvTag("coast");
+        if (t) {
+          cell.querySelector(".tag").remove(); cell.append(t);
+          cell.title += `: coast item, ${optName(ARMOS_OPTS, c.img) || "an upgrade"} (${c.taken ? "taken" : "seen"})`;
         } else cell.title += ": the coast item (click to mark it)";
         const open = (e) => { e.preventDefault(); e.stopPropagation(); openCoast(cell); };
         cell.onclick = open; cell.oncontextmenu = open; longPress(cell, () => openCoast(cell));
@@ -371,6 +371,8 @@ function renderMap() {
       if (m && m[0] === "armos" && S.owArm[s]) {     // the Armos item: its picture
         const t = markTag("arm", ""); t.append(icon(S.owArm[s])); cell.append(t);
         cell.title += ": Armos item, " + optName(ARMOS_OPTS, S.owArm[s]);
+      } else if (m && cvOf(m[0]) && cvTag(cvOf(m[0]))) {   // a triforce cave with its item marked
+        cell.append(cvTag(cvOf(m[0]), m[0].slice(3)));
       } else if (m) cell.append(markTag(m[2], m[1]));
       else cell.classList.add("open");
       if (S.owDone[s]) cell.append(el("span", { className: "check", textContent: "✓" }));
@@ -465,42 +467,65 @@ function owTop(p, r, host) {
   const h = p.offsetHeight;
   return Math.max(4, Math.min(y - host.top - h / 2, host.height - h - 4));
 }
-// (owner 2026-11-28) a coast item only seen there, that Link then gets some other way: off the coast
-function coastGot() {
-  const c = S.coast;
-  if (!c || c.taken || !c.img) return;
-  const u = UPI(c.img);
-  let got = false;
-  if (u) got = (S.ups[+u[1]] || 0) === 2;
-  else {
-    const it = ITEMS.find(([, steps]) => steps.includes(c.img));
-    if (it) got = (S.items[it[0]] || 0) >= it[1].indexOf(c.img) + 1;
-  }
-  if (got) { delete S.coast; save(); }
+// (owner 2026-11-28) the coast's and the two triforce caves' items (S.cv: coast / t4 / t8, each { img, taken }): seen
+// (grey) or taken (in colour, given); marked from the overworld or the Cave items row under the items
+const CV_KINDS = [["coast", "Coast", "F16: the coast item"], ["t4", "4▲", "The 4-triforce cave (3-5)"],
+  ["t8", "8▲", "The 8-triforce cave (6-8)"]];
+const cvOf = (v) => { const m = /^tri(\d)$/.exec(v || ""); return m ? (+m[1] <= 5 ? "t4" : "t8") : null; };
+function cvMigrate() {
+  S.cv = S.cv || {};
+  if (S.coast) { S.cv.coast = S.coast; if (S.grants && S.grants.coast) { S.grants["cv:coast"] = S.grants.coast; delete S.grants.coast; } delete S.coast; }
 }
-// (owner 2026-11-28) the coast item's window: click a picture: seen; right-click: taken (given, in colour)
-function openCoast(cell) {
-  const p = $("picker"); picking = COAST; p.replaceChildren();
-  const c = S.coast || {};
-  p.append(el("div", { className: "ptitle", textContent: "F16: the coast item (click: seen · right-click: taken)" }));
+// one only seen, that Link then gets some other way: off its spot
+function coastGot() {
+  cvMigrate();
+  for (const [k] of CV_KINDS) {
+    const c = S.cv[k];
+    if (!c || c.taken || !c.img) continue;
+    const u = UPI(c.img);
+    let got = false;
+    if (u) got = (S.ups[+u[1]] || 0) === 2;
+    else {
+      const it = ITEMS.find(([, steps]) => steps.includes(c.img));
+      if (it) got = (S.items[it[0]] || 0) >= it[1].indexOf(c.img) + 1;
+    }
+    if (got) { delete S.cv[k]; save(); }
+  }
+}
+// the item grid (click: seen; right-click: taken) and Undo, into window p; done() after a pick
+function cvGrid(p, k, done) {
+  cvMigrate();
+  const c = S.cv[k] || {};
   const grid = el("div", { className: "omgrid" });
   const set = (img, taken) => {
-    revoke("coast");
-    S.coast = { img, taken };
-    if (taken) grant("coast", img, true);
-    save(); closePicker(); renderAll();
+    revoke("cv:" + k);
+    S.cv[k] = { img, taken };
+    if (taken) grant("cv:" + k, img, true);
+    save(); done(); renderAll();
   };
   const add = (img, name) => {
-    const b = el("button", { type: "button", className: "omi" + (c.img === img ? " sel" : ""), title: name }, [icon(img)]);
+    const b = el("button", { type: "button", className: "omi" + (c.img === img ? " sel" + (c.taken ? "" : " seen") : ""), title: name }, [icon(img)]);
     b.onclick = (e) => { e.stopPropagation(); set(img, false); };
     b.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); set(img, true); };
     grid.append(b);
   };
   for (const [img, name] of ARMOS_OPTS) add(img, name);
   if (S.ug) UPGRADES.forEach((name, i) => { if ((S.ups[i] || 0) !== 2 || c.img === `up:${i}`) add(`up:${i}`, name); });
-  const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo", title: "Back to unmarked" });
-  undo.onclick = () => { revoke("coast"); delete S.coast; save(); closePicker(); renderAll(); };
-  p.append(grid, el("div", { className: "prow" }, [undo]));
+  const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo item", title: "No item marked" });
+  undo.onclick = (e) => { e.stopPropagation(); revoke("cv:" + k); delete S.cv[k]; save(); done(); renderAll(); };
+  p.append(el("div", { className: "psub", textContent: "Item: click seen · right-click taken" }), grid, el("div", { className: "prow" }, [undo]));
+}
+function cvTag(k, num) {
+  const c = (S.cv || {})[k];
+  if (!c || !c.img) return null;
+  const t = markTag("arm " + (k === "coast" ? "coast" : "tricv") + (c.taken ? "" : " seen"), ""); t.append(icon(c.img));
+  if (num) t.append(el("b", { className: "trin", textContent: num + "▲" }));
+  return t;
+}
+function openCoast(cell) {
+  const p = $("picker"); picking = COAST; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: "F16: the coast item" }));
+  cvGrid(p, "coast", closePicker);
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(320, host.width - 16);
@@ -508,6 +533,35 @@ function openCoast(cell) {
   p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
   p.style.top = owTop(p, r, host) + "px";
 }
+// the row under the items: Coast, 4▲, 8▲
+function renderCaveItems() {
+  const box = $("cvitems"); if (!box) return;
+  coastGot(); box.replaceChildren();
+  for (const [k, label, title] of CV_KINDS) {
+    const c = S.cv[k];
+    const b = el("button", { type: "button", className: "cvbox" + (c && c.img ? (c.taken ? " on" : " seen") : ""),
+      title: title + (c && c.img ? `: ${optName(ARMOS_OPTS, c.img) || "an upgrade"} (${c.taken ? "taken" : "seen"})` : "") },
+      [c && c.img ? icon(c.img) : el("span", { className: "cvl", textContent: label }), el("small", { textContent: label })]);
+    b.onclick = (e) => { e.stopPropagation(); openCvPick(k, title, b); };
+    b.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openCvPick(k, title, b); };
+    box.append(b);
+  }
+}
+let cvOpen = null;
+function openCvPick(k, title, btn) {
+  const p = $("cvpick"); cvOpen = k; p.replaceChildren();
+  p.append(el("div", { className: "ptitle", textContent: title }));
+  cvGrid(p, k, closeCv);
+  p.hidden = false;
+  const r = btn.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
+  const w = Math.min(300, host.width - 16);
+  p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(r.left - host.left, host.width - w - 8)) + "px";
+  p.style.top = (r.bottom - host.top + 4) + "px";
+}
+function closeCv() { $("cvpick").hidden = true; cvOpen = null; }
+document.addEventListener("click", (e) => { if (cvOpen !== null && !$("cvpick").contains(e.target)) closeCv(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && cvOpen !== null) closeCv(); });
 // (owner 2026-11-28) every overworld window: Undo (the square back to unmarked) and X (don't need it; again: off)
 function owActions(s) {
   const undo = el("button", { type: "button", className: "wide quiet", textContent: "↺ Undo", title: "Back to unmarked" });
@@ -581,15 +635,19 @@ function openTriPick(s, cell) {
     b.onclick = () => {
       if (S.ow[s] === "armos") { delete S.owArm[s]; revoke("armos:" + s); }
       if (S.ow[s] === "shop") { delete S.owBuy[s]; revoke("shop:" + s); }
-      S.ow[s] = v; save(); closePicker(); renderMap();
+      S.ow[s] = v; save(); renderMap();
+      openTriPick(s, $("map").querySelector(`.cell[data-s="${s}"]`));   // (its item next)
     };
+    b.addEventListener("click", (e) => e.stopPropagation());
     grid.append(b);
   }
   const change = el("button", { type: "button", className: "wide", textContent: "Change mark" });
   change.onclick = (e) => { e.stopPropagation(); openPicker(s, cell); };
   const done = el("button", { type: "button", className: "wide quiet", textContent: S.owDone[s] ? "Unmark done" : "Mark done ✓" });
   done.onclick = () => { S.owDone[s] = !S.owDone[s]; save(); closePicker(); renderMap(); };
-  p.append(grid, el("div", { className: "prow" }, [change, done]), owActions(s));
+  p.append(grid);
+  if (cvOf(S.ow[s])) cvGrid(p, cvOf(S.ow[s]), closePicker);   // (owner 2026-11-28) the cave's item: seen / taken
+  p.append(el("div", { className: "prow" }, [change, done]), owActions(s));
   p.hidden = false;
   const r = cell.getBoundingClientRect(), host = p.parentElement.getBoundingClientRect();
   const w = Math.min(300, host.width - 16);
@@ -1291,7 +1349,7 @@ function renderCounters() {
   counter("bombups", "bombs", "Bomb upgrades", () => S.bombups, (v) => { S.bombups = v; }, 0, 3);
 }
 function renderAll() {
-  renderItems(); renderCounters();
+  renderItems(); renderCounters(); renderCaveItems();
   renderTri(); renderUps(); renderMap(); renderBrushes(); renderDun(); renderSide(); tick();
 }
 // (owner 2026-11-27) every tracker window open in this browser shows the same run: another window's save arrives here

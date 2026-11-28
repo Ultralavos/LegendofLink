@@ -469,3 +469,19 @@ body.stream .acc .accn { font-size: 11px; }
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 textarea, input, select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 img { -webkit-user-drag: none; }
+
+/* (owner 2026-11-28) the cave items row: coast, 4- and 8-triforce caves */
+.cvrow { display: flex; gap: 8px; }
+.cvbox { position: relative; width: 52px; height: 58px; padding: 2px 0 0; background: #0b0b10; border: 2px solid var(--line);
+  border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; color: var(--muted); }
+.cvbox img { width: 30px; height: 30px; object-fit: contain; }
+.cvbox.seen img { filter: grayscale(1); opacity: .55; }
+.cvbox.on { border-color: var(--accent); }
+.cvbox .cvl { font: bold 13px ui-monospace, monospace; line-height: 30px; }
+.cvbox small { font-size: 10px; }
+.psub { color: var(--muted); font-size: 12px; margin: 8px 0 4px; }
+.omi.sel.seen img { filter: grayscale(1); opacity: .6; }
+.tag.tricv { background: #e8a33a; }
+.cell .tag.tricv.seen img { filter: grayscale(1); opacity: .55; }
+.cell .tag.tricv img { width: 70%; height: 70%; object-fit: contain; }
+.cell .tag .trin { position: absolute; right: 2px; bottom: 0; font: 900 clamp(7px, .8vw, 11px)/1 sans-serif; color: #111; }
