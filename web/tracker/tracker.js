@@ -1287,7 +1287,7 @@ function renderSide() {
   if (!lv) {                                   // a shrine: its prize (taken: lit in the shrines row above)
     const v = sd.prize;
     box.append(el("div", { className: "slabel", textContent: "Prize" }));
-    const b = el("button", { type: "button", className: "sbox blank" + (v ? " on" : ""),
+    const b = el("button", { type: "button", className: "sbox blank" + (v ? " on filled" : ""),
       title: "Shrine prize" + (v ? ": " + optName(PRIZEOPTS, v) : "") }, v ? [icon(v)] : []);
     b.onclick = (e) => {
       e.stopPropagation();
@@ -1313,15 +1313,15 @@ function renderSide() {
       [icon(o.item || "cardD")], (b) => openOMRoom(lv, b));
     // (1.0) the blue potion room: the item deck's, like the cellars (an old save's "taken": the blue potion)
     if (sd.pot === true) sd.pot = "potion1";
-    sbtn("pot" + (sd.pot ? " on" : ""), "Potion room (the deck's item)" + (sd.pot ? ": " + optName(ARMOS_OPTS, sd.pot) : ""),
+    sbtn("pot" + (sd.pot ? " on filled" : ""), "Potion room (the deck's item)" + (sd.pot ? ": " + optName(ARMOS_OPTS, sd.pot) : ""),
       sd.pot ? [icon(sd.pot)] : [], (b) => sidePick(b, "Potion room: what was it?", ARMOS_OPTS, sd.pot,
         (img, lit) => { sd.pot = img; grant(`side:${k}:pot`, img, lit); save(); },
         () => { sd.pot = null; revoke(`side:${k}:pot`); save(); }, 1));
     const slot = (arr, i, opts, title, stairs) => {
       const v = sd[arr][i];
-      const kids = stairs ? [stairArt()] : [];
-      if (v) kids.push(icon(v, stairs ? "over" : ""));
-      sbtn((stairs ? "st" : "blank") + (v ? " on" : ""), title + (v ? ": " + optName(opts, v) : ""), kids, (b) =>
+      // (owner 2026-11-28) a found item replaces the box's picture and fills it
+      const kids = v ? [icon(v)] : stairs ? [stairArt()] : [];
+      sbtn((stairs ? "st" : "blank") + (v ? " on filled" : ""), title + (v ? ": " + optName(opts, v) : ""), kids, (b) =>
         sidePick(b, title, opts, v, (img, lit) => { sd[arr][i] = img; grant(`side:${k}:${arr}:${i}`, img, lit); save(); },
           () => { sd[arr][i] = null; revoke(`side:${k}:${arr}:${i}`); save(); }, 1));
     };
@@ -1331,7 +1331,7 @@ function renderSide() {
   } else {
     const slot = (i) => {
       const v = sd.st[i];
-      sbtn("st" + (v ? " on" : ""), "Item stairs" + (v ? ": " + optName(L9OPTS, v) : ""), [stairArt(), ...(v ? [icon(v, "over")] : [])], (b) =>
+      sbtn("st" + (v ? " on filled" : ""), "Item stairs" + (v ? ": " + optName(L9OPTS, v) : ""), v ? [icon(v)] : [stairArt()], (b) =>
         sidePick(b, "Level 9 item stairs", L9OPTS, v, (img, lit) => { sd.st[i] = img; grant(`side:9:st:${i}`, img, lit); save(); },
           () => { sd.st[i] = null; revoke(`side:9:st:${i}`); save(); }, -1));
     };

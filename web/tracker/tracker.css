@@ -244,6 +244,7 @@ footer a { color: var(--accent); }
 .sbox.tri.on .sn { color: var(--accent); }
 .sbox .sstair { position: absolute; inset: 22% 18% 22% 34%; }
 .sbox.st img.over { position: absolute; right: 2px; bottom: 2px; width: 55%; height: 55%; }
+.sbox.filled img { width: 90%; height: 90%; opacity: 1; filter: none; image-rendering: pixelated; }
 .slabel { font-size: 11px; color: var(--muted); text-align: center; letter-spacing: .5px; }
 /* found on the overworld: the number / letter lit, the border */
 .tpiece.found span { color: #f5e04a; } .tpiece.found:not(.on) { border-color: #8a7a2a; }
