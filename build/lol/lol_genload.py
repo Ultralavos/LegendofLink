@@ -256,8 +256,8 @@ def vseed(d, ci):
 
 def postab_of(nm, cls):
     """(1.0, owner 2026-11-28) a level's four item positions: ZORA's for 1Q's and 2Q's levels (the vanilla level's own
-    table) and Random shapes (the first quest's table of the level it plays); 3Q its own (Q3_TILES); None (LoL's
-    POS_TABLE) for LoL's own, 4Q and the shrines (their drop spots: the owner's, to come)."""
+    table) and Random shapes (the first quest's table of the level it plays); 3Q and 4Q their own (Q3_TILES, Q4_TILES);
+    None (LoL's POS_TABLE) for LoL's own and the shrines (their drop spots: the owner's, to come)."""
     import lol_v10
     if not lol_v10.ON or not cls.startswith("L"):
         return None
@@ -280,7 +280,15 @@ def postab_of(nm, cls):
         return q1[lv]
     if nm.startswith("3Q L"):
         return list(Q3_TILES[int(nm[4:])])
+    if nm.startswith("4Q L"):
+        return list(Q4_TILES[int(nm[4:])])
     return None
+
+
+# (1.0) 4Q's drop tiles (the 3Q build's Q4_ITEM_SPOTS: owner 2026-11-28)
+Q4_TILES = {1: (0x89, 0xD6, 0x26, 0x68), 2: (0x89, 0xD6, 0x69, 0x9A), 3: (0x89, 0x57, 0xA7, 0xAC),
+            4: (0x89, 0x66, 0x79, 0xBA), 5: (0x89, 0x78, 0x98, 0x8A), 6: (0x89, 0xAA, 0xAB, 0xBA),
+            7: (0x89, 0x49, 0x69, 0x67), 8: (0x89, 0x88, 0xA7, 0x6A), 9: (0x89, 0x8B, 0xB9, 0xDC)}
 
 
 # (1.0) 3Q's own drop tiles (q3/build: its levels' item position tables), level 5's B one tile below A (owner

@@ -1559,7 +1559,9 @@ Q4_CELLARS = [(4, "F8", "A15", Item.RECORDER)]
 Q4_QTY = {}                          # e.g. {4: [4, 5, 6, 8]}: index 0 is also the triple Dodongo's count           # per-level enemy counts (a level has four); others: QTY
 Q4_HIDDEN = {(9, "H1"), (1, "B11"), (2, "C3"), (4, "C8"), (8, "G16"), (8, "D14")}                              # rooms left off the level map
 Q4_BOMB_COST = 50                                     # the bomb upgrade's price in 4Q (3Q keeps 100)
-Q4_ITEM_SPOTS = {1: [0x89, 0xD6, 0x26, 0x8C], 2: [0x89, 0xD6, 0x69, 0x8C]}   # L2 C: 6,9 (a free column in C2)     # A 8,9  B 13,6 (east)  C 2,6  D 8,12 (bottom middle)
+Q4_ITEM_SPOTS = {1: [0x89, 0xD6, 0x26, 0x68], 2: [0x89, 0xD6, 0x69, 0x9A], 3: [0x89, 0x57, 0xA7, 0xAC],   # (owner 2026-11-28: D 6,8 / 9,10;
+                 4: [0x89, 0x66, 0x79, 0xBA], 5: [0x89, 0x78, 0x98, 0x8A], 6: [0x89, 0xAA, 0xAB, 0xBA],   #  levels 4-9 B-D the
+                 7: [0x89, 0x49, 0x69, 0x67], 8: [0x89, 0x88, 0xA7, 0x6A], 9: [0x89, 0x8B, 0xB9, 0xDC]}   #  owner's; 3 as before)
 # 4Q wall changes from the placeholder's: (level, room) -> {side: wall}
 Q4_WALLS = {(9, "G5"): {"N": WALL},                  # the old man: no north door
             (9, "B6"): {"N": SHUT},                  # Ganon -> the fake Zelda room
