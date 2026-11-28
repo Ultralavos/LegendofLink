@@ -181,7 +181,8 @@ function renderTri() {
 
 // ---------------------------------------------------------------- old men (levels 1-8)
 // the shops' wares (lol_choice SHOP_ITEMS, the bookworm's red book, the potion shop's potions): icon, name, gives
-const SHOP_WARES = [["key", "Key", null], ["bombs", "Bombs", null], ["bait", "Bait", "bait"], ["candle1", "Blue candle", "candle1"],
+// (owner 2026-11-28) 1.0's shops sell the bomb upgrade (the bomb-bag picture: +1 to the counter) and bomb packs
+const SHOP_WARES = [["key", "Key", null], ["bombs", "Bomb upgrade", "bombs"], ["bomb", "Bombs", null], ["bait", "Bait", "bait"], ["candle1", "Blue candle", "candle1"],
   ["boom1", "Boomerang", "boom1"], ["arrow1", "Arrows", "arrow1"], ["heart", "Heart", null], ["raft", "Raft", "raft"],
   ["recorder", "Recorder", "recorder"], ["bracelet", "Power bracelet", "bracelet"], ["bow", "Bow", "bow"],
   ["ladder", "Ladder", "ladder"], ["candle2", "Red candle", "candle2"], ["boom2", "Magical boomerang", "boom2"],
@@ -380,8 +381,13 @@ function renderMap() {
       if (S.owX[s]) { cell.classList.add("xd"); cell.append(el("span", { className: "xmark", textContent: "✕" })); }
       // (owner 2026-11-28, swapped) left click / tap: an X ("don't need it"), again to take it off; right-click /
       // long press: what's here
-      const menu = () => (S.ow[s] === "shop" ? openShop(s, cell) : S.ow[s] === "armos" ? openArmos(s, cell)
-        : /^tri\d$/.test(S.ow[s] || "") ? openTriPick(s, cell) : openPicker(s, cell));
+      // (owner 2026-11-28) opening an X'd square's window takes its X off
+      const menu = () => {
+        let c = cell;
+        if (S.owX[s]) { delete S.owX[s]; save(); renderMap(); c = $("map").querySelector(`.cell[data-s="${s}"]`) || cell; }
+        return S.ow[s] === "shop" ? openShop(s, c) : S.ow[s] === "armos" ? openArmos(s, c)
+          : /^tri\d$/.test(S.ow[s] || "") ? openTriPick(s, c) : openPicker(s, c);
+      };
       const xout = () => { if (S.owX[s]) delete S.owX[s]; else S.owX[s] = 1; save(); renderMap(); };
       cell.onclick = (e) => { e.stopPropagation(); xout(); };
       cell.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); menu(); };
@@ -683,7 +689,7 @@ function openShop(s, cell) {
   p.style.top = owTop(p, r, host) + "px";
 }
 // (1.0) the wood sword cave's shop (heart level 11 on): its wares, each bought or not (it stays open)
-const WOOD_WARES = [["key", "Key", null], ["bombs", "Bombs", null], ["arrow1", "Arrows", "arrow1"],
+const WOOD_WARES = [["key", "Key", null], ["bomb", "Bombs", null], ["arrow1", "Arrows", "arrow1"],
   ["heart", "Pity heart", null], ["shield", "Magical shield", "shield"]];
 function openWoodShop(s, cell) {
   const p = $("picker"); picking = s; p.replaceChildren();
